@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - E:\Docker\prometheus\config:/etc/prometheus
+      - E:\Docker\prometheus\data:/prometheus
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Prometheus
+      - homepage.icon=prometheus.png
+      - homepage.href=https://prometheus.benlawson.dev/
+      - homepage.siteMonitor=http://prometheus:9090/-/healthy
+      - homepage.description=Metrics database
+      - homepage.widget.type=prometheus
+      - homepage.widget.url=http://prometheus:9090
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

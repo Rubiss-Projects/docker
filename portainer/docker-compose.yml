@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  # Portainer helps debugging and monitors the containers
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    ports:
+      - 9000:9000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - E:\Docker\portainer\config:/data
+    restart: unless-stopped
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Portainer
+      - homepage.icon=portainer.png
+      - homepage.href=https://portainer.benlawson.dev/
+      - homepage.siteMonitor=http://portainer:9000
+      - homepage.description=Container management
+      - homepage.widget.type=portainer
+      - homepage.widget.url=http://portainer:9000
+      - homepage.widget.env=2
+      - homepage.widget.key=ptr_akP8bGdrb4IGODf+y271WXnC7RDrDnSdzV3gvJcbVrE=
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

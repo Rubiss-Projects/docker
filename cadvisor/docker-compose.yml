@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  cadvisor:
+      image: gcr.io/cadvisor/cadvisor
+      container_name: cadvisor
+      volumes:
+        - "/:/rootfs:ro"
+        - "/var/run:/var/run:ro"
+        - "/sys:/sys:ro"
+        - "/var/lib/docker/:/var/lib/docker:ro"
+        - "/dev/disk/:/dev/disk:ro"
+      ports:
+        - "8080:8080"
+      labels:
+        - homepage.group=Observability
+        - homepage.name=cAdvisor
+        - homepage.icon=cadvisor.png
+        - homepage.href=https://cadvisor.benlawson.dev/
+        - homepage.siteMonitor=http://cadvisor:8080/containers
+        - homepage.description=Docker container monitoring
+      networks:
+        - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_HTTP_API_TOKEN=***REDACTED***
+      - WATCHTOWER_HTTP_API_METRICS=true
+    ports:
+      - 8081:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Watchtower
+      - homepage.icon=watchtower.png
+      - homepage.href=https://watchtower.benlawson.dev/v1/metrics
+      - homepage.siteMonitor=http://watchtower:8080/v1/metrics
+      - homepage.description=Service updater
+      - homepage.widget.type=watchtower
+      - homepage.widget.url=http://watchtower:8080
+      - homepage.widget.key=***REDACTED***
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

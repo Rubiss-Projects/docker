@@ -1,0 +1,50 @@
+version: '3.7'
+services:
+  transmission:
+    image: lscr.io/linuxserver/transmission:4.0.5
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - TRANSMISSION_WEB_HOME= #optional
+      - USER= #optional
+      - PASS= #optional
+      - WHITELIST= #optional
+      - PEERPORT= #optional
+      - HOST_WHITELIST= #optional
+      - DOCKER_MODS=linuxserver/mods:transmission-env-var-settings
+      - TRANSMISSION_DOWNLOAD_DIR=/downloads
+      - TRANSMISSION_DHT_ENABLED=false
+      - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=false
+      - TRANSMISSION_RATIO_LIMIT_ENABLED=false
+      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=5
+      - TRANSMISSION_SPEED_LIMIT_DOWN_ENABLED=true
+      - TRANSMISSION_SPEED_LIMIT_DOWN=50000
+    volumes:
+      - E:\Docker\transmission\data:/config
+      - E:\Media\downloads:/downloads
+      - E:\Docker\transmission\watch:/watch
+      - E:\Media\:/library
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+    labels:
+      - homepage.group=Downloads
+      - homepage.name=Transmission
+      - homepage.icon=transmission.png
+      - homepage.href=https://transmission.benlawson.dev/
+      - homepage.siteMonitor=http://transmission:9091/transmission/web
+      - homepage.description=Torrent client
+      - homepage.widget.type=transmission
+      - homepage.widget.url=http://transmission:9091
+      - homepage.widget.username=
+      - homepage.widget.password=
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

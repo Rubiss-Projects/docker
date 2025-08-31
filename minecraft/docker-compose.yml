@@ -1,9 +1,10 @@
 version: "3.8"
 services:
   minecraft-server:
-    image: itzg/minecraft-server:java17
+    image: itzg/minecraft-server
+    container_name: minecraft
     volumes:
-        - D:\Docker\minecraft\data\:/data
+        - E:\Docker\minecraft\data\:/data
     ports:
       - "25565:25565"
       - "19132:19132/udp"
@@ -16,3 +17,16 @@ services:
     tty: true
     stdin_open: true
     restart: unless-stopped
+    labels:
+      - homepage.group=Gaming
+      - homepage.name=Minecraft
+      - homepage.icon=minecraft.png
+      - homepage.description=Minecraft Server
+      - homepage.widget.type=minecraft
+      - homepage.widget.url=udp://minecraft.benlawson.dev:25565
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

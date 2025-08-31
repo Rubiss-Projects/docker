@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - E:\Docker\tautulli\config:/config
+    ports:
+      - 8181:8181
+    restart: unless-stopped
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Tautulli
+      - homepage.icon=tautulli.png
+      - homepage.href=https://tautulli.benlawson.dev/
+      - homepage.siteMonitor=http://tautulli:8181/status
+      - homepage.description=Plex metrics
+      - homepage.widget.type=tautulli
+      - homepage.widget.url=http://tautulli:8181
+      - homepage.widget.key=1bbebc8053784f57a73c6c7a4a1606f7
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external:
+      name: proxynet

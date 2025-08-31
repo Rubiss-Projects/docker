@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - E:\Docker\overseerr\config:/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+    labels:
+      - homepage.group=Media
+      - homepage.name=Overseerr
+      - homepage.icon=overseerr.png
+      - homepage.href=https://overseerr.benlawson.dev/
+      - homepage.siteMonitor=http://overseerr:5055
+      - homepage.description=Media requests
+      - homepage.widget.type=overseerr
+      - homepage.widget.url=http://overseerr:5055
+      - homepage.widget.key=MTcyNDQ2MjQwMzA1MjQ1ZjUwZWY0LWU1ZjEtNDRjMC04NzQ2LWViMjAzMTE1YzcyYg==
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

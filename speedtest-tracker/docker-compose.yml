@@ -1,0 +1,35 @@
+services:
+    speedtest-tracker:
+        image: lscr.io/linuxserver/speedtest-tracker:latest
+        restart: unless-stopped
+        container_name: speedtesttracker
+        ports:
+            - 8082:80
+            - 8444:443
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - SPEEDTEST_SCHEDULE=6 * * * *
+            - APP_TIMEZONE=America/New_York
+            - DISPLAY_TIMEZONE=America/New_York
+            - APP_KEY=base64:NOd41OMj3FOCJvSQbfFQ6cjaokMAUmZ2pEhAAbmUWHM=
+            - APP_URL=https://speed.benlawson.dev
+            - ASSET_URL=https://speed.benlawson.dev
+            - DB_CONNECTION=sqlite
+        volumes:
+            - ./data:/config
+        labels:
+            - homepage.group=Observability
+            - homepage.name=Speedtest Tracker
+            - homepage.icon=speedtest-tracker.png
+            - homepage.href=https://speed.benlawson.dev/
+            - homepage.siteMonitor=http://speedtesttracker:80/
+            - homepage.description=Internet Speed
+            - homepage.widget.type=speedtest
+            - homepage.widget.url=http://speedtesttracker:80
+        networks:
+            - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

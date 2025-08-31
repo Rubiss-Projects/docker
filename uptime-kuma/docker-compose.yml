@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    volumes:
+      - E:\Docker\uptime-kuma\data:/app/data
+    ports:
+      - 3001:3001
+    restart: unless-stopped
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Uptime Kuma
+      - homepage.icon=uptime-kuma.png
+      - homepage.href=https://uptime.benlawson.dev/
+      - homepage.siteMonitor=http://uptime-kuma:3001
+      - homepage.description=Uptime metrics
+      - homepage.widget.type=uptimekuma
+      - homepage.widget.url=http://uptime-kuma:3001
+      - homepage.widget.slug=media-server
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

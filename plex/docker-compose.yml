@@ -6,21 +6,41 @@ services:
         container_name: plex
         ports:
             - 32400:32400
-            - 1900:1900/udp
+            - 1900:1900/udp # SSDP (device discovery)
             - 3005:3005
-            # - 5353:5353/udp
+            - 5353:5353/udp # mDNS (multicast DNS)
             - 8324:8324
             - 32410:32410/udp
             - 32412:32412/udp
             - 32413:32413/udp
             - 32414:32414/udp
             - 32469:32469
+            - 65001:65001/udp #HDHomeRun discovery
         environment:
             - PUID=1000
             - PGID=1000
+            - TZ=Etc/UTC
             - VERSION=docker
         volumes:
-            - D:/Docker/plex/config:/config
-            - D:/Docker/plex/library/tv:/tv
-            - D:/Docker/plex/library/movies:/movies
+            - E:\Docker\plex\config:/config
+            - E:\Media/tv:/tv
+            - E:\Media/movies:/movies
+            - E:\Media/videos:/videos
         restart: unless-stopped
+        labels:
+            - homepage.group=Media
+            - homepage.name=Plex
+            - homepage.icon=plex.png
+            - homepage.href=https://plex.benlawson.dev/
+            - homepage.siteMonitor=http://plex:32400/identity
+            - homepage.description=Plex media server
+            - homepage.widget.type=plex
+            - homepage.widget.url=http://plex:32400
+            - homepage.widget.key=r4aVov2C_Q3Z8E5W3fum
+        networks:
+            - proxynet
+
+networks:
+  proxynet:
+    external:
+        name: proxynet

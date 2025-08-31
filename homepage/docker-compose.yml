@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    environment:
+      PUID: 1000
+      PGID: 1000
+      HOMEPAGE_ALLOWED_HOSTS: homepage.benlawson.dev
+    ports:
+      - 3030:3000
+    volumes:
+      - E:\Docker\homepage\config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - E:\:/e
+    restart: unless-stopped
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
