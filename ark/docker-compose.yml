@@ -2,7 +2,7 @@ version: '3'
 
 services:
   server:
-    restart: always
+    restart: unless-stopped
     container_name: ark_server
     image: hermsi/ark-server:latest
     volumes:

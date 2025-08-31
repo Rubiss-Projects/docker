@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  # Prowlarr is our torrent indexer/searcher. Sonarr/Radarr use Prowlarr as a source
+  # https://prowlarr.com/
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr
+    container_name: prowlarr
+    volumes:
+      - E:\Docker\prowlarr\config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    labels:
+      - homepage.group=Management
+      - homepage.name=Prowlarr
+      - homepage.icon=prowlarr.png
+      - homepage.href=https://prowlarr.benlawson.dev/
+      - homepage.siteMonitor=http://prowlarr:9696/ping
+      - homepage.description=Index manager
+      - homepage.widget.type=prowlarr
+      - homepage.widget.fields=["numberOfGrabs", "numberOfQueries", "numberOfFailGrabs"]
+      - homepage.widget.url=http://prowlarr:9696
+      - homepage.widget.key=51602a1970e344798e43a81fca3394d3
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

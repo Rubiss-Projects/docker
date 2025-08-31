@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  # Bazarr is used to download and categorize subtitles
+  # https://www.bazarr.media/
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr
+    volumes:
+      - E:\Media\movies:/movies
+      - E:\Media\tv:/tv
+      - E:\Docker\bazarr\config:/config
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+    labels:
+      - homepage.group=Management
+      - homepage.name=Bazarr
+      - homepage.icon=bazarr.png
+      - homepage.href=https://bazarr.benlawson.dev/
+      - homepage.siteMonitor=http://bazarr:6767/series
+      - homepage.description=Captions management
+      - homepage.widget.type=bazarr
+      - homepage.widget.url=http://bazarr:6767
+      - homepage.widget.key=9eb1928d07b9a8f9bc84c8b9b12b9971
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

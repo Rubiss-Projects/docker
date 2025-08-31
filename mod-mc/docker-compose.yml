@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  minecraft-server:
+    image: itzg/minecraft-server:java17
+    volumes:
+        - E:\Docker\mod-mc\data\:/data
+    ports:
+      - "25565:25565"
+      - "19132:19132/udp"
+    environment:
+      TYPE: FORGE
+      VERSION: 1.19.2
+      FORGE_VERSION: 43.2.6
+      PACKWIZ_URL: https://raw.githubusercontent.com/Hdom/packwiz-ben-server/main/pack.toml
+      EULA: "TRUE"
+      OPS: MasterHdom
+      ENABLE_WHITELIST: "true"
+      MEMORY: 16G
+    tty: true
+    stdin_open: true
+    restart: unless-stopped

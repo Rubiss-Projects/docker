@@ -1,6 +1,9 @@
-minecraft/data/*
-plex/config/*
+**/config/*
+**/data/*
+nginx-proxy-manager/letsencrypt/*
+palworld/win/*
+pi-hole/etc-*/*
 plex/library/*
-transmission-openvpn/data/*
-valheim/config/*
-valheim/data/*
+vrising/Backups/*
+vrising/persistentdata/*
+vrising/server/*

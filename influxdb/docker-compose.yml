@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    volumes:
+      - E:\Docker\influxdb\data:/var/lib/influxdb2:rw
+    ports:
+      - "8086:8086"
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Influxdb
+      - homepage.icon=influxdb.png
+      - homepage.href=https://influx.benlawson.dev/
+      - homepage.siteMonitor=http://influxdb:8086/health
+      - homepage.description=Metrics database
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  # Sonarr is used to query, add downloads to the download queue and index TV shows
+  # https://sonarr.tv/
+  sonarr:
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    volumes:
+      - E:\Media\tv:/tv
+      - E:\Media\downloads:/downloads
+      - E:\Docker\sonarr\config:/config
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    labels:
+      - homepage.group=Management
+      - homepage.name=Sonarr
+      - homepage.icon=sonarr.png
+      - homepage.href=https://sonarr.benlawson.dev/
+      - homepage.siteMonitor=http://sonarr:8989/ping
+      - homepage.description=Series management
+      - homepage.widget.type=sonarr
+      - homepage.widget.url=http://sonarr:8989
+      - homepage.widget.key=7874d8e57f3f43d09e36ab5cc4184383
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

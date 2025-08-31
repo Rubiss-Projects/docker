@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - UMASK_SET=022
+    ports:
+      - 3000:3000
+    volumes:
+      - E:\Docker\grafana\data:/var/lib/grafana
+    restart: unless-stopped
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Grafana
+      - homepage.icon=grafana.png
+      - homepage.href=https://grafana.benlawson.dev/
+      - homepage.siteMonitor=http://grafana:3000/healthz
+      - homepage.description=Metric visualizations
+      - homepage.widget.type=grafana
+      - homepage.widget.url=http://grafana:3000
+      - homepage.widget.username=rubiss
+      - homepage.widget.password=SoxU$#W5j@c3K6oF%Sz3
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  # Radarr is used to query, add downloads to the download queue and index Movies
+  # https://radarr.video/
+  radarr:
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    volumes:
+      - E:\Media\movies:/movies
+      - E:\Media\downloads:/downloads
+      - E:\Docker\radarr\config:/config
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    labels:
+      - homepage.group=Management
+      - homepage.name=Radarr
+      - homepage.icon=radarr.png
+      - homepage.href=https://radarr.benlawson.dev/
+      - homepage.siteMonitor=http://radarr:7878/ping
+      - homepage.description=Movie management
+      - homepage.widget.type=radarr
+      - homepage.widget.url=http://radarr:7878
+      - homepage.widget.key=bc8eb7a3347a424abb0c74eb3a331da8
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

@@ -2,7 +2,7 @@ version: '3.3'
 services:
     astroneer:
         # volumes:
-        #     - D:\Docker\transmission-openvpn\data\:/data
+        #     - E:\Docker\transmission-openvpn\data\:/data
         ports:
             - 27015:27015
             - 27015:27015/udp

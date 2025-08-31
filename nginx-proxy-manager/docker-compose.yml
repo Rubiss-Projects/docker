@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  app:
+    image: 'docker.io/jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - E:\Docker\nginx-proxy-manager\data:/data
+      - E:\Docker\nginx-proxy-manager\letsencrypt:/etc/letsencrypt
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Nginx Proxy Manager
+      - homepage.icon=nginx.png
+      - homepage.href=https://proxy.benlawson.dev/
+      - homepage.siteMonitor=http://nginx-proxy-manager:81/api
+      - homepage.description=Proxy management
+      - homepage.widget.type=npm
+      - homepage.widget.url=http://nginx-proxy-manager:81
+      - homepage.widget.username=rubiss@gmail.com
+      - homepage.widget.password=!tmckE63aN5tw8&TensZ
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

@@ -1,0 +1,40 @@
+version: "3"
+### Unpackerr docker-compose.yml Example
+### Please read this page for help using this example:
+### https://unpackerr.zip/docs/install/compose
+### Generator: https://notifiarr.com/unpackerr
+##################################################################
+services:
+  ## Copy the service below to your file if you have other services.
+  unpackerr:
+    image: golift/unpackerr
+    container_name: unpackerr
+    volumes:
+      # You need at least this one volume mapped so Unpackerr can find your files to extract.
+      # Make sure this matches your Starr apps; the folder mount (/downloads or /data) should be identical.
+      - E:\Media\downloads:/downloads
+    restart: always
+    # Get the user:group correct so unpackerr can read and write to your files.
+    user: ${PUID}:${PGID}
+    #user: 1000:100
+    # What you see below are defaults mixed with examples where examples make more sense than the default.
+    # You only need to modify things specific to your environment.
+    # Remove apps and feature configs you do not use or need.
+    # ie. Remove all lines that begin with UN_CMDHOOK, UN_WEBHOOK,
+    #     UN_FOLDER, UN_WEBSERVER, and other apps you do not use.
+    environment:
+    - TZ=${TZ}
+    ## Sonarr Settings
+    - UN_SONARR_0_URL=http://sonarr:8989
+    - UN_SONARR_0_API_KEY=7874d8e57f3f43d09e36ab5cc4184383
+    - UN_SONARR_0_PATHS_0=/downloads
+    ## Radarr Settings
+    - UN_RADARR_0_URL=http://radarr:7878
+    - UN_RADARR_0_API_KEY=bc8eb7a3347a424abb0c74eb3a331da8
+    - UN_RADARR_0_PATHS_0=/downloads/radarr
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
