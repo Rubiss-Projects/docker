@@ -21,7 +21,7 @@ services:
       - homepage.group=Infrastructure
       - homepage.name=Pi-hole
       - homepage.icon=pi-hole.png
-      - homepage.href=https://dns.benlawson.dev/
+      - homepage.href=https://dns.benlawson.dev/admin/
       - homepage.description=Network-wide ad blocker
       - homepage.widget.type=pihole
       - homepage.widget.url=http://pihole:80
