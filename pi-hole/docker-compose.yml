@@ -11,13 +11,29 @@ services:
       - "8088:80/tcp"
     environment:
       TZ: 'America/Chicago'
-      WEBPASSWORD: 'bAok&%8V!mL#o#UNsW#r'
-      FTLCONF_LOCAL_IPV4: '192.168.50.40'
+      WEBPASSWORD: "bAok&%8V!mL#o#UNsW#r"
+      VIRTUAL_HOST: 'dns.benlawson.dev,pi-hole.benlawson.dev'
     # Volumes store your data between container upgrades
     volumes:
       - 'E:\Docker\pi-hole\etc-pihole:/etc/pihole'
       - 'E:\Docker\pi-hole\etc-dnsmasq.d:/etc/dnsmasq.d'
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Pi-hole
+      - homepage.icon=pi-hole.png
+      - homepage.href=https://dns.benlawson.dev/
+      - homepage.description=Network-wide ad blocker
+      - homepage.widget.type=pihole
+      - homepage.widget.url=http://pihole:80
+      - homepage.widget.key=bAok&%8V!mL#o#UNsW#r
+      - homepage.widget.version=6
     #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     cap_add:
       - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
     restart: unless-stopped
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
