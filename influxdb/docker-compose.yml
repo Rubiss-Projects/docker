@@ -8,6 +8,7 @@ services:
       - E:\Docker\influxdb\data:/var/lib/influxdb2:rw
     ports:
       - "8086:8086"
+    restart: unless-stopped
     labels:
       - homepage.group=Observability
       - homepage.name=Influxdb
