@@ -35,10 +35,11 @@ services:
             - E:\Media/tv:/tv
             - E:\Media/movies:/movies
             - E:\Media/videos:/videos
-            - E:\Docker\plex\transcode:/transcode
             # Explicitly mount WSL NVIDIA driver paths
             - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
             - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+        tmpfs:
+            - /transcode
         restart: unless-stopped
         labels:
             - homepage.group=Media
