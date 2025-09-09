@@ -50,7 +50,7 @@ services:
             - homepage.description=Plex media server
             - homepage.widget.type=plex
             - homepage.widget.url=http://plex:32400
-            - homepage.widget.key=r4aVov2C_Q3Z8E5W3fum
+            - homepage.widget.key=wenRoMTNPEPRSD8RAfWR
         networks:
             - proxynet
 
