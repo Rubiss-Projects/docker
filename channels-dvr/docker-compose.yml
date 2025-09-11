@@ -21,6 +21,12 @@ services:
       # Explicitly mount WSL NVIDIA driver paths
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    labels:
+      - homepage.group=Media
+      - homepage.name=Channels DVR
+      - homepage.icon=mdi-television
+      - homepage.href=https://channels.benlawson.dev
+      - homepage.ping=http://channels-dvr:8089
     networks:
       - proxynet
 
