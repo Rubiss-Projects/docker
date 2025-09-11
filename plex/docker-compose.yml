@@ -35,6 +35,7 @@ services:
             - E:\Media/tv:/tv
             - E:\Media/movies:/movies
             - E:\Media/videos:/videos
+            - E:\Media\channels-dvr:/channels-dvr
             # Explicitly mount WSL NVIDIA driver paths
             - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
             - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
