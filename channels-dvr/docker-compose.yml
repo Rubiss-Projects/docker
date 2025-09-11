@@ -1,0 +1,30 @@
+services:
+  channels-dvr:
+    image: fancybits/channels-dvr:nvidia
+    container_name: channels-dvr
+    ports:
+      - "8089:8089"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility, video]
+    restart: unless-stopped
+    volumes:
+      - E:\Docker\channels-dvr\config:/channels-dvr
+      - E:\Docker\channels-dvr\recordings:/shares/DVR
+      # Explicitly mount WSL NVIDIA driver paths
+      - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external:
+        name: proxynet
