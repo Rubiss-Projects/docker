@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # Portainer helps debugging and monitors the containers
   portainer:

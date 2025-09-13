@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/

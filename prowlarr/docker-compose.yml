@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # Prowlarr is our torrent indexer/searcher. Sonarr/Radarr use Prowlarr as a source
   # https://prowlarr.com/
