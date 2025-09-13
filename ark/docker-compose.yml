@@ -11,13 +11,15 @@ services:
     environment:
       - SESSION_NAME="A Tranquil Environment"
       - SERVER_MAP=${SERVER_MAP}
-      - SERVER_PASSWORD="LetsBeTranquil"
-      - ADMIN_PASSWORD="ActuallyToxic"
+      - SERVER_PASSWORD=${SERVER_PASSWORD}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - MAX_PLAYERS=${MAX_PLAYERS}
       - UPDATE_ON_START=${UPDATE_ON_START}
       - BACKUP_ON_STOP=${BACKUP_ON_STOP}
       - PRE_UPDATE_BACKUP=${PRE_UPDATE_BACKUP}
       - WARN_ON_STOP=${WARN_ON_STOP}
+    env_file:
+      - .env
       - ENABLE_CROSSPLAY=true
       - DISABLE_BATTLEYE=true
     ports:

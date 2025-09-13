@@ -13,6 +13,8 @@ services:
     ports:
       - 7878:7878
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Management
       - homepage.name=Radarr
@@ -22,7 +24,7 @@ services:
       - homepage.description=Movie management
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
-      - homepage.widget.key=bc8eb7a3347a424abb0c74eb3a331da8
+      - homepage.widget.key=${RADARR_API_KEY}
     networks:
       - proxynet
 

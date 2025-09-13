@@ -12,6 +12,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - E:\Docker\portainer\config:/data
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Infrastructure
       - homepage.name=Portainer
@@ -22,7 +24,7 @@ services:
       - homepage.widget.type=portainer
       - homepage.widget.url=http://portainer:9000
       - homepage.widget.env=2
-      - homepage.widget.key=ptr_akP8bGdrb4IGODf+y271WXnC7RDrDnSdzV3gvJcbVrE=
+      - homepage.widget.key=${PORTAINER_API_KEY}
     networks:
       - proxynet
 
