@@ -1,18 +1,17 @@
-version: "3"
-services: 
-  valheim: 
+services:
+  valheim:
     image: lloesche/valheim-server
     container_name: valheim
     cap_add:
       - sys_nice
-    volumes: 
+    volumes:
       - E:\Docker\valheim\config:/config
       - E:\Docker\valheim\data:/opt/valheim
-    ports: 
+    ports:
       - "2456-2457:2456-2457/udp"
       - "9001:9001/tcp"
     env_file:
-      - E:\Docker\valheim\valheim.env
+      - .env
     restart: unless-stopped
     stop_grace_period: 2m
     labels:

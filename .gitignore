@@ -1,5 +1,15 @@
+# Environment files containing secrets
+**/.env
+
+# Exclude example files from being ignored
+!**/.env.example
+
+# Data and config directories
 **/config/*
 **/data/*
+**/logs/*
+
+# Service-specific directories
 nginx-proxy-manager/letsencrypt/*
 palworld/win/*
 pi-hole/etc-*/*
@@ -8,3 +18,18 @@ vrising/Backups/*
 vrising/persistentdata/*
 vrising/server/*
 channels-dvr/recordings/*
+
+# Backup files
+*.backup
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

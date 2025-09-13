@@ -1,61 +1,63 @@
 services:
-    plex:
-        image: ghcr.io/linuxserver/plex
-        container_name: plex
-        ports:
-            - 32400:32400
-            - 1900:1900/udp # SSDP (device discovery)
-            - 3005:3005
-            - 5353:5353/udp # mDNS (multicast DNS)
-            - 8324:8324
-            - 32410:32410/udp
-            - 32412:32412/udp
-            - 32413:32413/udp
-            - 32414:32414/udp
-            - 32469:32469
-            - 65001:65001/udp #HDHomeRun discovery
-        environment:
-            - PUID=1000
-            - PGID=1000
-            - TZ=Etc/UTC
-            - VERSION=docker
-            - NVIDIA_VISIBLE_DEVICES=all
-            - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
-            # Hardware transcoding flags
-            - PLEX_HWACCEL=1
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: all
-                          capabilities: [gpu, compute, utility, video]
-        volumes:
-            - E:\Docker\plex\config:/config
-            - E:\Media/tv:/tv
-            - E:\Media/movies:/movies
-            - E:\Media/videos:/videos
-            - E:\Media\channels-dvr:/channels-dvr
-            # Explicitly mount WSL NVIDIA driver paths
-            - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
-            - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
-        tmpfs:
-            - /transcode
-        restart: unless-stopped
-        labels:
-            - homepage.group=Media
-            - homepage.name=Plex
-            - homepage.icon=plex.png
-            - homepage.href=https://plex.benlawson.dev/
-            - homepage.siteMonitor=http://plex:32400/identity
-            - homepage.description=Plex media server
-            - homepage.widget.type=plex
-            - homepage.widget.url=http://plex:32400
-            - homepage.widget.key=wenRoMTNPEPRSD8RAfWR
-        networks:
-            - proxynet
+  plex:
+    image: ghcr.io/linuxserver/plex
+    container_name: plex
+    ports:
+      - 32400:32400
+      - 1900:1900/udp # SSDP (device discovery)
+      - 3005:3005
+      - 5353:5353/udp # mDNS (multicast DNS)
+      - 8324:8324
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+      - 32469:32469
+      - 65001:65001/udp #HDHomeRun discovery
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VERSION=${VERSION}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES}
+      # Hardware transcoding flags
+      - PLEX_HWACCEL=${PLEX_HWACCEL}
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility, video]
+    volumes:
+      - E:\Docker\plex\config:/config
+      - E:\Media\tv:/tv
+      - E:\Media\movies:/movies
+      - E:\Media\videos:/videos
+      - E:\Media\channels-dvr:/channels-dvr
+      # Explicitly mount WSL NVIDIA driver paths
+      - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    tmpfs:
+      - /transcode
+    restart: unless-stopped
+    labels:
+      - homepage.group=Media
+      - homepage.name=Plex
+      - homepage.icon=plex.png
+      - homepage.href=https://plex.benlawson.dev/
+      - homepage.siteMonitor=http://plex:32400/identity
+      - homepage.description=Plex media server
+      - homepage.widget.type=plex
+      - homepage.widget.url=http://plex:32400
+      - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+    networks:
+      - proxynet
 
 networks:
   proxynet:
     external:
-        name: proxynet
+      name: proxynet

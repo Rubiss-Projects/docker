@@ -13,6 +13,8 @@ services:
     ports:
       - 8181:8181
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Observability
       - homepage.name=Tautulli
@@ -22,7 +24,7 @@ services:
       - homepage.description=Plex metrics
       - homepage.widget.type=tautulli
       - homepage.widget.url=http://tautulli:8181
-      - homepage.widget.key=1bbebc8053784f57a73c6c7a4a1606f7
+      - homepage.widget.key=${TAUTULLI_API_KEY}
     networks:
       - proxynet
 

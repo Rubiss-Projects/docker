@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
@@ -12,6 +10,8 @@ services:
       - E:\Docker\sonarr\config:/config
     ports:
       - 8989:8989
+    env_file:
+      - .env
     restart: unless-stopped
     labels:
       - homepage.group=Management
@@ -22,7 +22,7 @@ services:
       - homepage.description=Series management
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
-      - homepage.widget.key=***REDACTED***
+      - homepage.widget.key=${SONARR_API_KEY}
     networks:
       - proxynet
 

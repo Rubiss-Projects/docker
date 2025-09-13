@@ -10,13 +10,15 @@ services:
       - "67:67/udp" # Only required if you are using Pi-hole as your DHCP server
       - "8088:80/tcp"
     environment:
-      TZ: 'America/Chicago'
-      WEBPASSWORD: "bAok&%8V!mL#o#UNsW#r"
-      VIRTUAL_HOST: 'dns.benlawson.dev,pi-hole.benlawson.dev'
+      - TZ=${TZ}
+      - WEBPASSWORD=${WEBPASSWORD}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
     # Volumes store your data between container upgrades
     volumes:
-      - 'E:\Docker\pi-hole\etc-pihole:/etc/pihole'
-      - 'E:\Docker\pi-hole\etc-dnsmasq.d:/etc/dnsmasq.d'
+      - E:\Docker\pi-hole\etc-pihole:/etc/pihole
+      - E:\Docker\pi-hole\etc-dnsmasq.d:/etc/dnsmasq.d
+    env_file:
+      - .env
     labels:
       - homepage.group=Infrastructure
       - homepage.name=Pi-hole
@@ -25,7 +27,7 @@ services:
       - homepage.description=Network-wide ad blocker
       - homepage.widget.type=pihole
       - homepage.widget.url=http://pihole:80
-      - homepage.widget.key=bAok&%8V!mL#o#UNsW#r
+      - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
       - homepage.widget.version=6
     #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     cap_add:

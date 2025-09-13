@@ -7,15 +7,17 @@ services:
             - 8082:80
             - 8444:443
         environment:
-            - PUID=1000
-            - PGID=1000
-            - SPEEDTEST_SCHEDULE=6 * * * *
-            - APP_TIMEZONE=America/New_York
-            - DISPLAY_TIMEZONE=America/New_York
-            - APP_KEY=base64:NOd41OMj3FOCJvSQbfFQ6cjaokMAUmZ2pEhAAbmUWHM=
-            - APP_URL=https://speed.benlawson.dev
-            - ASSET_URL=https://speed.benlawson.dev
-            - DB_CONNECTION=sqlite
+            - PUID=${PUID}
+            - PGID=${PGID}
+            - SPEEDTEST_SCHEDULE=${SPEEDTEST_SCHEDULE}
+            - APP_TIMEZONE=${APP_TIMEZONE}
+            - DISPLAY_TIMEZONE=${DISPLAY_TIMEZONE}
+            - APP_KEY=${APP_KEY}
+            - APP_URL=${APP_URL}
+            - ASSET_URL=${ASSET_URL}
+            - DB_CONNECTION=${DB_CONNECTION}
+        env_file:
+            - .env
         volumes:
             - ./data:/config
         labels:

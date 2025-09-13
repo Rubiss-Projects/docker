@@ -13,6 +13,8 @@ services:
     ports:
       - 6767:6767
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Management
       - homepage.name=Bazarr
@@ -22,7 +24,7 @@ services:
       - homepage.description=Captions management
       - homepage.widget.type=bazarr
       - homepage.widget.url=http://bazarr:6767
-      - homepage.widget.key=9eb1928d07b9a8f9bc84c8b9b12b9971
+      - homepage.widget.key=${BAZARR_API_KEY}
     networks:
       - proxynet
 

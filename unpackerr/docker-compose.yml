@@ -23,15 +23,17 @@ services:
     # ie. Remove all lines that begin with UN_CMDHOOK, UN_WEBHOOK,
     #     UN_FOLDER, UN_WEBSERVER, and other apps you do not use.
     environment:
-    - TZ=${TZ}
-    ## Sonarr Settings
-    - UN_SONARR_0_URL=http://sonarr:8989
-    - UN_SONARR_0_API_KEY=***REDACTED***
-    - UN_SONARR_0_PATHS_0=/downloads
-    ## Radarr Settings
-    - UN_RADARR_0_URL=http://radarr:7878
-    - UN_RADARR_0_API_KEY=***REDACTED***
-    - UN_RADARR_0_PATHS_0=/downloads/radarr
+      - TZ=${TZ}
+      ## Sonarr Settings
+      - UN_SONARR_0_URL=${UN_SONARR_0_URL}
+      - UN_SONARR_0_API_KEY=${UN_SONARR_0_API_KEY}
+      - UN_SONARR_0_PATHS_0=${UN_SONARR_0_PATHS_0}
+      ## Radarr Settings
+      - UN_RADARR_0_URL=${UN_RADARR_0_URL}
+      - UN_RADARR_0_API_KEY=${UN_RADARR_0_API_KEY}
+      - UN_RADARR_0_PATHS_0=${UN_RADARR_0_PATHS_0}
+    env_file:
+      - .env
     networks:
       - proxynet
 

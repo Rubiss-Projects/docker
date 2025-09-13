@@ -7,7 +7,9 @@ services:
     image: registry.gitlab.com/adam.stanek/nanit:v0-7
     environment:
       - NANIT_EMAIL=guest.lawson.house@gmail.com
-      - NANIT_PASSWORD=***REDACTED***
+      - NANIT_PASSWORD=${NANIT_PASSWORD}
       - NANIT_RTMP_ADDR=192.168.50.40:1935
+    env_file:
+      - .env
     ports:
       - "1935:1935"

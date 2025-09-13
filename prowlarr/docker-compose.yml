@@ -11,6 +11,8 @@ services:
     ports:
       - 9696:9696
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Management
       - homepage.name=Prowlarr
@@ -21,7 +23,7 @@ services:
       - homepage.widget.type=prowlarr
       - homepage.widget.fields=["numberOfGrabs", "numberOfQueries", "numberOfFailGrabs"]
       - homepage.widget.url=http://prowlarr:9696
-      - homepage.widget.key=51602a1970e344798e43a81fca3394d3
+      - homepage.widget.key=${PROWLARR_API_KEY}
     networks:
       - proxynet
 

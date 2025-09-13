@@ -14,6 +14,8 @@ services:
     volumes:
       - E:\Docker\grafana\data:/var/lib/grafana
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Observability
       - homepage.name=Grafana
@@ -24,7 +26,7 @@ services:
       - homepage.widget.type=grafana
       - homepage.widget.url=http://grafana:3000
       - homepage.widget.username=rubiss
-      - homepage.widget.password=SoxU$#W5j@c3K6oF%Sz3
+      - homepage.widget.password=${GRAFANA_PASSWORD}
     networks:
       - proxynet
 

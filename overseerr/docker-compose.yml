@@ -13,6 +13,8 @@ services:
     ports:
       - 5055:5055
     restart: unless-stopped
+    env_file:
+      - .env
     labels:
       - homepage.group=Media
       - homepage.name=Overseerr
@@ -22,7 +24,7 @@ services:
       - homepage.description=Media requests
       - homepage.widget.type=overseerr
       - homepage.widget.url=http://overseerr:5055
-      - homepage.widget.key=MTcyNDQ2MjQwMzA1MjQ1ZjUwZWY0LWU1ZjEtNDRjMC04NzQ2LWViMjAzMTE1YzcyYg==
+      - homepage.widget.key=${OVERSEERR_API_KEY}
     networks:
       - proxynet
 

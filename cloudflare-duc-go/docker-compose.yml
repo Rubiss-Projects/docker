@@ -5,8 +5,10 @@ services:
     image: morl0ck/cloudflare-duc-go
     container_name: cloudflare-duc
     environment:
-      - CF_API_TOKEN=***REDACTED***
+      - CF_API_TOKEN=${CF_API_TOKEN}
       - CF_ZONE_NAME=benlawson.dev
       - CF_RECORD_NAME=public.benlawson.dev
       - UPDATE_INTERVAL=${UPDATE_INTERVAL:-5}
+    env_file:
+      - .env
     restart: unless-stopped
