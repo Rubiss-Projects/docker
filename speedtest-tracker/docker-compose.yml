@@ -1,36 +1,36 @@
 services:
-    speedtest-tracker:
-        image: lscr.io/linuxserver/speedtest-tracker:latest
-        restart: unless-stopped
-        container_name: speedtesttracker
-        ports:
-            - 8082:80
-            - 8444:443
-        environment:
-            - PUID=${PUID}
-            - PGID=${PGID}
-            - SPEEDTEST_SCHEDULE=${SPEEDTEST_SCHEDULE}
-            - APP_TIMEZONE=${APP_TIMEZONE}
-            - DISPLAY_TIMEZONE=${DISPLAY_TIMEZONE}
-            - APP_KEY=${APP_KEY}
-            - APP_URL=${APP_URL}
-            - ASSET_URL=${ASSET_URL}
-            - DB_CONNECTION=${DB_CONNECTION}
-        env_file:
-            - .env
-        volumes:
-            - ./data:/config
-        labels:
-            - homepage.group=Observability
-            - homepage.name=Speedtest Tracker
-            - homepage.icon=speedtest-tracker.png
-            - homepage.href=https://speed.benlawson.dev/
-            - homepage.siteMonitor=http://speedtesttracker:80/
-            - homepage.description=Internet Speed
-            - homepage.widget.type=speedtest
-            - homepage.widget.url=http://speedtesttracker:80
-        networks:
-            - proxynet
+  speedtest-tracker:
+    image: lscr.io/linuxserver/speedtest-tracker:latest
+    restart: unless-stopped
+    container_name: speedtesttracker
+    ports:
+      - 8082:80
+      - 8444:443
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - SPEEDTEST_SCHEDULE=${SPEEDTEST_SCHEDULE}
+      - APP_TIMEZONE=${APP_TIMEZONE}
+      - DISPLAY_TIMEZONE=${DISPLAY_TIMEZONE}
+      - APP_KEY=${APP_KEY}
+      - APP_URL=${APP_URL}
+      - ASSET_URL=${ASSET_URL}
+      - DB_CONNECTION=${DB_CONNECTION}
+    env_file:
+      - .env
+    volumes:
+      - ./data:/config
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Speedtest Tracker
+      - homepage.icon=speedtest-tracker.png
+      - homepage.href=https://speed.benlawson.dev/
+      - homepage.siteMonitor=http://speedtesttracker:80/
+      - homepage.description=Internet Speed
+      - homepage.widget.type=speedtest
+      - homepage.widget.url=http://speedtesttracker:80
+    networks:
+      - proxynet
 
 networks:
   proxynet:

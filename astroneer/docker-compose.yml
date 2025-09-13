@@ -1,11 +1,10 @@
-version: '3.3'
 services:
-    astroneer:
-        # volumes:
-        #     - E:\Docker\transmission-openvpn\data\:/data
-        ports:
-            - 27015:27015
-            - 27015:27015/udp
-            - 27020:27020/udp
-        build: .
-        # restart: unless-stopped
+  astroneer:
+    # volumes:
+    #   - E:\Docker\transmission-openvpn\data\:/data
+    ports:
+      - 27015:27015
+      - 27015:27015/udp
+      - 27020:27020/udp
+    build: .
+    # restart: unless-stopped

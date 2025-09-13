@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   cloudflare-duc:
     image: morl0ck/cloudflare-duc-go

@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   # Bazarr is used to download and categorize subtitles
   # https://www.bazarr.media/
