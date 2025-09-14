@@ -1,5 +1,6 @@
 # Environment files containing secrets
 **/.env
+**/db.env
 
 # Exclude example files from being ignored
 !**/.env.example
