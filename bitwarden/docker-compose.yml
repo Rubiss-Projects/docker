@@ -1,0 +1,36 @@
+services:
+  bitwarden:
+    depends_on:
+      - db
+    env_file:
+      - .env
+    image: ghcr.io/bitwarden/self-host:beta
+    container_name: bitwarden
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+      - "8084:8443"
+    volumes:
+      - E:\Docker\bitwarden\config:/etc/bitwarden
+      - E:\Docker\bitwarden\logs:/var/log/bitwarden
+    networks:
+      - proxynet
+
+  db:
+    env_file:
+      - db.env
+    image: postgres:14
+    restart: unless-stopped
+    volumes:
+      - E:\Docker\bitwarden\data:/var/lib/postgresql/data
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+
+volumes:
+  bitwarden:
+  logs:
+  data:
