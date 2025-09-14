@@ -15,6 +15,13 @@ services:
       - E:\Docker\bitwarden\logs:/var/log/bitwarden
     networks:
       - proxynet
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Bitwarden"
+      - "homepage.icon=bitwarden.png"
+      - "homepage.href=https://bitwarden.benlawson.dev"
+      - "homepage.description=Password Manager"
+      - "homepage.siteMonitor=http://192.168.50.40:8083"
 
   db:
     env_file:
