@@ -1,0 +1,27 @@
+services:
+  lazywarden:
+    container_name: lazywarden
+    hostname: lazywarden
+    image: querylab/lazywarden:latest
+    env_file:
+      - .env
+    environment:
+      UNLOCK_VAULT: "true"
+    volumes:
+      - E:\Docker\lazywarden\config:/root/lazywarden/config
+      - E:\Docker\lazywarden\data:/root/lazywarden/backup-drive/
+      - E:\Docker\lazywarden\.env:/app/.env
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=LazyWarden"
+      - "homepage.icon=bitwarden.png"
+      - "homepage.href=http://lazywarden:8080"
+      - "homepage.description=Bitwarden backup and management tool"
+      - "homepage.weight=5"
+
+networks:
+  proxynet:
+    name: proxynet
