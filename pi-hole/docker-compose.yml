@@ -13,6 +13,7 @@ services:
       - TZ=${TZ}
       - WEBPASSWORD=${WEBPASSWORD}
       - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - FTLCONF_RATE_LIMIT=0/0
     # Volumes store your data between container upgrades
     volumes:
       - E:\Docker\pi-hole\etc-pihole:/etc/pihole
