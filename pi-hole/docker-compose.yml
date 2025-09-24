@@ -13,7 +13,8 @@ services:
       - TZ=${TZ}
       - WEBPASSWORD=${WEBPASSWORD}
       - VIRTUAL_HOST=${VIRTUAL_HOST}
-      - FTLCONF_RATE_LIMIT=0/0
+      - FTLCONF_dns_rateLimit_count=0
+      - FTLCONF_dns_rateLimit_interval=0
     # Volumes store your data between container upgrades
     volumes:
       - E:\Docker\pi-hole\etc-pihole:/etc/pihole
@@ -33,6 +34,8 @@ services:
     #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     cap_add:
       - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
+      - SYS_NICE  # Allows setting process priority
+      - SYS_TIME  # Allows setting system time for NTP
     restart: unless-stopped
     networks:
       - proxynet
