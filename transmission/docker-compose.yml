@@ -17,9 +17,11 @@ services:
       - TRANSMISSION_DHT_ENABLED=false
       - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=false
       - TRANSMISSION_RATIO_LIMIT_ENABLED=false
-      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=5
-      - TRANSMISSION_SPEED_LIMIT_DOWN_ENABLED=true
-      - TRANSMISSION_SPEED_LIMIT_DOWN=50000
+      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=3
+      - TRANSMISSION_SPEED_LIMIT_DOWN_ENABLED=false
+      - TRANSMISSION_CACHE_SIZE_MB=16
+      - TRANSMISSION_PEER_LIMIT_GLOBAL=150
+      - TRANSMISSION_PEER_LIMIT_PER_TORRENT=30
     volumes:
       - E:\Docker\transmission\data:/config
       - E:\Media\downloads:/downloads
@@ -30,6 +32,17 @@ services:
       - 51413:51413
       - 51413:51413/udp
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/transmission/web/"] 
+      interval: 30s
+      timeout: 10s
+      retries: 3
     labels:
       - homepage.group=Downloads
       - homepage.name=Transmission
