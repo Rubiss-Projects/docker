@@ -1,0 +1,39 @@
+services:
+  classroom-librarian:
+    image: rubiss/classroom-librarian:latest
+    container_name: classroom-librarian
+    restart: unless-stopped
+    ports:
+      - "4000:4000" # Angular SSR frontend
+      - "4001:8080" # ASP.NET Core API
+      - "27017:27017" # MongoDB (optional external access)
+      - "6379:6379" # Redis (optional external access)
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      GoogleBooks__ApiKey: "${GOOGLE_BOOKS_API_KEY:-}"
+      Jwt__Issuer: "${JWT_ISSUER:-ClassroomLibrarian}"
+      Jwt__Audience: "${JWT_AUDIENCE:-ClassroomLibrarianClients}"
+      Jwt__SigningKey: "${JWT_SIGNING_KEY:-ChangeThisSigningKeyToAStrongRandomValue}"
+      Cors__AllowedOrigins__0: "${CORS_ALLOWED_ORIGIN:-http://localhost:4000}"
+      API_BASE_URL: "${API_BASE_URL:-http://localhost:4001}"
+    env_file:
+      - .env
+    volumes:
+      - mongo-data:/data/db
+      - redis-data:/data/redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/api/books"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+
+volumes:
+  mongo-data:
+  redis-data:
