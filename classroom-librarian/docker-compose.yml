@@ -15,14 +15,12 @@ services:
       Jwt__Audience: "${JWT_AUDIENCE:-ClassroomLibrarianClients}"
       Jwt__SigningKey: "${JWT_SIGNING_KEY:-ChangeThisSigningKeyToAStrongRandomValue}"
       Cors__AllowedOrigins__0: "${CORS_ALLOWED_ORIGIN:-http://localhost:4000}"
-      API_BASE_URL: "${API_BASE_URL:-http://localhost:4001}"
-    env_file:
-      - .env
+      API_BASE_URL: "${API_BASE_URL:-http://localhost:8080}"
     volumes:
       - mongo-data:/data/db
       - redis-data:/data/redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4001/api/books"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:4000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
