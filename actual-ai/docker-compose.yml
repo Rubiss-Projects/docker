@@ -1,0 +1,12 @@
+services:
+  actual-ai:
+    image: docker.io/sakowicz/actual-ai:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
