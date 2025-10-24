@@ -1,0 +1,26 @@
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    restart: unless-stopped
+    ports:
+      - 13378:80
+    volumes:
+      - E:\Media\audiobooks:/audiobooks
+      - ./config:/config
+      - ./metadata:/metadata
+    environment:
+      - TZ=America/New_York
+    labels:
+      - homepage.group=Media
+      - homepage.name=Audiobookshelf
+      - homepage.icon=audiobookshelf.png
+      - homepage.href=https://audiobookshelf.benlawson.dev/
+      - homepage.siteMonitor=http://audiobookshelf:80
+      - homepage.description=Audiobook & podcast server
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

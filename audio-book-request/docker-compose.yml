@@ -1,0 +1,22 @@
+services:
+  web:
+    image: markbeep/audiobookrequest:1
+    container_name: audio-book-request
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./config:/config
+    labels:
+      - homepage.group=Media
+      - homepage.name=Audiobook Request
+      - homepage.icon=audiobookshelf.png
+      - homepage.href=https://audiobookrequest.benlawson.dev/
+      - homepage.siteMonitor=http://audio-book-request:8000
+      - homepage.description=Audiobook request manager
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
