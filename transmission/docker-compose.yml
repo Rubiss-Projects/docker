@@ -22,11 +22,14 @@ services:
       - TRANSMISSION_CACHE_SIZE_MB=16
       - TRANSMISSION_PEER_LIMIT_GLOBAL=150
       - TRANSMISSION_PEER_LIMIT_PER_TORRENT=30
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/scripts/post-download.sh
     volumes:
       - E:\Docker\transmission\data:/config
       - E:\Media\downloads:/downloads
       - E:\Docker\transmission\watch:/watch
       - E:\Media\:/library
+      - E:\Docker\transmission\scripts:/scripts
     ports:
       - 9091:9091
       - 51413:51413

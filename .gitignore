@@ -9,6 +9,7 @@
 **/config/*
 **/data/*
 **/logs/*
+**/metadata/*
 
 # Service-specific directories
 nginx-proxy-manager/letsencrypt/*
