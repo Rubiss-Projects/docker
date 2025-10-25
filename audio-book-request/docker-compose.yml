@@ -12,7 +12,7 @@ services:
       - homepage.name=Audiobook Request
       - homepage.icon=audiobookshelf.png
       - homepage.href=https://audiobookrequest.benlawson.dev/
-      - homepage.siteMonitor=http://audio-book-request:8000
+      - homepage.siteMonitor=http://audio-book-request:8000/api/health
       - homepage.description=Audiobook request manager
     networks:
       - proxynet
