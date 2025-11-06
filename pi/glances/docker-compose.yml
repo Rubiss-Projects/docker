@@ -1,0 +1,33 @@
+# Glances - Cross-platform system monitoring tool
+# https://github.com/nicolargo/glances
+services:
+  glances:
+    container_name: glances-pi
+    image: nicolargo/glances:latest-full
+    ports:
+      - "61208:61208"
+    environment:
+      - TZ=${TZ}
+      - GLANCES_OPT=-w
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/os-release:/etc/os-release:ro
+    pid: host
+    restart: unless-stopped
+    labels:
+      - homepage.group=Raspberry Pi
+      - homepage.name=Pi System Monitor
+      - homepage.icon=glances.png
+      - homepage.href=http://192.168.50.216:61208
+      - homepage.description=Pi 3 system stats
+      - homepage.widget.type=glances
+      - homepage.widget.url=http://192.168.50.216:61208
+      - homepage.widget.version=4
+      - homepage.widget.metric=info
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+    external: true
