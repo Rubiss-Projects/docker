@@ -26,8 +26,8 @@ These are the **manual steps for you** to get the Raspberry Pi ready. After comp
 7. **Click "Edit Settings"** when prompted for customization:
 
    **General tab:**
-   - Set hostname: `raspberrypi`
-   - Set username: `pi` (or your preference)
+   - Set hostname: `ben-pi`
+   - Set username: `rubiss`
    - Set password: (choose a secure password)
    - Configure WiFi: (optional - ethernet is recommended)
    - Set timezone: `America/New_York` (or your timezone)
@@ -54,13 +54,13 @@ From your Windows PC PowerShell:
 
 ```powershell
 # SSH using hostname (if mDNS works)
-ssh pi@raspberrypi.local
+ssh rubiss@ben-pi.local
 
 # Or find Pi's IP from your router and use that:
-ssh pi@192.168.50.41
+ssh rubiss@192.168.50.41
 ```
 
-**Note:** If you don't know the IP, check your router's DHCP client list for "raspberrypi".
+**Note:** If you don't know the IP, check your router's DHCP client list for "ben-pi".
 
 ## Step 4: Set Static IP (5 minutes)
 
@@ -76,7 +76,7 @@ ssh pi@192.168.50.41
 3. Create DHCP reservation:
    - MAC Address: (from step 1)
    - IP Address: `192.168.50.41`
-   - Hostname: `raspberrypi`
+   - Hostname: `ben-pi`
 
 4. Reboot Pi:
    ```bash
@@ -85,7 +85,7 @@ ssh pi@192.168.50.41
 
 5. Reconnect after reboot:
    ```bash
-   ssh pi@192.168.50.41
+   ssh rubiss@192.168.50.41
    ```
 
 ### Option B: Netplan Configuration (Alternative)
@@ -223,7 +223,7 @@ The AI agent (following `AI-SETUP-INSTRUCTIONS.md`) will handle:
 - Check Pi is powered on (green LED)
 - Verify ethernet cable connected
 - Find Pi's IP in router admin panel
-- Try IP address instead of hostname: `ssh pi@192.168.50.41`
+- Try IP address instead of hostname: `ssh rubiss@192.168.50.41`
 
 ### Wrong IP Address Assigned
 - Check DHCP reservation is correct in router
