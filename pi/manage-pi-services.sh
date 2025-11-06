@@ -8,6 +8,7 @@ SERVICES=(
     "watchtower"
     "cadvisor"
     "node-exporter"
+    "glances"
 )
 
 SERVICE_DIRS=(
@@ -16,6 +17,7 @@ SERVICE_DIRS=(
     "/home/rubiss/docker/pi/watchtower"
     "/home/rubiss/docker/pi/cadvisor"
     "/home/rubiss/docker/pi/node-exporter"
+    "/home/rubiss/docker/pi/glances"
 )
 
 check_root() {
@@ -65,13 +67,13 @@ show_status() {
     echo " PI SERVICES STATUS"
     echo "=========================================="
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "homebridge|pihole|watchtower|cadvisor|node-exporter|NAMES"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "homebridge|pihole|watchtower|cadvisor|node-exporter|glances-pi|NAMES"
     echo ""
     echo "=========================================="
     echo " RESOURCE USAGE"
     echo "=========================================="
     echo ""
-    docker stats --no-stream homebridge pihole watchtower cadvisor node-exporter \
+    docker stats --no-stream homebridge pihole watchtower cadvisor node-exporter glances-pi \
         --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
     echo ""
     echo "=========================================="
