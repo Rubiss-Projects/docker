@@ -57,7 +57,7 @@ From your Windows PC PowerShell:
 ssh rubiss@ben-pi.local
 
 # Or find Pi's IP from your router and use that:
-ssh rubiss@192.168.50.41
+ssh rubiss@192.168.50.216
 ```
 
 **Note:** If you don't know the IP, check your router's DHCP client list for "ben-pi".
@@ -75,18 +75,13 @@ ssh rubiss@192.168.50.41
 2. Log into your router admin panel
 3. Create DHCP reservation:
    - MAC Address: (from step 1)
-   - IP Address: `192.168.50.41`
+   - IP Address: `192.168.50.216`
    - Hostname: `ben-pi`
 
-4. Reboot Pi:
-   ```bash
-   sudo reboot
-   ```
-
-5. Reconnect after reboot:
-   ```bash
-   ssh rubiss@192.168.50.41
-   ```
+**Note:** Since you've already configured the DHCP reservation before the Pi's first boot, it should already have the correct IP. You can verify with:
+```bash
+ip addr show eth0
+```
 
 ### Option B: Netplan Configuration (Alternative)
 
@@ -103,7 +98,7 @@ network:
     eth0:
       dhcp4: no
       addresses:
-        - 192.168.50.41/24
+        - 192.168.50.216/24
       routes:
         - to: default
           via: 192.168.50.1  # Your router IP
@@ -205,7 +200,7 @@ The AI agent will:
 
 ✅ Flashed Ubuntu Server to SD card  
 ✅ Booted Pi and connected via SSH  
-✅ Configured static IP (192.168.50.41)  
+✅ Configured static IP (192.168.50.216)  
 ✅ Installed Git and cloned this repository  
 ✅ Set up VS Code tunnel for remote access  
 
@@ -223,7 +218,7 @@ The AI agent (following `AI-SETUP-INSTRUCTIONS.md`) will handle:
 - Check Pi is powered on (green LED)
 - Verify ethernet cable connected
 - Find Pi's IP in router admin panel
-- Try IP address instead of hostname: `ssh rubiss@192.168.50.41`
+- Try IP address instead of hostname: `ssh rubiss@192.168.50.216`
 
 ### Wrong IP Address Assigned
 - Check DHCP reservation is correct in router
@@ -242,7 +237,7 @@ The AI agent (following `AI-SETUP-INSTRUCTIONS.md`) will handle:
 
 ## Notes
 
-- **Static IP:** Critical for monitoring and proxy configuration. Prometheus and NPM are already configured for `192.168.50.41`
+- **Static IP:** Critical for monitoring and proxy configuration. Prometheus and NPM are already configured for `192.168.50.216`
 - **VS Code Tunnel:** This is the recommended way to access the Pi remotely. It works even when you're not on the same network
 - **Don't install Docker yet:** The AI agent will handle this in the next phase
 

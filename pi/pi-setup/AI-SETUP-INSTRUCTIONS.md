@@ -1,6 +1,6 @@
 # AI Agent Setup Instructions - Raspberry Pi 3
 
-**Context:** The human has completed initial Pi setup (Ubuntu Server installed, Git configured, VS Code tunnel connected, repo cloned). The Pi is accessible at IP `192.168.50.41`. You are now responsible for installing Docker and deploying all configured services.
+**Context:** The human has completed initial Pi setup (Ubuntu Server installed, Git configured, VS Code tunnel connected, repo cloned). The Pi is accessible at IP `192.168.50.216`. You are now responsible for installing Docker and deploying all configured services.
 
 **Your Mission:** Automate the complete Docker service deployment on this Raspberry Pi 3.
 
@@ -9,7 +9,7 @@
 - **Device:** Raspberry Pi 3
 - **OS:** Ubuntu Server 24.04.3 LTS (64-bit ARM)
 - **RAM:** 1GB (resource-constrained)
-- **IP Address:** 192.168.50.41 (static)
+- **IP Address:** 192.168.50.216 (static)
 - **Repository:** Already cloned at `~/docker/pi`
 - **User:** `rubiss`
 
@@ -38,7 +38,9 @@ lsb_release -a
 ping -c 3 google.com
 
 # Verify static IP
-ip addr show | grep "192.168.50.41"
+echo "Verifying static IP configuration..."
+ip addr show | grep "192.168.50.216"
+if [ $? -ne 0 ]; then
 ```
 
 ## Step 1: Install Docker
@@ -82,7 +84,9 @@ done
 find . -name ".env" -type f
 ```
 
-**Note:** The .env files are pre-configured with correct IP (192.168.50.41). Only Pi-hole WEBPASSWORD needs to be changed by the user later.
+## Environment Variables
+
+**Note:** The .env files are pre-configured with correct IP (192.168.50.216). Only Pi-hole WEBPASSWORD needs to be changed by the user later.
 
 ## Step 3: Deploy Services in Order
 
@@ -233,19 +237,19 @@ curl -s http://localhost:9100/metrics | grep "node_hwmon_temp_celsius"
 ### For the Human User:
 
 **Homebridge:**
-- Access: http://192.168.50.41:8581
+- Access: http://192.168.50.216:8581
 - Also proxied: https://homebridge.benlawson.dev
 - PIN code is in logs: `docker logs homebridge | grep PIN`
 - Default credentials: admin / admin (change on first login)
 
 **Pi-hole:**
-- Access: http://192.168.50.41/admin
+- Access: http://192.168.50.216/admin
 - Also proxied: https://pihole.benlawson.dev/admin
 - Password is set in `.env` file (default: changeme123 - MUST CHANGE)
 - To get API key for Homepage: `docker exec pihole cat /etc/pihole/setupVars.conf | grep WEBPASSWORD`
 
 **Monitoring:**
-- cAdvisor UI: http://192.168.50.41:8080
+- cAdvisor UI: http://192.168.50.216:8080
 - Metrics are already being scraped by Prometheus on Windows host
 - Check Grafana dashboards on Windows for Pi stats
 
@@ -411,7 +415,7 @@ NEXT STEPS FOR USER:
    - Dashboard 10578: Raspberry Pi Monitoring
 
 6. Configure Pi-hole as DNS server:
-   - Set router DNS to 192.168.50.41
+   - Set router DNS to 192.168.50.216
    - Or configure per-device DNS settings
 
 MONITORING:
@@ -469,8 +473,8 @@ sudo netstat -tulpn | grep -E '8080|9100'
 
 # Verify from Windows host
 # On Windows PowerShell:
-Test-NetConnection 192.168.50.41 -Port 8080
-Test-NetConnection 192.168.50.41 -Port 9100
+Test-NetConnection 192.168.50.216 -Port 8080
+Test-NetConnection 192.168.50.216 -Port 9100
 ```
 
 ### If Pi is running hot (>70°C):
