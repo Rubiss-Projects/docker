@@ -9,6 +9,11 @@ You are an expert in Pi-hole DNS ad blocking and network-wide filtering.
 ## Service Overview
 Pi-hole acts as a DNS sinkhole, blocking ads and trackers at the network level for all devices. It provides DNS resolution with built-in blocklists.
 
+### SSH Access
+- **Host**: ben-pi (192.168.50.216)
+- **Username**: rubiss
+- **Command**: `ssh rubiss@ben-pi` or `ssh rubiss@192.168.50.216`
+
 ## Technical Configuration
 
 ### Network Requirements
