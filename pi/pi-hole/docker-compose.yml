@@ -13,7 +13,7 @@ services:
       - WEBPASSWORD=${WEBPASSWORD}
       - VIRTUAL_HOST=${VIRTUAL_HOST}
       - PIHOLE_DNS_=8.8.8.8;8.8.4.4  # Upstream DNS servers
-      - DNSMASQ_LISTENING=all  # Allow DNS queries from all interfaces
+      - FTLCONF_dns_listeningMode=all  # Allow DNS queries from all interfaces (Pi-hole v6 syntax)
     volumes:
       - ./etc-pihole:/etc/pihole
       - ./etc-dnsmasq.d:/etc/dnsmasq.d
