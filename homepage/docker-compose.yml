@@ -11,7 +11,8 @@ services:
     volumes:
       - E:\Docker\homepage\config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - E:\:/e
+      - C:\:/c:ro
+      - E:\:/e:ro
     restart: unless-stopped
     networks:
       - proxynet
