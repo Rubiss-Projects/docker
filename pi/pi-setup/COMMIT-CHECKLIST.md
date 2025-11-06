@@ -7,8 +7,8 @@ All Windows host configuration is complete. Here's what to do next:
 ### Modified:
 - ✅ `E:\Docker\prometheus\config\prometheus.yml` - Added Pi scrape targets
 - ✅ `E:\Docker\homepage\config\services.yaml` - Added Pi services section  
-- ✅ `E:\Docker\pi\pi-hole\.env` - Updated IP to 192.168.50.41
-- ✅ `E:\Docker\pi\pi-hole\.env.example` - Updated IP to 192.168.50.41
+- ✅ `E:\Docker\pi\pi-hole\.env` - Updated IP to 192.168.50.216
+- ✅ `E:\Docker\pi\pi-hole\.env.example` - Updated IP to 192.168.50.216
 
 ### Created:
 - ✅ `E:\Docker\pi\HUMAN-SETUP-GUIDE.md` - Your setup instructions

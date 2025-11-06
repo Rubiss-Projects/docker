@@ -13,7 +13,7 @@ This document summarizes all changes made to your Windows host Docker configurat
   - job_name: 'cadvisor-pi'
     scrape_interval: 30s
     static_configs:
-      - targets: ['192.168.50.41:8080']
+      - targets: ['192.168.50.216:8080']
         labels:
           instance: 'raspberry-pi'
           host: 'pi3'
@@ -22,7 +22,7 @@ This document summarizes all changes made to your Windows host Docker configurat
   - job_name: 'node-exporter-pi'
     scrape_interval: 15s
     static_configs:
-      - targets: ['192.168.50.41:9100']
+      - targets: ['192.168.50.216:9100']
         labels:
           instance: 'raspberry-pi'
           host: 'pi3'
@@ -64,18 +64,18 @@ docker compose restart
 
 ### Nginx Proxy Manager (Manual Setup Required)
 Create proxy hosts for:
-- `homebridge.benlawson.dev` → `http://192.168.50.41:8581`
-- `pihole.benlawson.dev` → `http://192.168.50.41:80`
+- `homebridge.benlawson.dev` → `http://192.168.50.216:8581`
+- `pihole.benlawson.dev` → `http://192.168.50.216:80`
 
 **Steps:**
 1. Open NPM admin panel
 2. Add Proxy Host for Homebridge:
    - Domain: homebridge.benlawson.dev
-   - Forward to: 192.168.50.41:8581
+   - Forward to: 192.168.50.216:8581
    - Enable SSL, Websockets
 3. Add Proxy Host for Pi-hole:
    - Domain: pihole.benlawson.dev
-   - Forward to: 192.168.50.41:80
+   - Forward to: 192.168.50.216:80
    - Enable SSL, add custom location `/admin`
 
 ## Verification Steps
@@ -102,7 +102,7 @@ Create proxy hosts for:
 
 ## What's Pre-Configured
 
-✅ **IP Address:** All configs use 192.168.50.41  
+✅ **IP Address:** All configs use 192.168.50.216  
 ✅ **Prometheus:** Ready to scrape Pi metrics  
 ✅ **Homepage:** Ready to display Pi widgets  
 ✅ **Labels:** Pi metrics tagged with `host="pi3"` for filtering  
@@ -115,7 +115,7 @@ Create proxy hosts for:
 
 ## Network Requirements
 
-- Pi must have static IP: **192.168.50.41**
+- Pi must have static IP: **192.168.50.216**
 - Windows host must be able to reach Pi on ports: 8080, 9100, 8581, 80
 - Both must be on same subnet (192.168.50.0/24)
 
@@ -150,11 +150,11 @@ git checkout HEAD -- services.yaml
 
 ## Questions & Troubleshooting
 
-**Q: Why 192.168.50.41?**  
-A: Chosen to fit your existing network scheme (192.168.50.x subnet).
+**Q: Why 192.168.50.216?**  
+A: Static IP assigned for the Raspberry Pi to ensure consistent access for monitoring and proxy configuration.
 
 **Q: Can I change the IP?**  
-A: Yes, but you'll need to update: Prometheus config, Homepage config, Pi .env files.
+A: Yes, but you'll need to update: Prometheus config, Homepage config, Pi .env files, NPM proxy hosts.
 
 **Q: Why not use hostname instead of IP?**  
 A: Prometheus requires reliable resolution. Static IP is more reliable than mDNS (.local) across Docker networks.
