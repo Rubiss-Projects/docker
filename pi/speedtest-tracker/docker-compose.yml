@@ -15,7 +15,6 @@ services:
       - DISPLAY_TIMEZONE=${DISPLAY_TIMEZONE}
       - APP_KEY=${APP_KEY}
       - APP_URL=${APP_URL}
-      - APP_DEBUG=true
       - DB_CONNECTION=sqlite
     volumes:
       - ./data:/config
