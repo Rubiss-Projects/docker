@@ -11,7 +11,7 @@ services:
     environment:
       - TZ=${TZ}
       - WEBPASSWORD=${WEBPASSWORD}
-      - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
       - PIHOLE_DNS_=8.8.8.8;8.8.4.4  # Upstream DNS servers
     volumes:
       - ./etc-pihole:/etc/pihole
