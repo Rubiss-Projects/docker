@@ -7,7 +7,7 @@ Docker Compose configurations for services running on Raspberry Pi 3 with Ubuntu
 ### Step 1: Human Setup (You)
 Follow **[HUMAN-SETUP-GUIDE.md](./pi-setup/HUMAN-SETUP-GUIDE.md)** to:
 - Flash Ubuntu Server to SD card
-- Configure static IP (192.168.50.41)
+- Configure static IP (192.168.50.216)
 - Install Git and clone this repo
 - Set up VS Code tunnel
 
@@ -39,7 +39,7 @@ See **[WINDOWS-CHANGES-SUMMARY.md](./pi-setup/WINDOWS-CHANGES-SUMMARY.md)** for:
 - **OS:** Ubuntu Server 24.04.3 LTS (64-bit ARM)
 - **RAM:** 1GB
 - **Storage:** 32GB microSD
-- **IP Address:** 192.168.50.41 (static)
+- **IP Address:** 192.168.50.216 (static)
 - **Network:** Same subnet as Windows host (192.168.50.x/24)
 
 ---
@@ -51,7 +51,7 @@ All services are deployed and managed automatically by the AI agent.
 ### Homebridge
 **Purpose:** HomeKit integration for smart home devices  
 **Port:** 8581 (Web UI)  
-**Access:** http://192.168.50.41:8581 or https://homebridge.benlawson.dev
+**Access:** http://192.168.50.216:8581 or https://homebridge.benlawson.dev
 
 **Key Info:**
 - Get PIN from logs: `docker logs homebridge | grep PIN`
@@ -61,12 +61,12 @@ All services are deployed and managed automatically by the AI agent.
 ### Pi-hole
 **Purpose:** Network-wide ad blocking and DNS  
 **Port:** 80 (Web UI)  
-**Access:** http://192.168.50.41/admin or https://pihole.benlawson.dev/admin
+**Access:** http://192.168.50.216/admin or https://pihole.benlawson.dev/admin
 
 **Key Info:**
 - Password set in `.env` file (default: changeme123 - CHANGE THIS!)
 - Get API key: `docker exec pihole cat /etc/pihole/setupVars.conf | grep WEBPASSWORD`
-- Configure router DNS to 192.168.50.41 for network-wide blocking
+- Configure router DNS to 192.168.50.216 for network-wide blocking
 
 ### Watchtower
 **Purpose:** Automatic Docker container updates  
@@ -80,7 +80,7 @@ All services are deployed and managed automatically by the AI agent.
 ### cAdvisor (Monitoring)
 **Purpose:** Docker container metrics for Prometheus  
 **Port:** 8080 (Web UI and metrics endpoint)  
-**Access:** http://192.168.50.41:8080
+**Access:** http://192.168.50.216:8080
 
 **Key Info:**
 - Per-container CPU, memory, network, disk metrics
@@ -90,7 +90,7 @@ All services are deployed and managed automatically by the AI agent.
 ### node-exporter (Monitoring)
 **Purpose:** System-level metrics for Prometheus  
 **Port:** 9100 (metrics endpoint, no UI)  
-**Access:** http://192.168.50.41:9100/metrics
+**Access:** http://192.168.50.216:9100/metrics
 
 **Key Info:**
 - CPU, memory, disk, network metrics
@@ -152,17 +152,17 @@ Follow authentication prompts, then access from VS Code on your PC via Remote Tu
 ## Network Configuration
 
 ### Static IP (Required)
-The Pi must have static IP **192.168.50.41** for integration with Windows services.
+The Pi must have static IP **192.168.50.216** for integration with Windows services.
 
 **Setup in router:**
 1. Find Pi's MAC address: `ip addr show`
-2. Create DHCP reservation in router for 192.168.50.41
+2. Create DHCP reservation in router for 192.168.50.216
 3. Reboot Pi: `sudo reboot`
 
 **Or configure directly on Pi using netplan** (see HUMAN-SETUP-GUIDE.md for details)
 
 ### Windows Host Integration
-The following Windows services are **already configured** to work with the Pi at 192.168.50.41:
+The following Windows services are **already configured** to work with the Pi at 192.168.50.216:
 
 **Prometheus** (`E:\Docker\prometheus\config\prometheus.yml`):
 - Scrapes cAdvisor metrics from Pi (port 8080)
@@ -174,13 +174,13 @@ The following Windows services are **already configured** to work with the Pi at
 - Shows Pi System Monitor link (cAdvisor port 8080)
 
 **Nginx Proxy Manager**:
-- Proxy `homebridge.benlawson.dev` → `192.168.50.41:8581`
-- Proxy `pihole.benlawson.dev` → `192.168.50.41:80`
+- Proxy `homebridge.benlawson.dev` → `192.168.50.216:8581`
+- Proxy `pihole.benlawson.dev` → `192.168.50.216:80`
 
 ### DNS Setup (Pi-hole)
 Once Pi-hole is running:
-1. Test locally: `nslookup google.com 192.168.50.41`
-2. Update router DNS settings to point to 192.168.50.41
+1. Test locally: `nslookup google.com 192.168.50.216`
+2. Update router DNS settings to point to 192.168.50.216
 3. Or manually set DNS on each device
 
 ## Service Management
@@ -316,10 +316,10 @@ Import these dashboards to visualize Pi metrics:
 ## Service Access URLs
 
 **Pi Services:**
-- Homebridge: http://192.168.50.41:8581 or https://homebridge.benlawson.dev
-- Pi-hole Admin: http://192.168.50.41/admin or https://pihole.benlawson.dev/admin
-- cAdvisor: http://192.168.50.41:8080
-- node-exporter: http://192.168.50.41:9100/metrics
+- Homebridge: http://192.168.50.216:8581 or https://homebridge.benlawson.dev
+- Pi-hole Admin: http://192.168.50.216/admin or https://pihole.benlawson.dev/admin
+- cAdvisor: http://192.168.50.216:8080
+- node-exporter: http://192.168.50.216:9100/metrics
 
 **Windows Services:**
 - Prometheus: http://localhost:9090 (check /targets for Pi scrape status)

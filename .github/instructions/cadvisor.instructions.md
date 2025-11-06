@@ -95,7 +95,7 @@ Reduces memory usage (default: 5m). Prometheus scrapes every 30s, so 2m is suffi
 
 ### Viewing Web UI
 ```bash
-# Access at: http://192.168.50.41:8080
+# Access at: http://192.168.50.216:8080
 # Shows: Container list, resource usage, graphs
 ```
 
@@ -106,7 +106,7 @@ docker logs cadvisor -f
 
 ### Testing Prometheus Scrape
 ```bash
-curl http://192.168.50.41:8080/metrics
+curl http://192.168.50.216:8080/metrics
 ```
 
 ### Checking Resource Usage
@@ -140,7 +140,7 @@ Windows Prometheus scrapes Pi cAdvisor:
 # In prometheus.yml
 - job_name: 'cadvisor-pi'
   static_configs:
-    - targets: ['192.168.50.41:8080']
+    - targets: ['192.168.50.216:8080']
       labels:
         instance: 'raspberry-pi'
         host: 'pi3'
@@ -152,11 +152,11 @@ Add to services.yaml:
 ```yaml
 - Pi System Monitor:
     icon: cadvisor.png
-    href: http://192.168.50.41:8080
+    href: http://192.168.50.216:8080
     description: Container metrics
     widget:
       type: cadvisor
-      url: http://192.168.50.41:8080
+      url: http://192.168.50.216:8080
 ```
 
 ### Grafana Dashboards
@@ -176,7 +176,7 @@ Recommended dashboards:
 ### Missing Metrics
 1. Verify privileged mode is enabled
 2. Check all required volumes are mounted
-3. Test endpoint: `curl http://192.168.50.41:8080/metrics`
+3. Test endpoint: `curl http://192.168.50.216:8080/metrics`
 4. Review logs for volume mount errors
 
 ### Container Fails to Start
@@ -186,7 +186,7 @@ Recommended dashboards:
 4. Review startup logs: `docker logs cadvisor`
 
 ### Prometheus Not Scraping
-1. Test connectivity from Windows: `curl http://192.168.50.41:8080/metrics`
+1. Test connectivity from Windows: `curl http://192.168.50.216:8080/metrics`
 2. Check Prometheus targets: http://localhost:9090/targets
 3. Verify scrape_interval matches or exceeds housekeeping_interval
 4. Review Prometheus logs for errors
@@ -292,11 +292,11 @@ cadvisor_version_info
 ### Health Check
 ```bash
 # Test endpoint
-curl -s http://192.168.50.41:8080/healthz
+curl -s http://192.168.50.216:8080/healthz
 # Should return 200 OK
 
 # Check metrics endpoint
-curl -s http://192.168.50.41:8080/metrics | head -n 20
+curl -s http://192.168.50.216:8080/metrics | head -n 20
 ```
 
 ## When to Adjust Configuration

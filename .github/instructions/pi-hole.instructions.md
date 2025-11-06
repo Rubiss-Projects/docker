@@ -15,7 +15,7 @@ Pi-hole acts as a DNS sinkhole, blocking ads and trackers at the network level f
 - DNS: Port 53 (TCP/UDP)
 - DHCP: Port 67 (UDP) - Optional
 - Web Interface: Port 80 (HTTP)
-- Static IP: 192.168.50.41 (configured via DHCP reservation)
+- Static IP: 192.168.50.216 (configured via DHCP reservation)
 
 ### Docker Compose Patterns
 ```yaml
@@ -30,7 +30,7 @@ volumes:
 environment:
   - TZ=America/New_York
   - WEBPASSWORD=${PIHOLE_PASSWORD}
-  - FTLCONF_LOCAL_IPV4=192.168.50.41
+  - FTLCONF_LOCAL_IPV4=192.168.50.216
   - PIHOLE_DNS_=1.1.1.1;1.0.0.1  # Cloudflare DNS
 cap_add:
   - NET_ADMIN  # Required for DHCP
@@ -88,7 +88,7 @@ docker exec pihole cat /etc/pihole/setupVars.conf | grep WEBPASSWORD
 
 ### Homepage Dashboard
 - Widget type: `pihole`
-- URL: `http://192.168.50.41:80`
+- URL: `http://192.168.50.216:80`
 - Requires API key from setupVars.conf
 - Shows: queries, blocked, percent blocked, gravity entries
 
@@ -98,12 +98,12 @@ docker exec pihole cat /etc/pihole/setupVars.conf | grep WEBPASSWORD
 
 ### Network Configuration
 Devices must point to Pi-hole for DNS:
-1. **Router DHCP**: Set DNS to 192.168.50.41
+1. **Router DHCP**: Set DNS to 192.168.50.216
 2. **Manual**: Configure each device's DNS settings
-3. **Test**: `nslookup doubleclick.net 192.168.50.41` should return 0.0.0.0
+3. **Test**: `nslookup doubleclick.net 192.168.50.216` should return 0.0.0.0
 
 ### Nginx Proxy Manager
-- Proxy to: `192.168.50.41:80`
+- Proxy to: `192.168.50.216:80`
 - Custom location: `/admin/` (Pi-hole web interface)
 - SSL: Recommended for external access
 
@@ -112,7 +112,7 @@ Devices must point to Pi-hole for DNS:
 ### DNS Not Resolving
 1. Check Pi-hole container is running: `docker ps`
 2. Verify port 53 is listening: `ss -tulnp | grep :53`
-3. Test DNS: `nslookup google.com 192.168.50.41`
+3. Test DNS: `nslookup google.com 192.168.50.216`
 4. Check upstream DNS settings in web UI
 5. Review FTL logs: `docker exec pihole pihole -t`
 
@@ -164,7 +164,7 @@ address=/local.domain.com/192.168.1.100
 Add to `etc-pihole/custom.list`:
 ```
 192.168.50.40 homeassistant.local
-192.168.50.41 pihole.local
+192.168.50.216 pihole.local
 ```
 
 ### Conditional Forwarding
@@ -185,12 +185,12 @@ Enable in web UI for local network hostname resolution:
 
 ### Get Statistics
 ```bash
-curl http://192.168.50.41/admin/api.php
+curl http://192.168.50.216/admin/api.php
 ```
 
 ### Get Query Count
 ```bash
-curl http://192.168.50.41/admin/api.php?summaryRaw
+curl http://192.168.50.216/admin/api.php?summaryRaw
 ```
 
 ### Enable/Disable Blocking

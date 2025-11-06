@@ -69,11 +69,11 @@ Defines services organized into groups:
 - Raspberry Pi:
     - Homebridge:
         icon: homebridge.png
-        href: http://192.168.50.41:8581
+        href: http://192.168.50.216:8581
         description: HomeKit integrations
         widget:
           type: homebridge
-          url: http://192.168.50.41:8581
+          url: http://192.168.50.216:8581
           username: admin
           password: ${HOMEBRIDGE_PASSWORD}
 ```
@@ -138,7 +138,7 @@ widget:
 ```yaml
 widget:
   type: pihole
-  url: http://192.168.50.41:80
+  url: http://192.168.50.216:80
   key: YOUR_PIHOLE_API_KEY  # From setupVars.conf
   fields: ["queries", "blocked", "blocked_percent"]
 ```
@@ -147,7 +147,7 @@ widget:
 ```yaml
 widget:
   type: homebridge
-  url: http://192.168.50.41:8581
+  url: http://192.168.50.216:8581
   username: admin
   password: ${HOMEBRIDGE_PASSWORD}
 ```
@@ -477,7 +477,7 @@ url: http://plex:32400
 ### Raspberry Pi Services
 Use static IP addresses:
 ```yaml
-url: http://192.168.50.41:8581
+url: http://192.168.50.216:8581
 ```
 
 ### Remote Services (Non-Docker)

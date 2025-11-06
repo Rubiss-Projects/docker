@@ -56,11 +56,11 @@ tar -czf homebridge-backup-$(date +%Y%m%d).tar.gz config/
 
 ### Homepage Dashboard
 - Widget type: `homebridge`
-- URL: `http://192.168.50.41:8581`
+- URL: `http://192.168.50.216:8581`
 - Requires username/password from Homebridge config
 
 ### Nginx Proxy Manager
-- Proxy to: `192.168.50.41:8581`
+- Proxy to: `192.168.50.216:8581`
 - WebSocket support: Enabled
 - SSL: Recommended for external access
 

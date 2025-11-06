@@ -58,7 +58,7 @@ scrape_configs:
 
   - job_name: 'cadvisor-pi'
     static_configs:
-      - targets: ['192.168.50.41:8080']
+      - targets: ['192.168.50.216:8080']
         labels:
           instance: 'raspberry-pi'
           host: 'pi3'
@@ -66,7 +66,7 @@ scrape_configs:
 
   - job_name: 'node-exporter-pi'
     static_configs:
-      - targets: ['192.168.50.41:9100']
+      - targets: ['192.168.50.216:9100']
         labels:
           instance: 'raspberry-pi'
           host: 'pi3'
