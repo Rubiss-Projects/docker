@@ -11,7 +11,7 @@
 - **RAM:** 1GB (resource-constrained)
 - **IP Address:** 192.168.50.41 (static)
 - **Repository:** Already cloned at `~/docker/pi`
-- **User:** `pi` (or as configured)
+- **User:** `rubiss`
 
 ## Services to Deploy
 
