@@ -1,0 +1,25 @@
+services:
+  speedtest-tracker:
+    image: lscr.io/linuxserver/speedtest-tracker:latest
+    restart: unless-stopped
+    container_name: speedtest-tracker-pi
+    ports:
+      - "8082:80"
+      - "8444:443"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - SPEEDTEST_SCHEDULE=${SPEEDTEST_SCHEDULE}
+      - APP_TIMEZONE=${APP_TIMEZONE}
+      - DISPLAY_TIMEZONE=${DISPLAY_TIMEZONE}
+      - APP_KEY=${APP_KEY}
+      - APP_URL=${APP_URL}
+      - DB_CONNECTION=sqlite
+    volumes:
+      - ./data:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
