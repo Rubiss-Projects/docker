@@ -47,7 +47,7 @@ restart: unless-stopped
 3. Configure:
    - Domain Names: `service.benlawson.dev`
    - Scheme: `http` (internal services are usually HTTP)
-   - Forward Hostname/IP: Container name (e.g., `plex`) or IP (e.g., `192.168.50.41`)
+   - Forward Hostname/IP: Container name (e.g., `plex`) or IP (e.g., `192.168.50.216`)
    - Forward Port: Service port (e.g., `32400` for Plex, `8581` for Homebridge)
    - Websockets Support: Enable if needed
 4. Go to SSL tab:
@@ -99,7 +99,7 @@ Example for Plex:
 ```
 Domain: pihole.benlawson.dev
 Scheme: http
-Forward Host: 192.168.50.41
+Forward Host: 192.168.50.216
 Forward Port: 80
 SSL: Let's Encrypt
 ```
@@ -302,7 +302,7 @@ SSL: Let's Encrypt, Force SSL
 ### Homebridge (Pi)
 ```
 Domain: homebridge.benlawson.dev
-Forward: http://192.168.50.41:8581
+Forward: http://192.168.50.216:8581
 Websockets: Yes
 SSL: Let's Encrypt, Force SSL
 ```
@@ -310,12 +310,12 @@ SSL: Let's Encrypt, Force SSL
 ### Pi-hole (Pi)
 ```
 Domain: pihole.benlawson.dev
-Forward: http://192.168.50.41:80
+Forward: http://192.168.50.216:80
 Websockets: No
 SSL: Let's Encrypt, Force SSL
 Custom Locations:
   Location: /admin
-  Forward: http://192.168.50.41:80/admin
+  Forward: http://192.168.50.216:80/admin
 ```
 
 ### Bitwarden

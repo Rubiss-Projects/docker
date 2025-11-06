@@ -65,13 +65,13 @@ restart: unless-stopped
 ### Viewing Metrics
 ```bash
 # Web interface (basic)
-curl http://192.168.50.41:9100/metrics
+curl http://192.168.50.216:9100/metrics
 
 # Specific metric
-curl -s http://192.168.50.41:9100/metrics | grep 'node_cpu'
+curl -s http://192.168.50.216:9100/metrics | grep 'node_cpu'
 
 # Temperature
-curl -s http://192.168.50.41:9100/metrics | grep 'node_hwmon_temp_celsius'
+curl -s http://192.168.50.216:9100/metrics | grep 'node_hwmon_temp_celsius'
 ```
 
 ### Viewing Logs
@@ -82,7 +82,7 @@ docker logs node-exporter -f
 ### Testing Prometheus Scrape
 ```bash
 # From Windows host
-curl http://192.168.50.41:9100/metrics | head -n 50
+curl http://192.168.50.216:9100/metrics | head -n 50
 ```
 
 ### Checking Resource Usage
@@ -99,7 +99,7 @@ Windows Prometheus scrapes node-exporter:
 # In prometheus.yml
 - job_name: 'node-exporter-pi'
   static_configs:
-    - targets: ['192.168.50.41:9100']
+    - targets: ['192.168.50.216:9100']
       labels:
         instance: 'raspberry-pi'
         host: 'pi3'
@@ -123,7 +123,7 @@ Key panels to include:
 ```yaml
 - Pi System Monitor:
     icon: prometheus.png
-    href: http://192.168.50.41:9100/metrics
+    href: http://192.168.50.216:9100/metrics
     description: System metrics (Node Exporter)
 ```
 
@@ -162,7 +162,7 @@ Key panels to include:
 ### No Metrics Returned
 1. Verify container is running: `docker ps | grep node-exporter`
 2. Check host networking: `docker inspect node-exporter | grep NetworkMode`
-3. Test endpoint: `curl http://192.168.50.41:9100/metrics`
+3. Test endpoint: `curl http://192.168.50.216:9100/metrics`
 4. Review logs: `docker logs node-exporter`
 
 ### Missing Temperature Metrics
@@ -175,7 +175,7 @@ Key panels to include:
 1. Ensure `network_mode: host` is set
 2. Verify device exclusions are working (no docker interfaces)
 3. Check for errors in logs
-4. Test: `curl -s http://192.168.50.41:9100/metrics | grep node_network_receive_bytes_total`
+4. Test: `curl -s http://192.168.50.216:9100/metrics | grep node_network_receive_bytes_total`
 
 ### Filesystem Metrics Missing
 1. Check rootfs mount: `/:/rootfs:ro`
@@ -331,7 +331,7 @@ node_load1{instance="raspberry-pi"}
 
 ### Health Check
 ```bash
-curl http://192.168.50.41:9100/
+curl http://192.168.50.216:9100/
 # Should return HTML page with links
 ```
 
@@ -342,7 +342,7 @@ scrape_duration_seconds{instance="raspberry-pi",job="node-exporter-pi"}
 
 ### Metric Count
 ```bash
-curl -s http://192.168.50.41:9100/metrics | grep -c '^node_'
+curl -s http://192.168.50.216:9100/metrics | grep -c '^node_'
 # Typical: 300-500 metrics
 ```
 

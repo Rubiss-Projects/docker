@@ -52,7 +52,7 @@ git push origin main
 ### 5. When Hardware Arrives - Follow HUMAN-SETUP-GUIDE.md
 This is your manual setup guide (~30 minutes):
 - Flash Ubuntu Server
-- Configure static IP 192.168.50.41
+- Configure static IP 192.168.50.216
 - Install Git and clone repo
 - Set up VS Code tunnel
 
@@ -72,8 +72,8 @@ After AI agent completes:
 
 **Configure Nginx Proxy Manager:**
 1. Open NPM admin panel
-2. Add proxy host: `homebridge.benlawson.dev` → `192.168.50.41:8581`
-3. Add proxy host: `pihole.benlawson.dev` → `192.168.50.41:80`
+2. Add proxy host: `homebridge.benlawson.dev` → `192.168.50.216:8581`
+3. Add proxy host: `pihole.benlawson.dev` → `192.168.50.216:80`
 4. Enable SSL for both
 
 **Import Grafana Dashboards:**
