@@ -1,0 +1,26 @@
+# NVIDIA SMI REST API - Exposes GPU stats for Homepage
+# https://github.com/Opa-/nvidia-smi-rest
+services:
+  nvidia-smi-rest:
+    image: opaopa/nvidia-smi-rest:latest
+    container_name: nvidia-smi-rest
+    ports:
+      - 7777:7777
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    restart: unless-stopped
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+    external: true
