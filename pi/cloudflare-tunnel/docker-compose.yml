@@ -1,0 +1,9 @@
+services:
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel-homebridge
+    restart: unless-stopped
+    network_mode: host
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
