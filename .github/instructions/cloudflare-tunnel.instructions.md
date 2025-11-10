@@ -1,43 +1,64 @@
 ---
-applyTo: "pi/cloudflare-tunnel/**"
+applyTo: "{pi/cloudflare-tunnel/**,cloudflare-tunnel/**}"
 ---
 
 # Cloudflare Tunnel Service Expert Instructions
 
-You are an expert in Cloudflare Tunnel (cloudflared) configuration and secure remote access.
+You are an expert in Cloudflare Tunnel (cloudflared) configuration and secure remote access for both Raspberry Pi and Windows Server deployments.
 
 ## Service Overview
-Cloudflare Tunnel creates a secure, outbound-only connection between your services and Cloudflare's network, eliminating the need for public IP addresses, port forwarding, or VPN. This tunnel specifically provides secure external access to the Homebridge web interface.
+Cloudflare Tunnel creates a secure, outbound-only connection between your services and Cloudflare's network, eliminating the need for public IP addresses, port forwarding, or VPN.
+
+**Deployment Locations**:
+- **Raspberry Pi** (`cloudflared-pi`): Exposes Homebridge service via host networking
+- **Windows Server** (`cloudflared-windows`): Exposes multiple services through Nginx Proxy Manager via bridge networking
 
 ## Technical Configuration
 
-### Network Requirements
-- **No inbound ports required** - All connections are outbound to Cloudflare
-- Connects to Homebridge via Docker bridge network
-- Homebridge remains on `host` network for HomeKit/mDNS functionality
-- Tunnel container connects to shared `homebridge-net` bridge network
+### Network Architecture
+
+**Raspberry Pi (Host Network)**:
+```
+Internet → Cloudflare Edge → Tunnel (host) → Homebridge (host:8581)
+```
+
+**Windows Server (Bridge Network)**:
+```
+Internet → Cloudflare Edge → Tunnel (proxynet) → NPM (proxynet:80) → Services
+```
 
 ### Docker Compose Patterns
+
+**Raspberry Pi (Host Network)**:
 ```yaml
 services:
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
+    container_name: cloudflared-pi
+    network_mode: host  # Required for Homebridge mDNS compatibility
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    restart: unless-stopped
+```
+
+**Windows Server (Bridge Network)**:
+```yaml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-windows
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     networks:
-      - homebridge-net
+      - proxynet  # Shares network with NPM and services
     restart: unless-stopped
-```
 
-### Network Architecture
+networks:
+  proxynet:
+    external: true
 ```
-Internet → Cloudflare Edge → Tunnel (host network) → Homebridge (host network)
-```
-
-Since both the tunnel and Homebridge run on the same Pi using host networking, the tunnel can connect to Homebridge via localhost:8581.
-
-## Setup Process
 
 ### 1. Create Tunnel in Cloudflare Dashboard
 1. Log in to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
@@ -48,17 +69,30 @@ Since both the tunnel and Homebridge run on the same Pi using host networking, t
 6. Click **Save tunnel**
 
 ### 2. Configure Public Hostname
+
+**For Raspberry Pi (Homebridge)**:
 1. In the tunnel configuration, go to **Public Hostname** tab
 2. Click **Add a public hostname**
 3. Configure:
    - **Subdomain**: `homebridge` (or your preference)
    - **Domain**: Select your domain (e.g., `benlawson.dev`)
    - **Service Type**: `HTTP`
-   - **URL**: `localhost:8581` (since tunnel runs on host network with Homebridge)
+   - **URL**: `localhost:8581` (tunnel uses host network, connects via localhost)
 4. Under **Additional application settings**:
    - Enable **No TLS Verify** if using self-signed certs
    - Optional: Configure **Cloudflare Access** for authentication
 5. Click **Save hostname**
+
+**For Windows Server (via Nginx Proxy Manager)**:
+1. In the tunnel configuration, go to **Public Hostname** tab
+2. Click **Add a public hostname**
+3. Configure:
+   - **Subdomain**: `*` (wildcard) or specific subdomain (e.g., `bitwarden`)
+   - **Domain**: Select your domain (e.g., `benlawson.dev`)
+   - **Service Type**: `HTTP`
+   - **URL**: `nginx-proxy-manager:80` (tunnel connects via Docker network)
+4. Click **Save hostname**
+5. **Note**: NPM will handle routing to individual services based on hostname
 
 ### 3. Get Tunnel Token
 1. In the tunnel dashboard, click **Configure**
@@ -70,6 +104,8 @@ Since both the tunnel and Homebridge run on the same Pi using host networking, t
 4. Copy only the token value (long alphanumeric string)
 
 ### 4. Deploy the Tunnel
+
+**Raspberry Pi**:
 ```bash
 cd /home/rubiss/docker/pi/cloudflare-tunnel
 cp .env.example .env
@@ -80,45 +116,94 @@ nano .env
 docker compose up -d
 
 # Verify it's running
-docker logs cloudflare-tunnel-homebridge
+docker logs cloudflared-pi
+```
+
+**Windows Server**:
+```powershell
+cd E:\Docker\cloudflare-tunnel
+# Create .env file and add TUNNEL_TOKEN
+notepad .env
+
+# Start the tunnel
+docker compose up -d
+
+# Verify it's running
+docker logs cloudflared-windows
 ```
 
 ### 5. Network Configuration
-Both services run on the same Pi using host networking:
+
+**Raspberry Pi (Host Network)**:
+Both tunnel and Homebridge run on the same Pi using host networking:
 ```yaml
 # Tunnel: pi/cloudflare-tunnel/docker-compose.yml
 services:
   cloudflare-tunnel:
     network_mode: host  # Shares Pi's network
+    container_name: cloudflared-pi
     
 # Homebridge: pi/homebridge/docker-compose.yml
 services:
   homebridge:
     network_mode: host  # Required for HomeKit mDNS
 ```
-
 Since both are on host network, tunnel connects to Homebridge via `localhost:8581`.
+
+**Windows Server (Bridge Network)**:
+Tunnel connects to services via the `proxynet` Docker bridge network:
+```yaml
+# Tunnel: cloudflare-tunnel/docker-compose.yml
+services:
+  cloudflared:
+    container_name: cloudflared-windows
+    networks:
+      - proxynet
+      
+# NPM: nginx-proxy-manager/docker-compose.yml
+services:
+  app:
+    container_name: nginx-proxy-manager
+    networks:
+      - proxynet
+      
+# Services connect via container names (e.g., nginx-proxy-manager:80)
+```
 
 ## Common Tasks
 
 ### View Tunnel Logs
 ```bash
-docker logs cloudflare-tunnel-homebridge -f
+# Raspberry Pi
+docker logs cloudflared-pi -f
+
+# Windows Server
+docker logs cloudflared-windows -f
 ```
 
 ### Check Tunnel Status
 - View in Cloudflare Dashboard under Networks > Tunnels
-- Should show "Healthy" status with active connections
+- Should show "Healthy" status with active connections (typically 4 connections)
 
 ### Restart Tunnel
 ```bash
-docker restart cloudflare-tunnel-homebridge
+# Raspberry Pi
+docker restart cloudflared-pi
+
+# Windows Server
+docker restart cloudflared-windows
 ```
 
 ### Update Tunnel Token
 ```bash
+# Raspberry Pi
 cd /home/rubiss/docker/pi/cloudflare-tunnel
 nano .env  # Update TUNNEL_TOKEN
+docker compose up -d  # Restart with new token
+
+# Windows Server
+cd E:\Docker\cloudflare-tunnel
+notepad .env  # Update TUNNEL_TOKEN
 docker compose up -d  # Restart with new token
 ```
 
@@ -130,11 +215,34 @@ docker compose up -d  # Restart with new token
 3. **Check logs**: `docker logs cloudflare-tunnel-homebridge`
 4. **Network connectivity**: Ensure container can reach Cloudflare edge
 
-### Cannot Access Homebridge
+### Cannot Access Service
+
+**Raspberry Pi (Homebridge)**:
 1. **Verify service URL**: Should be `localhost:8581` (both services on host network)
 2. **Check Homebridge is running**: `docker ps | grep homebridge`
-3. **Test local access**: `curl http://localhost:8581` or `curl http://192.168.50.216:8581`
-4. **Review tunnel config**: Ensure public hostname is saved correctly
+3. **Test local access**: 
+   ```bash
+   curl http://localhost:8581
+   # Or from another machine:
+   curl http://192.168.50.216:8581
+   ```
+4. **Review tunnel config**: Ensure public hostname points to `localhost:8581`
+
+**Windows Server (via NPM)**:
+1. **Verify NPM routing**: Check Nginx Proxy Manager has a proxy host configured for the subdomain
+2. **Check service is running**: `docker ps | grep <service_name>`
+3. **Test NPM access**: 
+   ```powershell
+   curl http://192.168.50.40:80
+   ```
+4. **Verify proxynet**: Ensure tunnel and NPM are on the same network
+   ```powershell
+   docker network inspect proxynet
+   ```
+5. **Test from tunnel**: 
+   ```powershell
+   docker exec cloudflared-windows ping nginx-proxy-manager
+   ```
 
 ### SSL/TLS Errors
 - Enable **No TLS Verify** in tunnel config if Homebridge uses self-signed cert

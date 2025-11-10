@@ -1,9 +1,14 @@
 services:
-  cloudflare-tunnel:
+  cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflared-pi
+    container_name: cloudflared-windows
     restart: unless-stopped
-    network_mode: host
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external: true

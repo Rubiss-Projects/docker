@@ -95,24 +95,32 @@ Reduces memory usage (default: 5m). Prometheus scrapes every 30s, so 2m is suffi
 
 ### Viewing Web UI
 ```bash
-# Access at: http://192.168.50.216:8080
+# Raspberry Pi: http://192.168.50.216:8080
+# Windows Server: http://192.168.50.40:8081
 # Shows: Container list, resource usage, graphs
 ```
 
 ### Viewing Logs
 ```bash
+# Run from the host where cAdvisor is running
 docker logs cadvisor -f
 ```
 
 ### Testing Prometheus Scrape
 ```bash
+# Raspberry Pi
 curl http://192.168.50.216:8080/metrics
+
+# Windows Server
+curl http://192.168.50.40:8081/metrics
 ```
 
 ### Checking Resource Usage
 ```bash
+# Run from the host where cAdvisor is running
 docker stats cadvisor
-# Should be ~30-50MB RAM with optimizations
+# Raspberry Pi: Should be ~30-50MB RAM with optimizations
+# Windows: ~100-200MB with full metrics
 ```
 
 ## Metrics Exported
@@ -135,7 +143,7 @@ These are disabled but can be re-enabled if needed:
 ## Integration Points
 
 ### Prometheus Scraping
-Windows Prometheus scrapes Pi cAdvisor:
+Prometheus scrapes cAdvisor from both hosts:
 ```yaml
 # In prometheus.yml
 - job_name: 'cadvisor-pi'
@@ -144,7 +152,15 @@ Windows Prometheus scrapes Pi cAdvisor:
       labels:
         instance: 'raspberry-pi'
         host: 'pi3'
-  scrape_interval: 30s  # Match housekeeping_interval
+  scrape_interval: 30s  # Match Pi housekeeping_interval
+
+- job_name: 'cadvisor-windows'
+  static_configs:
+    - targets: ['192.168.50.40:8081']
+      labels:
+        instance: 'windows-server'
+        host: 'ben-server'
+  scrape_interval: 15s  # Match Windows housekeeping_interval
 ```
 
 ### Homepage Dashboard
