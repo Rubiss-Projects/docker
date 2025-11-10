@@ -69,22 +69,26 @@ WATCHTOWER_NOTIFICATION_REPORT=true  # Send report even if no updates
 
 ### Viewing Logs
 ```bash
+# Run from the host where Watchtower is running (Pi or Windows)
 docker logs watchtower -f
 ```
 
 ### Force Update Check
 ```bash
+# Run from the host where Watchtower is running
 docker exec watchtower /watchtower --run-once
 ```
 
 ### Check What Would Be Updated (Dry Run)
 ```bash
+# Run from the host where you want to check
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower --run-once --dry-run
 ```
 
 ### Update Single Container
 ```bash
+# Run from the host where the container is running
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower --run-once container_name
 ```
