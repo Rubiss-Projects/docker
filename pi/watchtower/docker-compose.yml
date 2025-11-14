@@ -9,8 +9,12 @@ services:
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_INCLUDE_STOPPED=false
       - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Run at 4 AM daily
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN}
+      - WATCHTOWER_HTTP_API_METRICS=true
       - WATCHTOWER_NOTIFICATIONS=shoutrrr
       - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}
+    ports:
+      - 8080:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     logging:
