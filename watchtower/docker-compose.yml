@@ -3,7 +3,11 @@ services:
     image: containrrr/watchtower
     container_name: watchtower
     environment:
+      - TZ=${TZ}
       - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Run at 4 AM daily (9 AM UTC) - 1 hour before Docker restart at 5 AM
       - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN}
       - WATCHTOWER_HTTP_API_METRICS=true
     ports:
@@ -13,6 +17,11 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - homepage.group=Infrastructure
       - homepage.name=Watchtower
