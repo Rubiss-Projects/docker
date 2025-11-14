@@ -9,6 +9,7 @@ services:
       - "19132:19132/udp"
     environment:
       - TYPE=PAPER
+      - VERSION=1.21.10
       - EULA=TRUE
       - OPS=Rubiss_
       - ENABLE_WHITELIST=true
