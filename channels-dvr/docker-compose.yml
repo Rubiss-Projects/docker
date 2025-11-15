@@ -28,6 +28,9 @@ services:
       - homepage.icon=mdi-television
       - homepage.href=https://channels.benlawson.dev
       - homepage.ping=http://channels-dvr:8089
+      - homepage.description=DVR and TV streaming
+      - homepage.widget.type=channelsdvrserver
+      - homepage.widget.url=http://channels-dvr:8089
     networks:
       - proxynet
 

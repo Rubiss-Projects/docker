@@ -18,6 +18,9 @@ services:
       - homepage.href=https://audiobookshelf.benlawson.dev/
       - homepage.siteMonitor=http://audiobookshelf:80
       - homepage.description=Audiobook & podcast server
+      - homepage.widget.type=audiobookshelf
+      - homepage.widget.url=http://audiobookshelf:80
+      - homepage.widget.key=${AUDIOBOOKSHELF_API_KEY}
     networks:
       - proxynet
 
