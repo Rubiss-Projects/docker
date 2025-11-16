@@ -1,0 +1,42 @@
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - 11434:11434
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES}
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+    volumes:
+      - E:\Docker\ollama\data:/root/.ollama
+      # Explicitly mount WSL NVIDIA driver paths for GPU access
+      - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    restart: unless-stopped
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Ollama
+      - homepage.icon=ollama.png
+      - homepage.href=https://ollama.benlawson.dev/
+      - homepage.description=Local LLM server
+      - homepage.widget.type=ollama
+      - homepage.widget.url=http://ollama:11434
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external:
+      name: proxynet
