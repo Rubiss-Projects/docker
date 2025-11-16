@@ -1,0 +1,31 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - 3333:8080
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - WEBUI_NAME=${WEBUI_NAME}
+    env_file:
+      - .env
+    volumes:
+      - E:\Docker\open-webui\data:/app/backend/data
+    restart: unless-stopped
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Open WebUI
+      - homepage.icon=openwebui.png
+      - homepage.href=https://ai.benlawson.dev/
+      - homepage.description=AI Chat Interface
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+    external: true

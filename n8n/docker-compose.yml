@@ -1,0 +1,38 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - N8N_RUNNERS_ENABLED=true
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${GENERIC_TIMEZONE}
+    volumes:
+      - E:\Docker\n8n\config:/home/node/.n8n
+      - E:\Docker\n8n\data:/files
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=n8n
+      - homepage.icon=n8n.png
+      - homepage.href=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - homepage.description=Workflow automation
+      - homepage.widget.type=n8n
+      - homepage.widget.url=http://n8n:5678
+      - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
+
+volumes:
+  n8n_data:
