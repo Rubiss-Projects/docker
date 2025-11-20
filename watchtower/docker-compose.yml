@@ -7,7 +7,7 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_INCLUDE_STOPPED=false
-      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Run at 4 AM daily (9 AM UTC) - 1 hour before Docker restart at 5 AM
+      - WATCHTOWER_SCHEDULE=0 0 11 * * *  # Run at 6 AM EST (11 AM UTC) - 1 hour after Docker restart at 5 AM
       - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN}
       - WATCHTOWER_HTTP_API_METRICS=true
     ports:
