@@ -19,7 +19,7 @@ services:
     labels:
       - homepage.group=Infrastructure
       - homepage.name=Open WebUI
-      - homepage.icon=openwebui.png
+      - homepage.icon=/icons/openwebui.png
       - homepage.href=https://ai.benlawson.dev/
       - homepage.description=AI Chat Interface
     networks:
