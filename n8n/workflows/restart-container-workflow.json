@@ -1,0 +1,77 @@
+{
+  "id": "tWmK9mxsrVcB6Nzb",
+  "active": true,
+  "name": "Restart Container on Down",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "restart-container",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "webhookId": "restart-container"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.body.heartbeat.status == 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "If Down",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=if ! command -v curl &> /dev/null; then apk add --no-cache curl; fi && curl --unix-socket /var/run/docker.sock -X POST \"http://localhost/containers/{{ $json.body.monitor.name }}/restart\""
+      },
+      "name": "Restart Container",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If Down",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Down": {
+      "main": [
+        [
+          {
+            "node": "Restart Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

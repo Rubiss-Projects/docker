@@ -16,8 +16,23 @@ n8n is a fair-code licensed workflow automation tool that allows you to connect 
 ## Volume Mounts
 ```
 E:\Docker\n8n\config:/home/node/.n8n    # n8n configuration and workflows
-E:\Docker\n8n\data:/files                # File storage for workflows
+E:\Docker\n8n\workflows:/files          # Auto-import directory for JSON workflows
 ```
+
+## Workflow Management (Auto-Import)
+This service is configured to automatically import and activate workflows from the filesystem on startup.
+
+1.  **Location**: Place your workflow JSON files in `E:\Docker\n8n\workflows`.
+2.  **Mechanism**: A custom startup script (`import-workflows.sh`) runs when the container starts.
+3.  **Behavior**:
+    *   Scans `/files/*.json` (mapped to `workflows` folder).
+    *   Imports the workflow using `n8n import:workflow`.
+    *   Extracts the ID and activates the workflow using `n8n update:workflow`.
+    *   Starts the main n8n process.
+4.  **To Apply Changes**: Simply restart the container:
+    ```bash
+    docker compose restart n8n
+    ```
 
 ## Environment Variables
 - `N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true` - Enforce file permission checks
