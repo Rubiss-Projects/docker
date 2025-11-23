@@ -5,9 +5,9 @@ services:
     image: lscr.io/linuxserver/bazarr
     container_name: bazarr
     volumes:
-      - E:\Media\movies:/movies
-      - E:\Media\tv:/tv
-      - E:\Docker\bazarr\config:/config
+      - ../../Media/movies:/movies
+      - ../../Media/tv:/tv
+      - ./config:/config
     ports:
       - 6767:6767
     restart: unless-stopped

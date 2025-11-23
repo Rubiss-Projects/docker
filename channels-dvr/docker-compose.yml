@@ -16,9 +16,9 @@ services:
               capabilities: [gpu, compute, utility, video]
     restart: unless-stopped
     volumes:
-      - E:\Docker\channels-dvr\config:/channels-dvr
-      - E:\Docker\channels-dvr\recordings:/shares/DVR
-      - E:\Media\channels-dvr:/shares/DVR/TV
+      - ./config:/channels-dvr
+      - ./recordings:/shares/DVR
+      - ../../Media/channels-dvr:/shares/DVR/TV
       # Explicitly mount WSL NVIDIA driver paths
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro

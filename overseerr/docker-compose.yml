@@ -7,7 +7,7 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
     volumes:
-      - E:\Docker\overseerr\config:/config
+      - ./config:/config
     ports:
       - 5055:5055
     restart: unless-stopped

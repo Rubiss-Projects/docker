@@ -11,8 +11,8 @@ services:
       - "8083:8080"
       - "8084:8443"
     volumes:
-      - E:\Docker\bitwarden\config:/etc/bitwarden
-      - E:\Docker\bitwarden\logs:/var/log/bitwarden
+      - ./config:/etc/bitwarden
+      - ./logs:/var/log/bitwarden
     networks:
       - proxynet
     labels:
@@ -29,7 +29,7 @@ services:
     image: postgres:14
     restart: unless-stopped
     volumes:
-      - E:\Docker\bitwarden\data:/var/lib/postgresql/data
+      - ./data:/var/lib/postgresql/data
     networks:
       - proxynet
 

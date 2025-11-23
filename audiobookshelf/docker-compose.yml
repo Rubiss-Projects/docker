@@ -6,7 +6,7 @@ services:
     ports:
       - 13378:80
     volumes:
-      - E:\Media\audiobooks:/audiobooks
+      - ../../Media/audiobooks:/audiobooks
       - ./config:/config
       - ./metadata:/metadata
     environment:

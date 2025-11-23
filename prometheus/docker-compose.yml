@@ -8,8 +8,8 @@ services:
       - 9090:9090
     restart: unless-stopped
     volumes:
-      - E:\Docker\prometheus\config:/etc/prometheus
-      - E:\Docker\prometheus\data:/prometheus
+      - ./config:/etc/prometheus
+      - ./data:/prometheus
     labels:
       - homepage.group=Observability
       - homepage.name=Prometheus

@@ -8,9 +8,9 @@ services:
     environment:
       UNLOCK_VAULT: "true"
     volumes:
-      - E:\Docker\lazywarden\config:/root/lazywarden/config
-      - E:\Docker\lazywarden\data:/root/lazywarden/backup-drive/
-      - E:\Docker\lazywarden\.env:/app/.env
+      - ./config:/root/lazywarden/config
+      - ./data:/root/lazywarden/backup-drive/
+      - ./.env:/app/.env
     restart: unless-stopped
     networks:
       - proxynet

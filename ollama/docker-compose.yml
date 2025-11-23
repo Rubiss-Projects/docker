@@ -20,7 +20,7 @@ services:
               count: all
               capabilities: [gpu, compute, utility]
     volumes:
-      - E:\Docker\ollama\data:/root/.ollama
+      - ./data:/root/.ollama
       # Explicitly mount WSL NVIDIA driver paths for GPU access
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
