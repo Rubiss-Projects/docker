@@ -34,6 +34,12 @@ labels:
   - homepage.description={Brief description}
 ```
 
+### Custom Icons
+For services requiring custom icons (not in the default set):
+1.  **Place icon**: Save PNG to `homepage/config/icons/{service}.png`
+2.  **Mount volume**: Ensure Homepage mounts `./config/icons:/app/public/icons`
+3.  **Reference**: Use label `homepage.icon=/icons/{service}.png`
+
 **Non-Docker services** are configured in `homepage/config/services.yaml`:
 ```yaml
 - Infrastructure:

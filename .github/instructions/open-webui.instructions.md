@@ -83,6 +83,11 @@ From within Open WebUI container:
 docker exec open-webui curl http://ollama:11434/api/tags
 ```
 
+## Homepage Integration
+Open WebUI uses a custom icon for the Homepage dashboard.
+- **Icon**: `homepage/config/icons/openwebui.png`
+- **Label**: `homepage.icon=/icons/openwebui.png`
+
 ## User Management
 
 ### Admin Panel

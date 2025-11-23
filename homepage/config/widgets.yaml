@@ -1,0 +1,29 @@
+# https://gethomepage.dev/en/widgets/openweathermap/
+# https://gethomepage.dev/en/widgets/datetime/
+# https://gethomepage.dev/en/widgets/resources/
+
+- openweathermap:
+    label: Weston, FL
+    units: imperial
+    apiKey: {{HOMEPAGE_VAR_OPENWEATHERMAP_API_KEY}}
+    cache: 10
+
+- datetime:
+    text_size: sm
+    format:
+      dateStyle: short
+      timeStyle: short
+      hour12: true
+
+- resources:
+    label: System
+    expanded: true
+    cpu: true
+    memory: true
+    cputemp: true
+    uptime: true
+    units: imperial
+    disk:
+      - /c
+      - /e
+    diskUnits: bytes

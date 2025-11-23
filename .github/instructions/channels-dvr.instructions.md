@@ -125,6 +125,10 @@ Settings > Sharing > Plex:
     description: Live TV and DVR
 ```
 
+**Note**: Channels DVR uses a custom icon.
+- **Icon**: `homepage/config/icons/channels-dvr.png`
+- **Label**: `homepage.icon=/icons/channels-dvr.png`
+
 ### Nginx Proxy Manager
 ```
 Domain: channels.benlawson.dev

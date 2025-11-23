@@ -17,6 +17,7 @@ ports:
   - "3001:3000"
 volumes:
   - ./config:/app/config
+  - ./config/icons:/app/public/icons # Required for custom icons
   - /var/run/docker.sock:/var/run/docker.sock:ro
 environment:
   - PUID=1000
@@ -41,6 +42,11 @@ restart: unless-stopped
 ### services.yaml
 Defines services organized into groups:
 ```yaml
+## Configuration Structure
+
+### services.yaml
+Defines services organized into groups:
+```yaml
 - Media:
     - Plex:
         icon: plex.png
@@ -50,6 +56,15 @@ Defines services organized into groups:
           type: plex
           url: http://plex:32400
           key: YOUR_PLEX_TOKEN
+```
+
+## Custom Icons
+To use custom icons not included in the default set:
+1.  **Storage**: Place PNG files in `config/icons/`
+2.  **Mount**: Ensure `docker-compose.yml` mounts `./config/icons:/app/public/icons`
+3.  **Usage**: Reference as `/icons/filename.png` in labels or config
+    - Label: `homepage.icon=/icons/myicon.png`
+    - Config: `icon: /icons/myicon.png`
 
     - Sonarr:
         icon: sonarr.png

@@ -25,7 +25,7 @@ services:
     labels:
       - homepage.group=Media
       - homepage.name=Channels DVR
-      - homepage.icon=mdi-television
+      - homepage.icon=/icons/channels-dvr.png
       - homepage.href=https://channels.benlawson.dev
       - homepage.ping=http://channels-dvr:8089
       - homepage.description=DVR and TV streaming
