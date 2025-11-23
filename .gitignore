@@ -1,9 +1,5 @@
 # Environment files containing secrets
-**/.env
-**/db.env
-
-# Exclude example files from being ignored
-!**/.env.example
+# (Managed by git-crypt, so we do NOT ignore them)
 
 # Data and config directories
 **/config/*
@@ -27,6 +23,7 @@ channels-dvr/recordings/*
 # Backup files
 *.backup
 *.bak
+backups/
 
 # OS generated files
 .DS_Store

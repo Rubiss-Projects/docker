@@ -1,0 +1,5 @@
+# Encrypt all .env files
+*.env filter=git-crypt diff=git-crypt
+
+# Encrypt db.env files
+db.env filter=git-crypt diff=git-crypt

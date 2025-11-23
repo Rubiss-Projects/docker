@@ -20,6 +20,7 @@ This is a Docker-based home lab infrastructure managing 30+ self-hosted services
 - **Per-service .env files**: Each service has its own `.env` file in the service directory
 - **Global variables**: Common variables like PUID, PGID, TZ are repeated across services
 - **Service-specific env files**: Some services use custom .env names (e.g., `db.env` for database configs)
+- **Secret Management**: All `.env` and `db.env` files are encrypted using **git-crypt**. Do not commit secrets in plain text if git-crypt is not configured.
 
 ## Service Categories & Labels
 
