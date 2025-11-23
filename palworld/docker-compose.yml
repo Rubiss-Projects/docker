@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     network_mode: bridge
     volumes:
-      - E:\Docker\palworld\data:/palworld
+      - ./data:/palworld
     ports:
       - 8211:8211
     env_file:

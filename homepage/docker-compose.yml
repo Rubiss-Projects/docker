@@ -9,10 +9,10 @@ services:
     ports:
       - 3030:3000
     volumes:
-      - E:\Docker\homepage\config:/app/config
+      - ./config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - C:\:/c:ro
-      - E:\:/e:ro
+      - /mnt/c:/c:ro
+      - /mnt/e:/e:ro
     restart: unless-stopped
     networks:
       - proxynet

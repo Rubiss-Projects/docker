@@ -12,9 +12,9 @@ This is a Docker-based home lab infrastructure managing 30+ self-hosted services
 - **Consistent labeling**: Homepage integration labels follow strict patterns for service discovery
 
 ### Volume Mounting Conventions
-- **Windows paths**: All volumes use `E:\Docker\{service}\{type}` pattern (e.g., `E:\Docker\plex\config:/config`)
-- **Media paths**: Shared media volumes use `E:\Media\{type}` (movies, tv, videos, channels-dvr)
-- **WSL compatibility**: Some services (like ARK) must run from WSL due to filesystem performance
+- **Relative paths**: All service volumes use relative paths (e.g., `./config:/config`) for portability and WSL compatibility
+- **Media paths**: Shared media volumes use `../../Media/{type}` relative pattern (e.g., `../../Media/movies:/movies`)
+- **WSL Execution**: ALL services must be started via WSL to ensure paths are registered correctly (e.g., `/mnt/e/Docker/...`)
 
 ### Environment Configuration
 - **Per-service .env files**: Each service has its own `.env` file in the service directory
@@ -100,11 +100,12 @@ Multi-container services use `depends_on` for startup ordering (e.g., Bitwarden 
 ## Development Workflows
 
 ### Adding New Services
-1. **Docker services**: Create service directory: `mkdir {service-name}`
-2. Copy docker-compose template with standard patterns
-3. Configure volumes following `E:\Docker\{service}\{type}` convention
-4. Add to `proxynet` network
-5. Include homepage labels for dashboard integration
+1. **Naming Convention**: Create service directory matching the `container_name` exactly (e.g., `mkdir speedtesttracker` for `container_name: speedtesttracker`)
+2. **Docker services**: Copy docker-compose template with standard patterns
+3. **Volume Configuration**: Use relative paths for volumes (e.g., `./config:/config`)
+4. **Network**: Add to `proxynet` network
+5. **Homepage**: Include homepage labels for dashboard integration
+6. **Execution**: Start service using WSL: `wsl -e sh -c "cd /mnt/e/Docker/{service} && docker compose up -d"`
 
 **Non-Docker services**: Add to `homepage/config/services.yaml` with direct IP addresses and widget configurations
 

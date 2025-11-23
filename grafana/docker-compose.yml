@@ -10,7 +10,7 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - E:\Docker\grafana\data:/var/lib/grafana
+      - ./data:/var/lib/grafana
     restart: unless-stopped
     env_file:
       - .env

@@ -8,8 +8,8 @@ services:
       - "81:81"
       - "443:443"
     volumes:
-      - E:\Docker\nginx-proxy-manager\data:/data
-      - E:\Docker\nginx-proxy-manager\letsencrypt:/etc/letsencrypt
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
     env_file:
       - .env
     labels:

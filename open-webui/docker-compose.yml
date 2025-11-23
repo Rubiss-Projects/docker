@@ -14,7 +14,7 @@ services:
     env_file:
       - .env
     volumes:
-      - E:\Docker\open-webui\data:/app/backend/data
+      - ./data:/app/backend/data
     restart: unless-stopped
     labels:
       - homepage.group=Infrastructure

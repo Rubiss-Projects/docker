@@ -5,9 +5,9 @@ services:
     image: lscr.io/linuxserver/sonarr
     container_name: sonarr
     volumes:
-      - E:\Media\tv:/tv
-      - E:\Media\downloads:/downloads
-      - E:\Docker\sonarr\config:/config
+      - ../../Media/tv:/tv
+      - ../../Media/downloads:/downloads
+      - ./config:/config
     ports:
       - 8989:8989
     env_file:

@@ -3,7 +3,7 @@ services:
     image: louislam/uptime-kuma:1
     container_name: uptime-kuma
     volumes:
-      - E:\Docker\uptime-kuma\data:/app/data
+      - ./data:/app/data
     ports:
       - 3001:3001
     restart: unless-stopped

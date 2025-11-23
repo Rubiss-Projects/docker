@@ -25,11 +25,11 @@ services:
       - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
       - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/scripts/post-download.sh
     volumes:
-      - E:\Docker\transmission\data:/config
-      - E:\Media\downloads:/downloads
-      - E:\Docker\transmission\watch:/watch
-      - E:\Media\:/library
-      - E:\Docker\transmission\scripts:/scripts
+      - ./data:/config
+      - ../../Media/downloads:/downloads
+      - ./watch:/watch
+      - ../../Media/:/library
+      - ./scripts:/scripts
     ports:
       - 9091:9091
       - 51413:51413

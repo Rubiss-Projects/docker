@@ -1,7 +1,7 @@
 services:
   server:
     restart: unless-stopped
-    container_name: ark_server
+    container_name: ark
     image: hermsi/ark-server:latest
     volumes:
       - ${HOME}/ark-server:/app
@@ -16,22 +16,22 @@ services:
       - BACKUP_ON_STOP=${BACKUP_ON_STOP}
       - PRE_UPDATE_BACKUP=${PRE_UPDATE_BACKUP}
       - WARN_ON_STOP=${WARN_ON_STOP}
-    env_file:
-      - .env
       - ENABLE_CROSSPLAY=true
       - DISABLE_BATTLEYE=true
+    env_file:
+      - .env
     ports:
       # Port for connections from ARK game client
-      - "7777:7777/udp"
+      - "7779:7777/udp"
       # Raw UDP socket port (always Game client port +1)
-      - "7778:7778/udp"
+      - "7780:7778/udp"
       # RCON management port
-      - "27020:27020/tcp"
+      - "27021:27020/tcp"
       # Steam's server-list port
-      - "27015:27015/udp"
+      - "27016:27015/udp"
     networks:
       - default
     deploy:
       resources:
         limits:
-          memory: 8Gi
+          memory: 8G

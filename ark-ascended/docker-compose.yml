@@ -1,7 +1,7 @@
 services:
   ark-ascended:
     image: sknnr/ark-ascended-server:latest
-    container_name: ark-survival-ascended-server
+    container_name: ark-ascended
     ports:
       - "7777:7777/udp"
       - "27020:27020/tcp"

@@ -5,8 +5,8 @@ services:
     cap_add:
       - sys_nice
     volumes:
-      - E:\Docker\valheim\config:/config
-      - E:\Docker\valheim\data:/opt/valheim
+      - ./config:/config
+      - ./data:/opt/valheim
     ports:
       - "2456-2457:2456-2457/udp"
       - "9001:9001/tcp"

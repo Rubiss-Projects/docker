@@ -5,9 +5,9 @@ services:
     image: lscr.io/linuxserver/radarr
     container_name: radarr
     volumes:
-      - E:\Media\movies:/movies
-      - E:\Media\downloads:/downloads
-      - E:\Docker\radarr\config:/config
+      - ../../Media/movies:/movies
+      - ../../Media/downloads:/downloads
+      - ./config:/config
     ports:
       - 7878:7878
     restart: unless-stopped

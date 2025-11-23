@@ -18,9 +18,10 @@ services:
       - TZ=${GENERIC_TIMEZONE}
       - N8N_USER_FOLDER=/root/.n8n
     volumes:
-      - E:\Docker\n8n\config:/root/.n8n
-      - E:\Docker\n8n\workflows:/files
+      - ./config:/root/.n8n
+      - ./workflows:/files
       - /var/run/docker.sock:/var/run/docker.sock
+      - ../:/mnt/e/Docker
     entrypoint: /bin/sh
     command: -c "sh /files/import-workflows.sh"
     labels:

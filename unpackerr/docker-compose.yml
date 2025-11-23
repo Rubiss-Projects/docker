@@ -3,8 +3,8 @@ services:
     image: golift/unpackerr
     container_name: unpackerr
     volumes:
-      - E:\Docker\unpackerr\data:/config
-      - E:\Media\downloads:/downloads
+      - ./data:/config
+      - ../../Media/downloads:/downloads
     restart: always
     user: ${PUID}:${PGID}
     environment:
