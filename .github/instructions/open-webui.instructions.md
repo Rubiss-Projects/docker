@@ -15,7 +15,7 @@ Open WebUI is a feature-rich, self-hosted AI chat interface designed for Ollama 
 
 ## Volume Mounts
 ```
-E:\Docker\open-webui\data:/app/backend/data    # User data, conversations, documents, settings
+./data:/app/backend/data    # User data, conversations, documents, settings
 ```
 
 ## Environment Variables
@@ -135,7 +135,7 @@ Use with any OpenAI-compatible client by changing the base URL.
 Settings → Models → Pull Model → Enter model name (e.g., `mistral`)
 
 ### View Conversations
-All conversations are stored in `E:\Docker\open-webui\data`
+All conversations are stored in `./data`
 
 ### Export Conversation
 Click conversation menu → Export → Choose format (JSON/Markdown)
@@ -155,7 +155,7 @@ docker logs open-webui
 
 ### Restart Service
 ```bash
-cd E:\Docker\open-webui
+cd /mnt/e/Docker/open-webui
 docker compose restart
 ```
 
@@ -194,7 +194,7 @@ docker exec open-webui curl http://ollama:11434/api/tags
 - Reduce context length in Settings
 
 ### Document Upload Fails
-- Check available disk space in `E:\Docker\open-webui\data`
+- Check available disk space in `./data`
 - Verify file format is supported (PDF, DOCX, TXT, MD)
 - Check logs for specific error
 
@@ -224,7 +224,7 @@ When exposing via Nginx Proxy Manager:
 ## Data Management
 
 ### Backup
-All data is in `E:\Docker\open-webui\data`:
+All data is in `./data`:
 - User accounts and settings
 - Conversation history
 - Uploaded documents
@@ -234,7 +234,7 @@ Backup this directory regularly.
 
 ### Reset/Clean Install
 ```bash
-cd E:\Docker\open-webui
+cd /mnt/e/Docker/open-webui
 docker compose down
 rm -rf data/*
 docker compose up -d

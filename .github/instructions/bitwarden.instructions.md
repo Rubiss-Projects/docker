@@ -312,8 +312,8 @@ default_statistics_target = 100
 ```powershell
 # backup-bitwarden.ps1
 $date = Get-Date -Format "yyyyMMdd-HHmmss"
-$backupDir = "E:\Backups\Bitwarden"
-$composeDir = "E:\Docker\bitwarden"
+$backupDir = "..\..\Backups\Bitwarden"
+$composeDir = ".\"
 
 # Stop Vaultwarden (optional, for consistency)
 Set-Location $composeDir

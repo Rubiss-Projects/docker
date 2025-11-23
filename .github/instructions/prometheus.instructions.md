@@ -83,14 +83,14 @@ curl -X POST http://localhost:9090/-/reload
 
 ### Restart Prometheus
 ```powershell
-cd E:\Docker\prometheus
+cd /mnt/e/Docker/prometheus
 docker compose restart
 ```
 
 ### Validate Configuration
 ```powershell
 # Check syntax before reload
-docker run --rm -v E:\Docker\prometheus\config:/config prom/prometheus:latest promtool check config /config/prometheus.yml
+docker run --rm -v ./config:/config prom/prometheus:latest promtool check config /config/prometheus.yml
 ```
 
 ### View Logs
@@ -212,7 +212,7 @@ rate(node_network_receive_bytes_total[5m]) / 1024^2
 4. Restart instead: `docker compose restart`
 
 ### High Disk Usage
-1. Check TSDB size: `du -sh E:\Docker\prometheus\data`
+1. Check TSDB size: `du -sh ./data`
 2. Reduce retention time: `--storage.tsdb.retention.time=15d`
 3. Reduce scrape frequency for high-cardinality metrics
 4. Consider metric relabeling to drop unused metrics

@@ -121,7 +121,7 @@ docker logs cloudflared-pi
 
 **Windows Server**:
 ```powershell
-cd E:\Docker\cloudflare-tunnel
+cd /mnt/e/Docker/cloudflare-tunnel
 # Create .env file and add TUNNEL_TOKEN
 notepad .env
 
@@ -202,7 +202,7 @@ nano .env  # Update TUNNEL_TOKEN
 docker compose up -d  # Restart with new token
 
 # Windows Server
-cd E:\Docker\cloudflare-tunnel
+cd /mnt/e/Docker/cloudflare-tunnel
 notepad .env  # Update TUNNEL_TOKEN
 docker compose up -d  # Restart with new token
 ```

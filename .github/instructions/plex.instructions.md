@@ -17,10 +17,10 @@ ports:
   - "32400:32400"  # Plex web UI and API
 volumes:
   - ./config:/config
-  - E:\Media\movies:/movies
-  - E:\Media\tv:/tv
-  - E:\Media\videos:/videos
-  - E:\Media\channels-dvr:/channels-dvr
+  - ../../Media/movies:/movies
+  - ../../Media/tv:/tv
+  - ../../Media/videos:/videos
+  - ../../Media/channels-dvr:/channels-dvr
   - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro  # WSL2 GPU drivers
   - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
 environment:
@@ -50,10 +50,10 @@ Requires:
 
 ### Critical Directories
 - `config/` - Plex database, metadata, thumbnails
-- `E:\Media\movies` - Movie library
-- `E:\Media\tv` - TV show library
-- `E:\Media\videos` - Personal videos
-- `E:\Media\channels-dvr` - Channels DVR recordings
+- `../../Media/movies` - Movie library
+- `../../Media/tv` - TV show library
+- `../../Media/videos` - Personal videos
+- `../../Media/channels-dvr` - Channels DVR recordings
 
 ### Default Port
 - 32400 - Main web UI and streaming
@@ -197,7 +197,7 @@ Automatically updates Plex when new media added:
 2. Backup database: `tar -czf config-backup.tar.gz config/`
 3. Run database repair:
 ```powershell
-docker run --rm -v E:\Docker\plex\config:/config `
+docker run --rm -v ./config:/config `
   linuxserver/plex:latest /usr/lib/plexmediaserver/Plex\ SQLite\ Repair
 ```
 4. Start Plex: `docker compose start`

@@ -269,19 +269,19 @@ Server creates automatic backups in SaveGames folder.
 ### Backup Script (PowerShell)
 ```powershell
 # astroneer-backup.ps1
-$BackupDir = "E:\Backups\Astroneer"
+$BackupDir = "..\..\Backups\Astroneer"
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupFile = "$BackupDir\astroneer-save-$Timestamp.tar.gz"
 
 # Stop server for consistent backup
-docker compose -f E:\Docker\astroneer\docker-compose.yml stop
+docker compose -f ..\Docker\astroneer\docker-compose.yml stop
 Start-Sleep -Seconds 5
 
 # Backup save files
-tar -czf $BackupFile -C E:\Docker\astroneer\server-files\Astro\Saved SaveGames
+tar -czf $BackupFile -C ..\Docker\astroneer\server-files\Astro\Saved SaveGames
 
 # Restart server
-docker compose -f E:\Docker\astroneer\docker-compose.yml start
+docker compose -f ..\Docker\astroneer\docker-compose.yml start
 
 # Keep only last 10 backups
 Get-ChildItem $BackupDir -Filter "astroneer-save-*.tar.gz" | 
@@ -294,7 +294,7 @@ Write-Host "Backup complete: $BackupFile"
 
 ### Schedule with Task Scheduler
 ```powershell
-$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File E:\Scripts\astroneer-backup.ps1"
+$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File ..\Scripts\astroneer-backup.ps1"
 $Trigger = New-ScheduledTaskTrigger -Daily -At 3am
 Register-ScheduledTask -TaskName "Astroneer Backup" -Action $Action -Trigger $Trigger
 ```
@@ -318,7 +318,7 @@ docker stats astroneer
 
 ### Check Save Files
 ```powershell
-Get-ChildItem E:\Docker\astroneer\server-files\Astro\Saved\SaveGames\
+Get-ChildItem ..\Docker\astroneer\server-files\Astro\Saved\SaveGames\
 ```
 
 ## Admin Console Commands

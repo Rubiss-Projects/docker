@@ -15,14 +15,14 @@ n8n is a fair-code licensed workflow automation tool that allows you to connect 
 
 ## Volume Mounts
 ```
-E:\Docker\n8n\config:/home/node/.n8n    # n8n configuration and workflows
-E:\Docker\n8n\workflows:/files          # Auto-import directory for JSON workflows
+./config:/home/node/.n8n    # n8n configuration and workflows
+./workflows:/files          # Auto-import directory for JSON workflows
 ```
 
 ## Workflow Management (Auto-Import)
 This service is configured to automatically import and activate workflows from the filesystem on startup.
 
-1.  **Location**: Place your workflow JSON files in `E:\Docker\n8n\workflows`.
+1.  **Location**: Place your workflow JSON files in `./workflows`.
 2.  **Mechanism**: A custom startup script (`import-workflows.sh`) runs when the container starts.
 3.  **Behavior**:
     *   Scans `/files/*.json` (mapped to `workflows` folder).
@@ -64,7 +64,7 @@ This service is configured to automatically import and activate workflows from t
 Navigate to http://localhost:5678 to access the n8n interface
 
 ### Backup Workflows
-Workflows are stored in `E:\Docker\n8n\config` and can be exported/imported via the UI
+Workflows are stored in `./config` and can be exported/imported via the UI
 
 ### View Logs
 ```bash
@@ -73,7 +73,7 @@ docker logs n8n
 
 ### Restart Service
 ```bash
-cd E:\Docker\n8n
+cd /mnt/e/Docker/n8n
 docker compose restart
 ```
 
@@ -93,7 +93,7 @@ n8n can connect to all services in this infrastructure:
 ## Troubleshooting
 
 ### Workflows Not Saving
-Check file permissions in `E:\Docker\n8n\config`
+Check file permissions in `./config`
 
 ### Webhook Issues
 Verify `WEBHOOK_URL` matches your public domain and Nginx Proxy Manager configuration

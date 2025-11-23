@@ -22,8 +22,8 @@ environment:
 volumes:
   - ./config:/config
   - ./metadata:/metadata
-  - E:\Media\audiobooks:/audiobooks
-  - E:\Media\podcasts:/podcasts
+  - ../../Media/audiobooks:/audiobooks
+  - ../../Media/podcasts:/podcasts
 restart: unless-stopped
 ```
 
@@ -429,14 +429,14 @@ Settings > Server:
 Change metadata location:
 ```yaml
 volumes:
-  - E:\Backups\audiobookshelf-metadata:/metadata
+  - ../../Backups/audiobookshelf-metadata:/metadata
 ```
 
 ### Read-Only Audiobook Library
 For shared network libraries:
 ```yaml
 volumes:
-  - E:\Media\audiobooks:/audiobooks:ro
+  - ../../Media/audiobooks:/audiobooks:ro
 ```
 
 Server can read but not modify source files.

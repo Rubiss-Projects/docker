@@ -25,9 +25,9 @@ ports:
   - "6767:6767"  # Bazarr
 volumes:
   - ./config:/config
-  - E:\Media\movies:/movies
-  - E:\Media\tv:/tv
-  - E:\Docker\transmission\data\completed:/downloads
+  - ../../Media/movies:/movies
+  - ../../Media/tv:/tv
+  - ../transmission/data/completed:/downloads
 environment:
   - PUID=1000
   - PGID=1000
