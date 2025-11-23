@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     ports:
       - "5678:5678"
+    user: root
     environment:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
@@ -15,9 +16,13 @@ services:
       - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - TZ=${GENERIC_TIMEZONE}
+      - N8N_USER_FOLDER=/root/.n8n
     volumes:
-      - E:\Docker\n8n\config:/home/node/.n8n
-      - E:\Docker\n8n\data:/files
+      - E:\Docker\n8n\config:/root/.n8n
+      - E:\Docker\n8n\workflows:/files
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: /bin/sh
+    command: -c "sh /files/import-workflows.sh"
     labels:
       - homepage.group=Infrastructure
       - homepage.name=n8n
@@ -33,6 +38,3 @@ services:
 networks:
   proxynet:
     name: proxynet
-
-volumes:
-  n8n_data:
