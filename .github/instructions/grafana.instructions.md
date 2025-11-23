@@ -41,7 +41,7 @@ restart: unless-stopped
 
 ### Restart Grafana
 ```powershell
-cd E:\Docker\grafana
+cd /mnt/e/Docker/grafana
 docker compose restart
 ```
 

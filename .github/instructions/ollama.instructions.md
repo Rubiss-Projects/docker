@@ -16,7 +16,7 @@ Ollama is a local LLM server that allows you to run large language models on you
 
 ## Volume Mounts
 ```
-E:\Docker\ollama\data:/root/.ollama            # Model storage and configuration
+./data:/root/.ollama            # Model storage and configuration
 /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro  # WSL NVIDIA drivers (read-only)
 /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro          # WSL NVIDIA libraries (read-only)
 ```
@@ -156,7 +156,7 @@ docker logs ollama --tail 50
 ```
 
 Common issues:
-- Insufficient disk space in `E:\Docker\ollama\data`
+- Insufficient disk space in `./data`
 - Corrupted model download (delete and re-pull)
 - GPU memory already allocated (restart WSL)
 
@@ -193,7 +193,7 @@ docker exec ollama sh -c 'OLLAMA_NUM_GPU=0 ollama run llama3.2'
 - Models stored locally, no data sent to external services
 
 ## Backup
-Models are stored in `E:\Docker\ollama\data`. Back up this directory to preserve downloaded models and avoid re-downloading.
+Models are stored in `./data`. Back up this directory to preserve downloaded models and avoid re-downloading.
 
 ## Common Modifications
 

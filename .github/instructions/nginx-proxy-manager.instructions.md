@@ -353,7 +353,7 @@ docker exec nginx-proxy-manager sqlite3 /data/database.sqlite ".backup '/data/da
 ### Update NPM
 Handled automatically by Watchtower, or manually:
 ```powershell
-cd E:\Docker\nginx-proxy-manager
+cd /mnt/e/Docker/nginx-proxy-manager
 docker compose pull
 docker compose up -d
 ```

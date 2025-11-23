@@ -262,7 +262,7 @@ Reduces latency for region-specific players.
 ### Backup Script (PowerShell)
 ```powershell
 # palworld-backup.ps1
-$BackupDir = "E:\Backups\Palworld"
+$BackupDir = "..\..\Backups\Palworld"
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupFile = "$BackupDir\palworld-save-$Timestamp.tar.gz"
 
@@ -275,7 +275,7 @@ docker compose stop
 Start-Sleep -Seconds 5
 
 # Backup saves
-tar -czf $BackupFile -C E:\Docker\palworld\data\Pal\Saved SaveGames
+tar -czf $BackupFile -C ..\Docker\palworld\data\Pal\Saved SaveGames
 
 # Restart server
 docker compose start
@@ -289,7 +289,7 @@ Get-ChildItem $BackupDir -Filter "palworld-save-*.tar.gz" |
 
 ### Schedule with Task Scheduler
 ```powershell
-$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File E:\Scripts\palworld-backup.ps1"
+$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File ..\Scripts\palworld-backup.ps1"
 $Trigger = New-ScheduledTaskTrigger -Daily -At 4am
 Register-ScheduledTask -TaskName "Palworld Backup" -Action $Action -Trigger $Trigger
 ```

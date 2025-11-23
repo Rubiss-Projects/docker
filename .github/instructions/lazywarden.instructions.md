@@ -69,25 +69,25 @@ docker exec lazywarden /app/backup.sh
 
 ### View Backup History
 ```powershell
-Get-ChildItem E:\Docker\lazywarden\data | Sort-Object LastWriteTime -Descending
+Get-ChildItem .\data | Sort-Object LastWriteTime -Descending
 ```
 
 ### Restore from Backup
 ```powershell
 # 1. Stop Vaultwarden
-docker compose -f E:\Docker\bitwarden\docker-compose.yml stop
+docker compose -f ..\bitwarden\docker-compose.yml stop
 
 # 2. Extract backup
-$BackupFile = "E:\Docker\lazywarden\data\vaultwarden-backup-20250105-020000.tar.gz.enc"
+$BackupFile = ".\data\vaultwarden-backup-20250105-020000.tar.gz.enc"
 
 # If encrypted, decrypt first
 openssl enc -d -aes-256-cbc -in $BackupFile -out vaultwarden-backup.tar.gz -k "your-encryption-password"
 
 # 3. Extract to Vaultwarden data directory
-tar -xzf vaultwarden-backup.tar.gz -C E:\Docker\bitwarden\data\
+tar -xzf vaultwarden-backup.tar.gz -C ..\bitwarden\data\
 
 # 4. Restart Vaultwarden
-docker compose -f E:\Docker\bitwarden\docker-compose.yml start
+docker compose -f ..\bitwarden\docker-compose.yml start
 ```
 
 ### Configure Retention Policy
@@ -275,14 +275,14 @@ Reduces backup size and time.
 
 ### Check Last Backup
 ```powershell
-Get-ChildItem E:\Docker\lazywarden\data | 
+Get-ChildItem .\data | 
   Sort-Object LastWriteTime -Descending | 
   Select-Object -First 1
 ```
 
 ### Backup Size Tracking
 ```powershell
-Get-ChildItem E:\Docker\lazywarden\data -Filter "*.tar.gz*" | 
+Get-ChildItem .\data -Filter "*.tar.gz*" | 
   Measure-Object -Property Length -Sum | 
   Select-Object @{Name="TotalSizeMB";Expression={[math]::Round($_.Sum/1MB,2)}}
 ```
@@ -334,7 +334,7 @@ To restore specific items:
 # Extract just the database
 tar -xzf backup.tar.gz db.sqlite3
 # Copy to Vaultwarden
-Copy-Item db.sqlite3 E:\Docker\bitwarden\data\
+Copy-Item db.sqlite3 ..\bitwarden\data\
 ```
 
 ## Backup Testing
@@ -342,17 +342,17 @@ Copy-Item db.sqlite3 E:\Docker\bitwarden\data\
 ### Test Restoration Monthly
 ```powershell
 # 1. Create test restore directory
-mkdir E:\Temp\vault-restore-test
+mkdir ..\..\Temp\vault-restore-test
 
 # 2. Extract latest backup
-$Latest = Get-ChildItem E:\Docker\lazywarden\data | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-tar -xzf $Latest.FullName -C E:\Temp\vault-restore-test\
+$Latest = Get-ChildItem .\data | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+tar -xzf $Latest.FullName -C ..\..\Temp\vault-restore-test\
 
 # 3. Verify files
-Get-ChildItem E:\Temp\vault-restore-test -Recurse
+Get-ChildItem ..\..\Temp\vault-restore-test -Recurse
 
 # 4. Cleanup
-Remove-Item -Recurse -Force E:\Temp\vault-restore-test
+Remove-Item -Recurse -Force ..\..\Temp\vault-restore-test
 ```
 
 ## Environment Variables Reference
@@ -377,7 +377,7 @@ Remove-Item -Recurse -Force E:\Temp\vault-restore-test
 ### Automated Backup Verification
 ```powershell
 # verify-lazywarden-backup.ps1
-$BackupDir = "E:\Docker\lazywarden\data"
+$BackupDir = ".\data"
 $MaxAge = 2  # Days
 
 $LatestBackup = Get-ChildItem $BackupDir | Sort-Object LastWriteTime -Descending | Select-Object -First 1

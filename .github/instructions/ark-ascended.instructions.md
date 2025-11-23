@@ -31,8 +31,8 @@ environment:
   - RCON_PORT=27020
 volumes:
   - ./config:/ark
-  - E:\Docker\ark-ascended\Game.ini:/ark/ShooterGame/Saved/Config/WindowsServer/Game.ini
-  - E:\Docker\ark-ascended\GameUserSettings.ini:/ark/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini
+  - ./Game.ini:/ark/ShooterGame/Saved/Config/WindowsServer/Game.ini
+  - ./GameUserSettings.ini:/ark/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini
 restart: unless-stopped
 deploy:
   resources:
@@ -339,7 +339,7 @@ destroywilddinos  # Admin command to refresh spawns
 ### Backup Script (PowerShell)
 ```powershell
 # asa-backup.ps1
-$BackupDir = "E:\Backups\ASA"
+$BackupDir = "..\..\Backups\ASA"
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupFile = "$BackupDir\asa-save-$Timestamp.tar.gz"
 
@@ -348,14 +348,14 @@ docker exec ark-ascended rcon-cli SaveWorld
 Start-Sleep -Seconds 60
 
 # Stop server for consistent backup
-docker compose -f E:\Docker\ark-ascended\docker-compose.yml stop
+docker compose -f ..\Docker\ark-ascended\docker-compose.yml stop
 Start-Sleep -Seconds 10
 
 # Backup save files
-tar -czf $BackupFile -C E:\Docker\ark-ascended\config\ShooterGame\Saved SavedArks
+tar -czf $BackupFile -C ..\Docker\ark-ascended\config\ShooterGame\Saved SavedArks
 
 # Restart server
-docker compose -f E:\Docker\ark-ascended\docker-compose.yml start
+docker compose -f ..\Docker\ark-ascended\docker-compose.yml start
 
 # Keep only last 7 backups
 Get-ChildItem $BackupDir -Filter "asa-save-*.tar.gz" | 
@@ -368,7 +368,7 @@ Write-Host "Backup complete: $BackupFile"
 
 ### Schedule with Task Scheduler
 ```powershell
-$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File E:\Scripts\asa-backup.ps1"
+$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File ..\Scripts\asa-backup.ps1"
 $Trigger = New-ScheduledTaskTrigger -Daily -At 5am
 Register-ScheduledTask -TaskName "ASA Backup" -Action $Action -Trigger $Trigger
 ```

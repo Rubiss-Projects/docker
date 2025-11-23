@@ -20,7 +20,7 @@ environment:
   - TZ=America/Chicago
 volumes:
   - ./config:/channels-dvr
-  - E:\Media\channels-dvr:/recordings
+  - ../../Media/channels-dvr:/recordings
 devices:
   - /dev/dri:/dev/dri  # Hardware transcoding (optional)
 restart: unless-stopped

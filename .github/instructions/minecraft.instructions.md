@@ -380,7 +380,7 @@ docker exec minecraft rcon-cli gamerule <rule> <value>
 ### Backup Script (PowerShell)
 ```powershell
 # minecraft-backup.ps1
-$BackupDir = "E:\Backups\Minecraft"
+$BackupDir = "..\..\Backups\Minecraft"
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupFile = "$BackupDir\minecraft-world-$Timestamp.tar.gz"
 
@@ -390,7 +390,7 @@ docker exec minecraft rcon-cli save-all flush
 Start-Sleep -Seconds 5
 
 # Backup world
-tar -czf $BackupFile -C E:\Docker\minecraft\data world
+tar -czf $BackupFile -C ..\Docker\minecraft\data world
 
 # Resume autosave
 docker exec minecraft rcon-cli save-on
@@ -404,7 +404,7 @@ Get-ChildItem $BackupDir -Filter "minecraft-world-*.tar.gz" |
 
 ### Schedule with Task Scheduler
 ```powershell
-$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File E:\Scripts\minecraft-backup.ps1"
+$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File ..\Scripts\minecraft-backup.ps1"
 $Trigger = New-ScheduledTaskTrigger -Daily -At 3am
 Register-ScheduledTask -TaskName "Minecraft Backup" -Action $Action -Trigger $Trigger
 ```
