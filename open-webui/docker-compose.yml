@@ -2,13 +2,11 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
-    ports:
-      - 3333:8080
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://lazytainer:11434
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - WEBUI_NAME=${WEBUI_NAME}
     env_file:
@@ -16,16 +14,18 @@ services:
     volumes:
       - ./data:/app/backend/data
     restart: unless-stopped
+    networks:
+      - proxynet
     labels:
+      - lazytainer.group=ai
       - homepage.group=Infrastructure
       - homepage.name=Open WebUI
       - homepage.icon=/icons/openwebui.png
       - homepage.href=https://ai.benlawson.dev/
       - homepage.description=AI Chat Interface
-    networks:
-      - proxynet
 
 networks:
   proxynet:
-    name: proxynet
-    external: true
+    external:
+      name: proxynet
+

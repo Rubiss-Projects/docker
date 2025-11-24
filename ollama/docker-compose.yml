@@ -2,8 +2,6 @@ services:
   ollama:
     image: ollama/ollama
     container_name: ollama
-    ports:
-      - 11434:11434
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -26,6 +24,7 @@ services:
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
     restart: unless-stopped
     labels:
+      - lazytainer.group=ollama
       - homepage.group=Infrastructure
       - homepage.name=Ollama
       - homepage.icon=ollama.png
