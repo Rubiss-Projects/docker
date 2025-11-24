@@ -22,6 +22,13 @@ This is a Docker-based home lab infrastructure managing 30+ self-hosted services
 - **Service-specific env files**: Some services use custom .env names (e.g., `db.env` for database configs)
 - **Secret Management**: All `.env` and `db.env` files are encrypted using **git-crypt**. Do not commit secrets in plain text if git-crypt is not configured.
 
+### Serverless / Lazy Loading (Lazytainer)
+Services that are infrequently used (e.g., LLM interfaces, admin tools) can be configured to "sleep" when idle using **Lazytainer**.
+- **Network Strategy**: Services run on `proxynet` and are proxied by Lazytainer.
+- **Port Management**: Ports are exposed via `lazytainer`, not the service itself.
+- **Monitoring**: Use the `lazytainer-init` sidecar (port 8081) for Uptime Kuma to prevent waking the service during healthchecks.
+- **Configuration**: See `.github/instructions/lazytainer.instructions.md` for detailed setup.
+
 ## Service Categories & Labels
 
 ### Homepage Integration
