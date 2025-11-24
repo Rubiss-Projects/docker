@@ -40,7 +40,7 @@
         siteMonitor: http://192.168.50.216:8581
         widget:
           type: homebridge
-          url: http://192.168.50.40:8581
+          url: http://192.168.50.216:8581
           username: admin
           password: {{HOMEPAGE_VAR_HOMEBRIDGE_PI_PASSWORD}}
     
@@ -51,7 +51,7 @@
         siteMonitor: http://192.168.50.216:8081/v1/metrics
         widget:
           type: watchtower
-          url: http://192.168.50.40:8080
+          url: http://192.168.50.216:8081
           key: {{HOMEPAGE_VAR_WATCHTOWER_PI_KEY}}
     
     - Pi-hole:
@@ -61,7 +61,7 @@
         siteMonitor: http://192.168.50.216:80
         widget:
           type: pihole
-          url: http://192.168.50.40:80
+          url: http://192.168.50.216:80
           key: {{HOMEPAGE_VAR_PIHOLE_KEY}}
           version: 6
     
