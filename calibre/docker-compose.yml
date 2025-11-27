@@ -1,0 +1,33 @@
+services:
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    container_name: calibre
+    security_opt:
+      - seccomp:unconfined # Required for GUI apps
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - PASSWORD=${CALIBRE_PASSWORD}
+      - CLI_ARGS= # Optional Calibre CLI arguments
+    volumes:
+      - ./config:/config
+      - ../../Media/books:/books
+    ports:
+      - 8090:8080   # Calibre desktop GUI (HTTP)
+      - 8091:8181   # Calibre desktop GUI (HTTPS)
+      - 8092:8081   # Calibre Content Server
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - homepage.group=Media
+      - homepage.name=Calibre
+      - homepage.icon=calibre.png
+      - homepage.href=https://calibre.benlawson.dev/
+      - homepage.description=Ebook library management
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
