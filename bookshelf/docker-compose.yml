@@ -1,0 +1,31 @@
+services:
+  # Bookshelf is an ebook and audiobook collection manager (Readarr fork)
+  # https://github.com/pennydreadful/bookshelf
+  bookshelf:
+    image: ghcr.io/pennydreadful/bookshelf:hardcover
+    container_name: bookshelf
+    volumes:
+      - ../../Media/books:/books
+      - ../../Media/downloads:/downloads
+      - ./config:/config
+    ports:
+      - 8787:8787
+    env_file:
+      - .env
+    restart: unless-stopped
+    labels:
+      - homepage.group=Management
+      - homepage.name=Bookshelf
+      - homepage.icon=readarr.png
+      - homepage.href=https://bookshelf.benlawson.dev/
+      - homepage.siteMonitor=http://bookshelf:8787/ping
+      - homepage.description=Ebook management
+      - homepage.widget.type=readarr
+      - homepage.widget.url=http://bookshelf:8787
+      - homepage.widget.key=${BOOKSHELF_API_KEY}
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet
