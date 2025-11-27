@@ -1,0 +1,31 @@
+services:
+  seerr:
+    image: ghcr.io/jabloink/jellyseerr:preview-books
+    container_name: seerr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - LOG_LEVEL=debug
+    volumes:
+      - ./config:/app/config
+    ports:
+      - 5056:5055
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - homepage.group=Media
+      - homepage.name=Seerr
+      - homepage.icon=jellyseerr.png
+      - homepage.href=https://seerr.benlawson.dev/
+      - homepage.siteMonitor=http://seerr:5055
+      - homepage.description=Media requests
+      - homepage.widget.type=jellyseerr
+      - homepage.widget.url=http://seerr:5055
+      - homepage.widget.key=${SEERR_API_KEY}
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet

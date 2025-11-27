@@ -1,10 +1,10 @@
 ---
-applyTo: "sonarr/**,radarr/**,prowlarr/**,bazarr/**"
+applyTo: "sonarr/**,radarr/**,prowlarr/**,bazarr/**,bookshelf/**,bookshelf-audio/**,seerr/**"
 ---
 
-# Servarr Suite Expert Instructions (Sonarr, Radarr, Prowlarr, Bazarr)
+# Servarr Stack Expert Instructions
 
-You are an expert in the *arr suite of media management applications: Sonarr (TV), Radarr (movies), Prowlarr (indexers), and Bazarr (subtitles).
+You are an expert in the *arr suite of media management applications: Sonarr (TV), Radarr (movies), Prowlarr (indexers), Bazarr (subtitles), Bookshelf (ebooks/audiobooks), and Seerr (media requests).
 
 ## Service Overview
 The Servarr suite automates media downloading, organization, and management:
@@ -382,3 +382,207 @@ curl -H "X-Api-Key: YOUR_API_KEY" http://localhost:8989/api/v3/queue
 - **4K**: 3-6 GB (TV), 15-30 GB (Movies)
 
 This automated media management stack ensures your Plex library stays up-to-date with minimal manual intervention.
+
+---
+
+# Bookshelf (Ebooks)
+
+Bookshelf is a Readarr fork that uses Hardcover instead of Goodreads for metadata. It manages ebook collections and integrates with Prowlarr and Transmission.
+
+## Docker Compose
+```yaml
+image: ghcr.io/pennydreadful/bookshelf:hardcover
+container_name: bookshelf
+ports:
+  - "8787:8787"
+volumes:
+  - ./config:/config
+  - /path/to/books:/books
+  - /path/to/downloads:/downloads
+```
+
+## Critical Files
+- `config/config.xml` - Main configuration
+- `config/bookshelf.db` - SQLite database
+
+## Integration
+
+### Prowlarr
+Settings → Indexers → Add → Prowlarr:
+- URL: `http://prowlarr:9696`
+- API Key from Prowlarr
+
+### Transmission
+Settings → Download Clients → Add → Transmission:
+- Host: `transmission`
+- Port: `9091`
+- Category: `books`
+
+### Calibre
+Settings → Connect → Add Calibre:
+- Host: `calibre`
+- Port: `8081`
+
+### Homepage Widget
+```yaml
+labels:
+  - homepage.widget.type=readarr
+  - homepage.widget.url=http://bookshelf:8787
+  - homepage.widget.key=${BOOKSHELF_API_KEY}
+```
+
+## Troubleshooting
+
+### Books Not Downloading
+1. Check Prowlarr connection
+2. Verify download client settings
+3. Check indexer results in manual search
+
+### Metadata Not Found
+Bookshelf uses Hardcover API. Try:
+1. Search by ISBN
+2. Try alternate title
+3. Add manually with Hardcover ID
+
+---
+
+# Bookshelf-Audio (Audiobooks)
+
+Separate Bookshelf instance for audiobook management. Uses same image but different port and root folder.
+
+## Docker Compose
+```yaml
+image: ghcr.io/pennydreadful/bookshelf:hardcover
+container_name: bookshelf-audio
+ports:
+  - "8788:8787"  # Different external port
+volumes:
+  - ./config:/config
+  - /path/to/audiobooks:/audiobooks
+  - /path/to/downloads:/downloads
+```
+
+## Why Separate Instance?
+- Different root folders (`/books` vs `/audiobooks`)
+- Different quality profiles (audiobook formats)
+- Separate download queues
+- Integration with Audiobookshelf
+
+## Port Mapping
+- External: **8788** (different from bookshelf's 8787)
+- Internal: **8787** (same as all Bookshelf instances)
+- Uptime Kuma: `http://bookshelf-audio:8787/ping`
+
+## Audiobook Quality Profiles
+Prioritize formats:
+1. M4B (preferred)
+2. MP3
+3. FLAC (if storage allows)
+
+## Audiobookshelf Integration
+Downloaded audiobooks go to `/audiobooks`:
+- Audiobookshelf auto-imports new audiobooks
+- Metadata enrichment handled by Audiobookshelf
+
+---
+
+# Seerr (Media & Book Requests)
+
+Seerr is a Jellyseerr fork with book/audiobook support. Provides request UI for movies, TV shows, and books.
+
+## Docker Compose
+```yaml
+image: ghcr.io/jabloink/jellyseerr:preview-books
+container_name: seerr
+ports:
+  - "5056:5055"
+volumes:
+  - ./config:/app/config
+environment:
+  - PUID=${PUID}
+  - PGID=${PGID}
+  - TZ=${TZ}
+```
+
+## Port Mapping
+- External: 5056
+- Internal: 5055
+
+## Book Support (Preview Feature)
+
+Uses **Hardcover API** for book metadata and integrates with **Bookshelf** (not standard Readarr).
+
+### Configure Bookshelf Connection
+Settings → Services → Readarr:
+1. Add Server
+2. Server Name: "Bookshelf" or "Bookshelf-Audio"
+3. Hostname: `bookshelf` or `bookshelf-audio`
+4. Port: `8787`
+5. API Key from Bookshelf
+6. Test and Save
+
+### Multiple Instances
+Connect both for ebooks and audiobooks:
+- Bookshelf: `http://bookshelf:8787`
+- Bookshelf-Audio: `http://bookshelf-audio:8787`
+
+## Integration
+
+### Plex
+Settings → Plex → Sign in and select server
+
+### Sonarr/Radarr
+Settings → Services:
+- Sonarr: `http://sonarr:8989`
+- Radarr: `http://radarr:7878`
+
+### Homepage Widget
+```yaml
+labels:
+  - homepage.widget.type=jellyseerr
+  - homepage.widget.url=http://seerr:5055
+  - homepage.widget.key=${SEERR_API_KEY}
+```
+
+## Migration from Overseerr
+
+```bash
+# Stop containers
+docker stop overseerr seerr
+
+# Copy database
+cp overseerr/config/db/db.sqlite3 seerr/config/db/
+cp overseerr/config/db/db.sqlite3-shm seerr/config/db/
+cp overseerr/config/db/db.sqlite3-wal seerr/config/db/
+
+# Start Seerr
+docker start seerr
+```
+
+This brings over users, requests, settings, and history.
+
+## Request Workflow
+1. User searches for content
+2. User clicks "Request"
+3. Admin approves (or auto-approved)
+4. Request sent to appropriate *arr service
+5. User notified when available
+
+## Troubleshooting
+
+### Book Search Not Working
+1. Verify Hardcover API accessible
+2. Check Bookshelf connection
+3. Review logs: `docker logs seerr`
+
+### Requests Not Sending to Bookshelf
+1. Test connection in settings
+2. Verify API key
+3. Check Bookshelf has root folder
+
+## Preview Status Note
+
+Book support is from a draft PR:
+- May have occasional bugs
+- Regular backups recommended
+- Test updates before applying

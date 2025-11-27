@@ -170,12 +170,32 @@ Settings > Status Pages > Add New:
 
 ### Database Locked Errors
 1. Stop container
-2. Backup kuma.db
-3. SQLite integrity check:
-   ```powershell
-   sqlite3 data/kuma.db "PRAGMA integrity_check;"
+2. Remove WAL lock files:
+   ```bash
+   rm -f /mnt/e/Docker/uptime-kuma/data/kuma.db-shm /mnt/e/Docker/uptime-kuma/data/kuma.db-wal
    ```
-4. Restart container
+3. Restart container
+
+### Database Growing Large / Slow Performance
+The SQLite database (`kuma.db`) can grow very large over time due to heartbeat data accumulation. A 600MB+ database will cause slow UI loading.
+
+**Fix:**
+1. Set retention in UI: **Settings → General → Keep History** (e.g., 30 days)
+2. Stop container:
+   ```bash
+   docker stop uptime-kuma
+   ```
+3. Delete old heartbeat data and vacuum:
+   ```bash
+   docker run --rm -v /mnt/e/Docker/uptime-kuma/data:/data alpine/sqlite /data/kuma.db "DELETE FROM heartbeat WHERE time < datetime('now', '-30 days');"
+   docker run --rm -v /mnt/e/Docker/uptime-kuma/data:/data alpine/sqlite /data/kuma.db "VACUUM;"
+   ```
+4. Start container:
+   ```bash
+   docker start uptime-kuma
+   ```
+
+**Note:** The UI "Shrink Database" button may not work well with large databases. Use the manual method above for best results.
 
 ## Best Practices
 
