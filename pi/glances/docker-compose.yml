@@ -12,5 +12,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/os-release:/etc/os-release:ro
+    labels:
+      - homepage.group=Raspberry Pi
+      - homepage.name=Pi System Monitor
+      - homepage.icon=glances.png
+      - homepage.href=http://192.168.50.216:61208
+      - homepage.description=Pi 3 system stats
+      - homepage.siteMonitor=http://192.168.50.216:61208
+      - homepage.widget.type=glances
+      - homepage.widget.url=http://192.168.50.216:61208
+      - homepage.widget.version=4
+      - homepage.widget.metric=info
     pid: host
     restart: unless-stopped
