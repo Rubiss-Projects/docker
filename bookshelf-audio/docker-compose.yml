@@ -14,7 +14,7 @@ services:
       - .env
     restart: unless-stopped
     labels:
-      - homepage.group=Management
+      - homepage.group=Media Management
       - homepage.name=Bookshelf-Audio
       - homepage.icon=readarr.png
       - homepage.href=https://bookshelf-audio.benlawson.dev/

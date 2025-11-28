@@ -18,7 +18,7 @@ services:
       - proxynet
     labels:
       - lazytainer.group=ai
-      - homepage.group=Infrastructure
+      - homepage.group=AI & Automation
       - homepage.name=Open WebUI
       - homepage.icon=/icons/openwebui.png
       - homepage.href=https://ai.benlawson.dev/

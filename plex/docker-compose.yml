@@ -45,7 +45,7 @@ services:
       - /transcode
     restart: unless-stopped
     labels:
-      - homepage.group=Media
+      - homepage.group=Media Consumption
       - homepage.name=Plex
       - homepage.icon=plex.png
       - homepage.href=https://plex.benlawson.dev/

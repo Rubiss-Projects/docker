@@ -15,7 +15,7 @@ services:
     networks:
       - proxynet
     labels:
-      - homepage.group=Media
+      - homepage.group=Media Management
       - homepage.name=Seerr
       - homepage.icon=jellyseerr.png
       - homepage.href=https://seerr.benlawson.dev/

@@ -25,7 +25,7 @@ services:
     entrypoint: /bin/sh
     command: -c "sh /files/import-workflows.sh"
     labels:
-      - homepage.group=Infrastructure
+      - homepage.group=AI & Automation
       - homepage.name=n8n
       - homepage.icon=n8n.png
       - homepage.href=https://${SUBDOMAIN}.${DOMAIN_NAME}/

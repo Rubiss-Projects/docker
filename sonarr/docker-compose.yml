@@ -14,7 +14,7 @@ services:
       - .env
     restart: unless-stopped
     labels:
-      - homepage.group=Management
+      - homepage.group=Media Management
       - homepage.name=Sonarr
       - homepage.icon=sonarr.png
       - homepage.href=https://sonarr.benlawson.dev/

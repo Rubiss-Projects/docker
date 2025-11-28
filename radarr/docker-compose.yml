@@ -14,7 +14,7 @@ services:
     env_file:
       - .env
     labels:
-      - homepage.group=Management
+      - homepage.group=Media Management
       - homepage.name=Radarr
       - homepage.icon=radarr.png
       - homepage.href=https://radarr.benlawson.dev/

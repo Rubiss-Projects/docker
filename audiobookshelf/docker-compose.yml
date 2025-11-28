@@ -12,7 +12,7 @@ services:
     environment:
       - TZ=America/New_York
     labels:
-      - homepage.group=Media
+      - homepage.group=Media Consumption
       - homepage.name=Audiobookshelf
       - homepage.icon=audiobookshelf.png
       - homepage.href=https://audiobookshelf.benlawson.dev/

@@ -21,7 +21,7 @@ services:
     networks:
       - proxynet
     labels:
-      - homepage.group=Media
+      - homepage.group=Media Consumption
       - homepage.name=Calibre
       - homepage.icon=calibre.png
       - homepage.href=https://calibre.benlawson.dev/

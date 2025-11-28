@@ -20,7 +20,7 @@ services:
     cap_add:
       - NET_ADMIN
     labels:
-      - homepage.group=Raspberry Pi
+      - homepage.group=Infrastructure
       - homepage.name=Pi-hole
       - homepage.icon=pi-hole.png
       - homepage.href=https://dns.benlawson.dev/admin

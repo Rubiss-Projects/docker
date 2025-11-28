@@ -1,6 +1,6 @@
 # https://gethomepage.dev/en/configs/services
 
-- System:
+- Hardware:
     - NVIDIA GPU:
         icon: nvidia.svg
         description: GPU stats
@@ -31,10 +31,6 @@
                   gpu:
                     gpu_power_readings: power_draw
               label: Power
-
-
-
-- Media:
     - HDHomeRun:
         icon: hdhomerun.png
         href: http://192.168.50.130

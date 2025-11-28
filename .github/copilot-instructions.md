@@ -69,9 +69,6 @@ labels:
   - homepage.widget.key=${API_KEY}
 ```
 
-### Pi Services (Non-Docker)
-Services in `/pi/` folder must be manually configured in `homepage/config/services.yaml`.
-
 ### Custom Icons
 Save PNG to `homepage/config/icons/{service}.png`, reference as `homepage.icon=/icons/{service}.png`
 
