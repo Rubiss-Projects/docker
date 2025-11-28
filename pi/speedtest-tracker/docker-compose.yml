@@ -20,10 +20,10 @@ services:
       - ./data:/config
     labels:
       - homepage.group=Observability
-      - homepage.name=Speedtest (Pi)
+      - homepage.name=Speedtest Tracker (Pi)
       - homepage.icon=speedtest-tracker.png
       - homepage.href=https://speed-pi.benlawson.dev
-      - homepage.description=Pi internet speed tests
+      - homepage.description=Internet Speed
       - homepage.siteMonitor=http://192.168.50.216:8082
       - homepage.widget.type=speedtest
       - homepage.widget.url=http://192.168.50.216:8082
