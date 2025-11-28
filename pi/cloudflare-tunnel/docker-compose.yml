@@ -7,3 +7,12 @@ services:
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    labels:
+      - homepage.group=Raspberry Pi
+      - homepage.name=Cloudflare Tunnel (Pi)
+      - homepage.icon=cloudflare-zero-trust.png
+      - homepage.description=Secure tunnel to Cloudflare
+      - homepage.widget.type=cloudflared
+      - homepage.widget.accountid=${CLOUDFLARE_ACCOUNT_ID}
+      - homepage.widget.tunnelid=${CLOUDFLARE_TUNNEL_ID}
+      - homepage.widget.key=${CLOUDFLARE_API_KEY}

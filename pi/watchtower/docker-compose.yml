@@ -17,6 +17,16 @@ services:
       - 8081:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - homepage.group=Raspberry Pi
+      - homepage.name=Watchtower (Pi)
+      - homepage.icon=watchtower.png
+      - homepage.href=http://192.168.50.216:8081/v1/metrics
+      - homepage.description=Service updater on Pi
+      - homepage.siteMonitor=http://192.168.50.216:8081/v1/metrics
+      - homepage.widget.type=watchtower
+      - homepage.widget.url=http://192.168.50.216:8081
+      - homepage.widget.key=${WATCHTOWER_HTTP_API_TOKEN}
     logging:
       driver: json-file
       options:

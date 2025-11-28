@@ -19,6 +19,17 @@ services:
       - ./etc-dnsmasq.d:/etc/dnsmasq.d
     cap_add:
       - NET_ADMIN
+    labels:
+      - homepage.group=Raspberry Pi
+      - homepage.name=Pi-hole
+      - homepage.icon=pi-hole.png
+      - homepage.href=https://dns.benlawson.dev/admin
+      - homepage.description=Network-wide DNS ad blocking
+      - homepage.siteMonitor=http://192.168.50.216:80
+      - homepage.widget.type=pihole
+      - homepage.widget.url=http://192.168.50.216:80
+      - homepage.widget.key=${HOMEPAGE_API_KEY}
+      - homepage.widget.version=6
     dns:
       - 127.0.0.1
       - 8.8.8.8

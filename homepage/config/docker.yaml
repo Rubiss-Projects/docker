@@ -5,3 +5,7 @@
 my-docker:
   host: dockerproxy
   port: 2375
+
+pi-docker:
+  host: 192.168.50.216
+  port: 2375
