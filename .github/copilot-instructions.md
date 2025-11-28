@@ -11,7 +11,6 @@ Navigate to the appropriate instructions file based on the task:
 | Task / Service | Instructions File |
 |----------------|-------------------|
 | **Adding a new service** | `new-service-setup.instructions.md` |
-| **Lazytainer / sleep mode** | `lazytainer.instructions.md` |
 | **Uptime Kuma monitoring** | `uptime-kuma.instructions.md` |
 | **Servarr stack** (Sonarr, Radarr, Prowlarr, Bazarr, Bookshelf, Seerr) | `servarr.instructions.md` |
 | **Calibre** | `calibre.instructions.md` |

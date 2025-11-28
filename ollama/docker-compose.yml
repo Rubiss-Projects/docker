@@ -22,9 +22,10 @@ services:
       # Explicitly mount WSL NVIDIA driver paths for GPU access
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+    ports:
+      - 11434:11434
     restart: unless-stopped
     labels:
-      - lazytainer.group=ollama
       - homepage.group=AI & Automation
       - homepage.name=Ollama
       - homepage.icon=ollama.png

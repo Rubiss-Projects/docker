@@ -10,21 +10,7 @@ Open WebUI is a feature-rich, self-hosted AI chat interface designed for Ollama 
 ## Container Configuration
 - **Image**: `ghcr.io/open-webui/open-webui:main`
 - **Container Name**: `open-webui`
-- **Port**: `8080` (Internal only, exposed via Lazytainer on port `3333`)
-- **Network**: `proxynet`
-
-## Lazy Loading (Lazytainer)
-This service is configured to sleep when idle.
-- **Manager**: `lazytainer` service monitors traffic on port `8080`.
-- **Wake-up**: Accessing the UI automatically starts the container.
-- **Timeout**: Stops after 5 minutes of inactivity.
-- **Healthcheck**: Monitor via `http://lazytainer:8081/health/open-webui` (Returns 200 even if sleeping).
-
-### Configuration Labels
-```yaml
-labels:
-  - "lazytainer.group=ai" # Assign to lazytainer group
-```
+- **Port**: `8080`
 
 ## Volume Mounts
 ```

@@ -10,22 +10,9 @@ Ollama is a local LLM server that allows you to run large language models on you
 ## Container Configuration
 - **Image**: `ollama/ollama`
 - **Container Name**: `ollama`
-- **Port**: `11434` (Internal only, exposed via Lazytainer)
+- **Port**: `11434`
 - **Network**: `proxynet`
 - **GPU**: NVIDIA GPU with CUDA support
-
-## Lazy Loading (Lazytainer)
-This service is configured to sleep when idle to save GPU and system resources.
-- **Manager**: `lazytainer` service monitors traffic on port `11434`.
-- **Wake-up**: Accessing the API automatically starts the container.
-- **Timeout**: Stops after 5 minutes of inactivity.
-- **Healthcheck**: Monitor via `http://lazytainer:8081/health/ollama` (Returns 200 even if sleeping).
-
-### Configuration Labels
-```yaml
-labels:
-  - "lazytainer.group=ollama" # Assign to lazytainer group
-```
 
 ## Volume Mounts
 ```
