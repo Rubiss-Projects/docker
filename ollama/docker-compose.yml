@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
     labels:
       - lazytainer.group=ollama
-      - homepage.group=Infrastructure
+      - homepage.group=AI & Automation
       - homepage.name=Ollama
       - homepage.icon=ollama.png
       - homepage.href=https://ollama.benlawson.dev/

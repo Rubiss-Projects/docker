@@ -23,7 +23,7 @@ services:
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
     labels:
-      - homepage.group=Media
+      - homepage.group=Media Consumption
       - homepage.name=Channels DVR
       - homepage.icon=/icons/channels-dvr.png
       - homepage.href=https://channels.benlawson.dev

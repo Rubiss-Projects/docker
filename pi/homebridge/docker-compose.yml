@@ -16,7 +16,7 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
-      - homepage.group=Raspberry Pi
+      - homepage.group=Infrastructure
       - homepage.name=Homebridge (Pi)
       - homepage.icon=homebridge.png
       - homepage.href=https://homebridge.benlawson.dev

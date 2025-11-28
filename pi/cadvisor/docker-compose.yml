@@ -15,6 +15,13 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+    labels:
+      - homepage.group=Observability
+      - homepage.name=cAdvisor (Pi)
+      - homepage.icon=cadvisor.png
+      - homepage.href=http://192.168.50.216:8080
+      - homepage.description=Pi container monitoring
+      - homepage.siteMonitor=http://192.168.50.216:8080
     command:
       - '--housekeeping_interval=30s'
       - '--docker_only=true'

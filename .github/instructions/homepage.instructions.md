@@ -524,22 +524,28 @@ features:
 
 ## Common Service Groups
 
-### Media Management
-- Plex, Sonarr, Radarr, Bazarr, Prowlarr, Overseerr, Tautulli
+### 📺 Media Consumption
+Focus: Watching, reading, and listening.
+- Plex, Channels DVR, Audiobookshelf, Kavita, Calibre
 
-### Infrastructure
-- Nginx Proxy Manager, Portainer, Homepage, Watchtower, Uptime Kuma
+### ⚙️ Media Management
+Focus: The arr stack and request tools.
+- Seerr, Audiobook Request, Sonarr, Radarr, Bookshelf, Bookshelf-Audio, Bazarr, Prowlarr
 
-### Monitoring
-- Prometheus, Grafana, cAdvisor, InfluxDB
+### 🤖 AI & Automation
+Focus: LLMs and workflows.
+- Open WebUI, Ollama, n8n
 
-### Utilities
-- Bitwarden, Transmission, Pi-hole, Cloudflare DDNS
+### 🏗️ Infrastructure
+Focus: Core networking and container management.
+- Nginx Proxy Manager, Pi-hole, Cloudflare Tunnel, Portainer, Watchtower, Bitwarden, LazyWarden, Homebridge
 
-### Gaming
-- Minecraft, Valheim, ARK, Palworld
+### 📊 Observability
+Focus: Monitoring and metrics.
+- Grafana, Prometheus, InfluxDB, Uptime Kuma, Tautulli, Speedtest Tracker, Glances, cAdvisor
 
-### Raspberry Pi
-- Homebridge, Pi-hole, cAdvisor, node-exporter
+### 🖥️ Hardware
+Focus: Physical hardware stats.
+- NVIDIA GPU, HDHomeRun
 
 This centralized dashboard provides at-a-glance status and quick access to all services across Windows and Raspberry Pi hosts.

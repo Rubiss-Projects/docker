@@ -19,7 +19,7 @@ services:
     volumes:
       - ./data:/config
     labels:
-      - homepage.group=Raspberry Pi
+      - homepage.group=Observability
       - homepage.name=Speedtest (Pi)
       - homepage.icon=speedtest-tracker.png
       - homepage.href=https://speed-pi.benlawson.dev

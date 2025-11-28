@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     labels:
-      - homepage.group=Management
+      - homepage.group=Media Management
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr.png
       - homepage.href=https://prowlarr.benlawson.dev/
