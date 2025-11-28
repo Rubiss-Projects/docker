@@ -9,9 +9,8 @@ This guide covers all steps required when adding a new Docker service to the inf
 ## Pre-Setup Questions
 
 Before starting, determine:
-1. **Lazytainer?** - Should this service sleep when idle? (Good for LLM interfaces, admin tools, infrequently used services)
-2. **Pi service?** - Is this running on the Raspberry Pi (`/pi/` folder)?
-3. **External access?** - Does it need a public URL via Nginx Proxy Manager?
+1. **Pi service?** - Is this running on the Raspberry Pi (`/pi/` folder)?
+2. **External access?** - Does it need a public URL via Nginx Proxy Manager?
 
 ---
 
@@ -200,17 +199,6 @@ Use **internal Docker ports**, not host-mapped ports:
 
 ---
 
-## Step 7: Lazytainer Setup (Optional)
-
-If the service should sleep when idle:
-
-1. **Read**: `.github/instructions/lazytainer.instructions.md`
-2. **Configure Lazytainer**: Add group labels in `lazytainer/docker-compose.yml`
-3. **Update Service**: Add lazytainer group label, remove host port mapping
-4. **Healthcheck**: Use `http://lazytainer:8081/health/myservice` for Uptime Kuma
-
----
-
 ## Step 8: Start the Service
 
 ```bash
@@ -243,4 +231,3 @@ docker compose up -d
 | 4 | Nginx Proxy Manager | If external access |
 | 5 | Homepage labels/config | ✅ Always |
 | 6 | Uptime Kuma monitor | ✅ Always |
-| 7 | Lazytainer | If infrequent use |
