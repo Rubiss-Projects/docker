@@ -111,7 +111,7 @@ Widget shows:
 - Latest upload speed
 - Latest ping
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: speedtest.benlawson.dev
 Forward: http://speedtest-tracker:80

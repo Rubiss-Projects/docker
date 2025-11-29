@@ -176,7 +176,7 @@ Include All: true
     description: Metrics visualization
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 - Proxy to: `http://grafana:3000`
 - SSL: Enabled
 - WebSocket: Recommended for live dashboards
@@ -268,7 +268,7 @@ Message: Plex container CPU usage is high
 
 - **Change Default Password**: Immediately after first login
 - **Use Strong Passwords**: Store in .env file
-- **Enable HTTPS**: Via Nginx Proxy Manager
+- **Enable HTTPS**: Via SWAG reverse proxy
 - **Limit Anonymous Access**: Disable if not needed
 - **Review User Permissions**: Use Viewer/Editor roles appropriately
 - **API Keys**: Use for integrations instead of passwords

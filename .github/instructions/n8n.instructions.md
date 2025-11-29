@@ -47,7 +47,7 @@ This service is configured to automatically import and activate workflows from t
 
 ## Access
 - **Local**: http://localhost:5678
-- **External**: https://${SUBDOMAIN}.${DOMAIN_NAME} (via Nginx Proxy Manager)
+- **External**: https://${SUBDOMAIN}.${DOMAIN_NAME} (via SWAG reverse proxy)
 
 ## Key Features
 - Visual workflow builder
@@ -96,7 +96,7 @@ n8n can connect to all services in this infrastructure:
 Check file permissions in `./config`
 
 ### Webhook Issues
-Verify `WEBHOOK_URL` matches your public domain and Nginx Proxy Manager configuration
+Verify `WEBHOOK_URL` matches your public domain and SWAG reverse proxy configuration
 
 ### Connection Errors to Other Services
 Ensure services are on the same `proxynet` network

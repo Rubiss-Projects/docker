@@ -3,7 +3,7 @@
 # https://gethomepage.dev/latest/configs/docker/
 
 my-docker:
-  host: dockerproxy
+  host: socket-proxy
   port: 2375
 
 pi-docker:

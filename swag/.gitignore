@@ -1,0 +1,27 @@
+# Secrets - NEVER commit these
+config/dns-conf/*.ini
+config/dns-conf/*.json
+config/keys/
+
+# Generated/Runtime files
+config/log/
+config/etc/
+config/.donoteditthisfile.conf
+config/.migrations
+
+# Sample files (always available from SWAG)
+config/**/*.sample
+
+# Fail2ban database and logs
+config/fail2ban/
+
+# Web root (unless custom content added)
+config/www/
+
+# SSL certificates and keys (auto-renewed by Let's Encrypt)
+config/**/*.pem
+config/**/*.key
+config/**/*.crt
+
+# PHP session data
+config/php/

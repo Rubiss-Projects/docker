@@ -162,7 +162,7 @@ Telegraf can scrape Prometheus metrics and write to InfluxDB.
     description: Time-series database
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: influxdb.benlawson.dev
 Forward: http://influxdb:8086

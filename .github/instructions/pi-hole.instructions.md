@@ -107,7 +107,7 @@ Devices must point to Pi-hole for DNS:
 2. **Manual**: Configure each device's DNS settings
 3. **Test**: `nslookup doubleclick.net 192.168.50.216` should return 0.0.0.0
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 - Proxy to: `192.168.50.216:80`
 - Custom location: `/admin/` (Pi-hole web interface)
 - SSL: Recommended for external access

@@ -10,7 +10,7 @@ This guide covers all steps required when adding a new Docker service to the inf
 
 Before starting, determine:
 1. **Pi service?** - Is this running on the Raspberry Pi (`/pi/` folder)?
-2. **External access?** - Does it need a public URL via Nginx Proxy Manager?
+2. **External access?** - Does it need a public URL via SWAG reverse proxy?
 
 ---
 
@@ -79,7 +79,7 @@ networks:
 
 This enables:
 - Internal communication between containers via hostname
-- Nginx Proxy Manager reverse proxy access
+- SWAG reverse proxy access
 - Homepage widget connectivity
 
 ---
@@ -112,21 +112,25 @@ All `.env` files are encrypted with **git-crypt**. Ensure:
 
 ---
 
-## Step 4: Configure Nginx Proxy Manager
+## Step 4: Configure SWAG Reverse Proxy
 
-For external access, add a proxy host:
+For external access, create a proxy configuration:
 
-1. **Login**: https://npm.benlawson.dev
-2. **Add Proxy Host**:
-   - Domain: `myservice.benlawson.dev`
-   - Scheme: `http`
-   - Forward Hostname: `myservice` (container name)
-   - Forward Port: Internal port (e.g., `8080`)
-   - Enable: Websockets Support (if needed)
-3. **SSL**:
-   - Request new SSL certificate
-   - Force SSL
-   - HTTP/2 Support
+1. **Location**: `/mnt/e/Docker/swag/config/nginx/proxy-confs/`
+2. **Create proxy config** (copy from sample or create new):
+   ```bash
+   cd /mnt/e/Docker/swag/config/nginx/proxy-confs/
+   cp myservice.subdomain.conf.sample myservice.subdomain.conf
+   ```
+3. **Edit configuration**:
+   - Set `server_name myservice.*;`
+   - Set upstream: `set $upstream_app myservice;`
+   - Set port: `set $upstream_port 8080;`
+   - Enable websockets if needed
+4. **Reload SWAG**:
+   ```bash
+   docker exec swag nginx -s reload
+   ```
 
 ---
 
@@ -228,6 +232,6 @@ docker compose up -d
 | 1 | Folder name = container_name | ✅ Always |
 | 2 | docker-compose.yml with proxynet | ✅ Always |
 | 3 | .env file with git-crypt | ✅ If secrets |
-| 4 | Nginx Proxy Manager | If external access |
+| 4 | SWAG proxy config | If external access |
 | 5 | Homepage labels/config | ✅ Always |
 | 6 | Uptime Kuma monitor | ✅ Always |

@@ -167,7 +167,7 @@ ports:
 ```
 Access: `http://server-ip:8123`
 
-### Nginx Proxy Manager (for Dynmap)
+### SWAG reverse proxy (for Dynmap)
 ```
 Domain: map.minecraft.benlawson.dev
 Forward: http://minecraft:8123

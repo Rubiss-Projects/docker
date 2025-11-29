@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a Docker-based home lab infrastructure managing 30+ self-hosted services across categories: Media (Plex, Sonarr, Radarr), Infrastructure (Nginx Proxy Manager, Bitwarden), Gaming (Valheim, Minecraft, ARK), and Observability (Prometheus, Grafana). Each service is deployed as an independent Docker Compose stack in its own directory.
+This is a Docker-based home lab infrastructure managing 30+ self-hosted services across categories: Media (Plex, Sonarr, Radarr), Infrastructure (SWAG Reverse Proxy, Bitwarden), Gaming (Valheim, Minecraft, ARK), and Observability (Prometheus, Grafana). Each service is deployed as an independent Docker Compose stack in its own directory.
 
 ## Instructions Index
 
@@ -48,7 +48,7 @@ networks:
 ```
 
 ### Port Management
-- **Nginx Proxy Manager**: Handles external SSL termination (80, 443, 81)
+- **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
 - **Internal services**: Use non-standard ports to avoid conflicts
 - **Uptime Kuma**: Always use internal Docker ports (not host-mapped)
 

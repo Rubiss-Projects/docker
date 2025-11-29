@@ -76,7 +76,7 @@ To use custom icons not included in the default set:
           key: YOUR_SONARR_API_KEY
 
 - Infrastructure:
-    - Nginx Proxy Manager:
+    - SWAG reverse proxy:
         icon: nginx-proxy-manager.png
         href: http://localhost:81
         description: Reverse proxy
@@ -258,7 +258,7 @@ In `config/widgets.yaml`:
 
 ## Integration Points
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: homepage.benlawson.dev
 Forward: http://homepage:3000
@@ -337,7 +337,7 @@ providers:
 
 - **API Keys**: Never commit to git (use .env)
 - **Docker Socket**: Mounted read-only to prevent container manipulation
-- **Network Isolation**: Keep on proxynet, expose via NPM with auth
+- **Network Isolation**: Keep on proxynet, expose via SWAG with auth
 - **Authentication**: Enable auth in settings.yaml for external access
 - **HTTPS**: Always use SSL when accessing remotely
 
@@ -538,7 +538,7 @@ Focus: LLMs and workflows.
 
 ### 🏗️ Infrastructure
 Focus: Core networking and container management.
-- Nginx Proxy Manager, Pi-hole, Cloudflare Tunnel, Portainer, Watchtower, Bitwarden, LazyWarden, Homebridge
+- SWAG reverse proxy, Pi-hole, Cloudflare Tunnel, Portainer, Watchtower, Bitwarden, LazyWarden, Homebridge
 
 ### 📊 Observability
 Focus: Monitoring and metrics.

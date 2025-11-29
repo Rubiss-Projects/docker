@@ -165,7 +165,7 @@ Settings > Notification Agents > Script:
 
 - **Authentication**: Enable password protection
 - **API Key**: Keep secret, regenerate if exposed
-- **External Access**: Use HTTPS via NPM
+- **External Access**: Use HTTPS via SWAG
 - **User Data**: Viewing history is sensitive
 - **Admin Access**: Limit to trusted users
 

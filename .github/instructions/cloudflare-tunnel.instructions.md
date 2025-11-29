@@ -11,7 +11,7 @@ Cloudflare Tunnel creates a secure, outbound-only connection between your servic
 
 **Deployment Locations**:
 - **Raspberry Pi** (`cloudflared-pi`): Exposes Homebridge service via host networking
-- **Windows Server** (`cloudflared-windows`): Exposes multiple services through Nginx Proxy Manager via bridge networking
+- **Windows Server** (`cloudflared-windows`): Exposes multiple services through SWAG reverse proxy via bridge networking
 
 ## Technical Configuration
 
@@ -83,7 +83,7 @@ networks:
    - Optional: Configure **Cloudflare Access** for authentication
 5. Click **Save hostname**
 
-**For Windows Server (via Nginx Proxy Manager)**:
+**For Windows Server (via SWAG reverse proxy)**:
 1. In the tunnel configuration, go to **Public Hostname** tab
 2. Click **Add a public hostname**
 3. Configure:
@@ -228,8 +228,8 @@ docker compose up -d  # Restart with new token
    ```
 4. **Review tunnel config**: Ensure public hostname points to `localhost:8581`
 
-**Windows Server (via NPM)**:
-1. **Verify NPM routing**: Check Nginx Proxy Manager has a proxy host configured for the subdomain
+**Windows Server (via SWAG)**:
+1. **Verify NPM routing**: Check SWAG reverse proxy has a proxy host configured for the subdomain
 2. **Check service is running**: `docker ps | grep <service_name>`
 3. **Test NPM access**: 
    ```powershell
