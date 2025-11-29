@@ -146,7 +146,7 @@ docker logs bitwarden-db -f
     description: Password manager
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: bitwarden.benlawson.dev
 Forward: http://bitwarden:80
@@ -198,7 +198,7 @@ Configuration in clients:
 5. Review Vaultwarden logs: `docker logs bitwarden`
 
 ### WebSocket Connection Failed
-1. Ensure WebSockets enabled in NPM
+1. Ensure WebSockets enabled in SWAG
 2. Check browser console for errors
 3. Verify DOMAIN is set correctly
 4. Test: Try different browser
@@ -233,7 +233,7 @@ docker exec bitwarden-db psql -U bitwarden -d bitwarden -c "SELECT 1;"
 2. **Regular Backups**: Automate weekly backups
 3. **Disable Signups**: After creating accounts
 4. **Enable 2FA**: For all accounts (TOTP, YubiKey, etc.)
-5. **HTTPS Only**: Always use SSL (via NPM)
+5. **HTTPS Only**: Always use SSL (via SWAG)
 6. **Secure ADMIN_TOKEN**: Long, random, secret
 7. **Email Verification**: Configure SMTP for security
 8. **Update Regularly**: Watchtower keeps Vaultwarden updated
@@ -247,7 +247,7 @@ docker exec bitwarden-db psql -U bitwarden -d bitwarden -c "SELECT 1;"
 - **Zero-Knowledge**: Server cannot decrypt vault data
 - **HTTPS Required**: For secure transmission
 - **Admin Token**: Protect like root password
-- **Network Isolation**: Keep on proxynet, expose via NPM only
+- **Network Isolation**: Keep on proxynet, expose via SWAG only
 - **No Public Signups**: Disable SIGNUPS_ALLOWED in production
 - **Two-Factor Auth**: Mandatory for sensitive accounts
 - **Backup Encryption**: Encrypt backup archives
@@ -382,7 +382,7 @@ environment:
 
 ### Attachments failing to upload
 - Check MAX_ATTACHMENT_SIZE
-- Verify client_max_body_size in NPM (128M)
+- Verify client_max_body_size in SWAG (128M)
 - Check disk space: `df -h`
 - Review Vaultwarden logs
 

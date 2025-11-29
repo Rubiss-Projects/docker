@@ -244,7 +244,7 @@ rate(node_network_receive_bytes_total[5m]) / 1024^2
 
 - **No Authentication by Default**: Add reverse proxy with auth for external access
 - **Sensitive Data**: Metrics may contain hostnames, IPs, paths
-- **Network Isolation**: Keep on proxynet, expose via NPM with auth
+- **Network Isolation**: Keep on proxynet, expose via SWAG with auth
 - **Config Exposure**: Don't commit passwords in prometheus.yml (use Docker secrets)
 - **Web UI Access**: Restrict to trusted networks only
 

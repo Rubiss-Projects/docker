@@ -124,7 +124,7 @@ File > Export:
     description: Personal finance and budgeting
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: budget.benlawson.dev
 Forward: http://actual:5006
@@ -189,7 +189,7 @@ If running actual-ai:
 ## Security Considerations
 
 - **No Built-in Auth**: Actual has no password protection
-- **Reverse Proxy**: Use auth via Nginx Proxy Manager
+- **Reverse Proxy**: Use auth via SWAG reverse proxy
 - **HTTPS**: SSL for remote access
 - **Port Exposure**: Don't expose 5006 publicly without auth
 - **Bank Data**: Sensitive financial information

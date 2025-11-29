@@ -135,7 +135,7 @@ Get Plex token:
 3. Click Info (i) > View XML
 4. Find `X-Plex-Token=XXXXX` in URL
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: plex.benlawson.dev
 Forward: http://plex:32400
@@ -183,7 +183,7 @@ Automatically updates Plex when new media added:
 2. Ensure port 32400 is forwarded in router
 3. Check "Manually specify public port" if behind NAT
 4. Verify external access at https://app.plex.tv
-5. Use Nginx Proxy Manager with subdomain if port forwarding fails
+5. Use SWAG reverse proxy with subdomain if port forwarding fails
 
 ### Playback Buffering/Stuttering
 1. Check transcoding settings (reduce quality if needed)
@@ -218,7 +218,7 @@ docker run --rm -v ./config:/config `
 - **Plex Account**: Secure with strong password and 2FA
 - **Sharing**: Limit shares to trusted users
 - **Token Protection**: Keep Plex token secret (treat like password)
-- **Remote Access**: Use SSL (via NPM or Plex SSL)
+- **Remote Access**: Use SSL (via SWAG or Plex SSL)
 - **Network Isolation**: Keep on proxynet
 - **Guest Access**: Disable if not needed (Settings > Network)
 
@@ -330,7 +330,7 @@ Install Plex exporter for Prometheus:
 ### "Indirect connection"
 - Port forwarding not working
 - Enable Settings > Network > Enable Relay
-- Or use Nginx Proxy Manager for external access
+- Or use SWAG reverse proxy for external access
 
 ### "Not authorized"
 - Token expired or invalid
@@ -340,7 +340,7 @@ Install Plex exporter for Prometheus:
 ### "Unable to connect securely"
 - SSL certificate issue
 - Settings > Network > Secure connections: Preferred (not Required)
-- Or fix SSL via Nginx Proxy Manager
+- Or fix SSL via SWAG reverse proxy
 
 ### "Transcoder crashed"
 - GPU out of memory
@@ -410,7 +410,7 @@ docker compose start plex
 - Settings > Remote Access > Enable
 - Fast, but requires router configuration
 
-### Option 3: Nginx Proxy Manager (Recommended)
+### Option 3: SWAG reverse proxy (Recommended)
 - Use subdomain (plex.benlawson.dev)
 - SSL via Let's Encrypt
 - No port forwarding required (just 80/443 for NPM)

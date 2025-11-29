@@ -8,18 +8,22 @@ services:
       - PUID=1000
       - PGID=1000
       - HOMEPAGE_ALLOWED_HOSTS=homepage.benlawson.dev
+      - DOCKER_HOST=tcp://socket-proxy:2375
     ports:
       - 3030:3000
     volumes:
       - ./config:/app/config
       - ./config/icons:/app/public/icons
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /mnt/c:/c:ro
       - /mnt/e:/e:ro
     restart: unless-stopped
     networks:
       - proxynet
+      - socket-proxy-net
 
 networks:
   proxynet:
     name: proxynet
+  socket-proxy-net:
+    external: true
+    name: socket-proxy-net

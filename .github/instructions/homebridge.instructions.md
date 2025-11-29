@@ -59,7 +59,7 @@ tar -czf homebridge-backup-$(date +%Y%m%d).tar.gz config/
 - URL: `http://192.168.50.216:8581`
 - Requires username/password from Homebridge config
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 - Proxy to: `192.168.50.216:8581`
 - WebSocket support: Enabled
 - SSL: Recommended for external access

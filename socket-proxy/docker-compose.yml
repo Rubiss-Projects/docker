@@ -1,0 +1,27 @@
+services:
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: socket-proxy
+    environment:
+      - CONTAINERS=1 # Allow access to viewing containers (all services)
+      - ALLOW_START=1 # Allow starting containers (swag-ondemand, watchtower, n8n)
+      - ALLOW_STOP=1 # Allow stopping containers (swag-ondemand, watchtower, n8n)
+      - ALLOW_RESTARTS=1 # Allow restarting containers (watchtower, n8n)
+      - POST=1 # Allow POST operations (required with START/STOP)
+      - IMAGES=1 # Allow access to images (watchtower needs to pull)
+      - INFO=1 # Allow access to system info (homepage)
+      - EVENTS=1 # Allow access to events
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+    networks:
+      - socket-proxy-net
+
+networks:
+  socket-proxy-net:
+    external: true
+    name: socket-proxy-net

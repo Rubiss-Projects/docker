@@ -139,7 +139,7 @@ View DNS records:
 - Dashboard > Domain > DNS > Records
 - See A/AAAA records updated automatically
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 Point NPM proxy hosts to DDNS domains:
 - Domain: home.example.com
 - Forward: http://internal-service:port

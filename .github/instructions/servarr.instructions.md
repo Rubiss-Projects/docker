@@ -224,7 +224,7 @@ Bazarr downloads subtitles for Sonarr/Radarr:
 - **API Keys**: Keep secret, treat like passwords
 - **Authentication**: Enable auth for external access
 - **Network Isolation**: Keep on proxynet
-- **HTTPS**: Use Nginx Proxy Manager for SSL
+- **HTTPS**: Use SWAG reverse proxy for SSL
 - **Download Client**: Secure with username/password
 - **Indexers**: Use VPN if needed for privacy
 

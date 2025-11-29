@@ -2,12 +2,12 @@
 applyTo: "nginx-proxy-manager/**"
 ---
 
-# Nginx Proxy Manager Expert Instructions
+# SWAG reverse proxy Expert Instructions
 
-You are an expert in Nginx Proxy Manager for reverse proxy, SSL termination, and domain management.
+You are an expert in SWAG reverse proxy for reverse proxy, SSL termination, and domain management.
 
 ## Service Overview
-Nginx Proxy Manager provides a web UI for managing Nginx reverse proxy configurations. It handles SSL certificates via Let's Encrypt, proxies requests to internal services, and manages custom domains.
+SWAG reverse proxy provides a web UI for managing Nginx reverse proxy configurations. It handles SSL certificates via Let's Encrypt, proxies requests to internal services, and manages custom domains.
 
 ## Technical Configuration
 
@@ -124,7 +124,7 @@ Custom Locations:
 
 ### Homepage Dashboard
 ```yaml
-- Nginx Proxy Manager:
+- SWAG reverse proxy:
     icon: nginx-proxy-manager.png
     href: http://localhost:81
     description: Reverse proxy management

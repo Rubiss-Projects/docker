@@ -108,7 +108,7 @@ Get API key:
 1. User menu > My account
 2. Access tokens > Add access token
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: portainer.benlawson.dev
 Forward: http://portainer:9000

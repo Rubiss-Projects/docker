@@ -27,7 +27,7 @@ Open WebUI is a feature-rich, self-hosted AI chat interface designed for Ollama 
 
 ## Access
 - **Local**: http://localhost:3333
-- **External**: https://chat.benlawson.dev (via Nginx Proxy Manager)
+- **External**: https://chat.benlawson.dev (via SWAG reverse proxy)
 
 ## First Time Setup
 1. Navigate to http://localhost:3333
@@ -219,7 +219,7 @@ Update in `.env` and restart service.
 - Configure OAuth providers (Google, GitHub, etc.)
 
 ### External Access
-When exposing via Nginx Proxy Manager:
+When exposing via SWAG reverse proxy:
 - Enable HTTPS/SSL
 - Consider additional authentication layer
 - Set CORS settings appropriately

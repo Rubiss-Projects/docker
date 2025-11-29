@@ -24,6 +24,8 @@ services:
       - homepage.icon=/icons/openwebui.png
       - homepage.href=https://ai.benlawson.dev/
       - homepage.description=AI Chat Interface
+      - swag_ondemand=enable
+      - swag_ondemand_urls=https://ai.
 
 networks:
   proxynet:

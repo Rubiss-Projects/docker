@@ -188,7 +188,7 @@ docker exec ollama sh -c 'OLLAMA_NUM_GPU=0 ollama run llama3.2'
 
 ## Security Notes
 - Ollama has NO authentication by default
-- Use Nginx Proxy Manager with auth for external access
+- Use SWAG reverse proxy with auth for external access
 - API is exposed only to `proxynet` internal network
 - Models stored locally, no data sent to external services
 

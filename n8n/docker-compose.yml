@@ -17,10 +17,10 @@ services:
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - TZ=${GENERIC_TIMEZONE}
       - N8N_USER_FOLDER=/root/.n8n
+      - DOCKER_HOST=tcp://socket-proxy:2375
     volumes:
       - ./config:/root/.n8n
       - ./workflows:/files
-      - /var/run/docker.sock:/var/run/docker.sock
       - ../:/mnt/e/Docker
     entrypoint: /bin/sh
     command: -c "sh /files/import-workflows.sh"
@@ -35,7 +35,11 @@ services:
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
     networks:
       - proxynet
+      - socket-proxy-net
 
 networks:
   proxynet:
     name: proxynet
+  socket-proxy-net:
+    external: true
+    name: socket-proxy-net

@@ -133,7 +133,7 @@ Mobile app:
     description: Audiobook and podcast server
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: audiobooks.benlawson.dev
 Forward: http://audiobookshelf:80

@@ -129,7 +129,7 @@ Settings > Sharing > Plex:
 - **Icon**: `homepage/config/icons/channels-dvr.png`
 - **Label**: `homepage.icon=/icons/channels-dvr.png`
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: channels.benlawson.dev
 Forward: http://channels-dvr:8089

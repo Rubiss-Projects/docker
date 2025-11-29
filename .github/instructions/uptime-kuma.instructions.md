@@ -117,7 +117,7 @@ Monitor > Edit > Notifications:
       slug: default  # Status page slug
 ```
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: uptime.benlawson.dev
 Forward: http://uptime-kuma:3001

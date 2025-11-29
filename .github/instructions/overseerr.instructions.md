@@ -134,7 +134,7 @@ Season Folder: Enabled
 
 Get API key: Settings > General > API Key
 
-### Nginx Proxy Manager
+### SWAG reverse proxy
 ```
 Domain: overseerr.benlawson.dev
 Forward: http://overseerr:5055
@@ -185,7 +185,7 @@ SSL: Let's Encrypt
 - **Local Users**: Can be created without Plex
 - **Password Protection**: Enforce strong passwords
 - **API Key**: Keep secret, regenerate if compromised
-- **External Access**: Use HTTPS via NPM
+- **External Access**: Use HTTPS via SWAG
 - **Request Approval**: Require for untrusted users
 
 ## Advanced Configuration

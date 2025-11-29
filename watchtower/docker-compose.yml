@@ -10,10 +10,9 @@ services:
       - WATCHTOWER_SCHEDULE=0 0 11 * * *  # Run at 6 AM EST (11 AM UTC) - 1 hour after Docker restart at 5 AM
       - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN}
       - WATCHTOWER_HTTP_API_METRICS=true
+      - DOCKER_HOST=tcp://socket-proxy:2375
     ports:
       - 8081:8080
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
     restart: unless-stopped
@@ -34,7 +33,11 @@ services:
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
     networks:
       - proxynet
+      - socket-proxy-net
 
 networks:
   proxynet:
     name: proxynet
+  socket-proxy-net:
+    external: true
+    name: socket-proxy-net

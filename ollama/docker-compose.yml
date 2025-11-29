@@ -33,6 +33,8 @@ services:
       - homepage.description=Local LLM server
       - homepage.widget.type=ollama
       - homepage.widget.url=http://ollama:11434
+      - swag_ondemand=enable
+      - swag_ondemand_urls=https://ollama.,https://ai.
     networks:
       - proxynet
 
