@@ -11,6 +11,7 @@ services:
       - IMAGES=1 # Allow access to images (watchtower needs to pull)
       - INFO=1 # Allow access to system info (homepage)
       - EVENTS=1 # Allow access to events
+      - NETWORKS=1 # Allow network operations (watchtower needs to disconnect/connect networks when recreating)
       - LOG_LEVEL=info
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
