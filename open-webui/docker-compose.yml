@@ -26,6 +26,7 @@ services:
       - homepage.description=AI Chat Interface
       - swag_ondemand=enable
       - swag_ondemand_urls=https://ai.
+      - 'swag_server_custom_directive=include /config/nginx/ondemand.conf;'
 
 networks:
   proxynet:
