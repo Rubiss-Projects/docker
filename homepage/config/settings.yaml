@@ -2,5 +2,17 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/settings
 
-# threeColumns: true
-# showStats: true
+base: https://homepage.benlawson.dev/
+headerStyle: boxedWidgets
+layout:
+  - Downloads:
+      header: false
+      style: row
+  - Infrastructure:
+  - Observability:
+  - Media Management:
+  - Other:
+      header: false
+      Media Consumption:
+      AI & Automation:
+      Hardware:

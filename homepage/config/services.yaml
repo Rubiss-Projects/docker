@@ -4,6 +4,8 @@
     - NVIDIA GPU:
         icon: nvidia.svg
         description: GPU stats
+        server: my-docker
+        container: nvidia-smi-rest
         widget:
           type: customapi
           url: http://nvidia-smi-rest:7777
