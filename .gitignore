@@ -9,7 +9,6 @@
 **/data/*
 **/logs/*
 **/metadata/*
-swag-migration-backup/*
 
 # Service-specific directories
 nginx-proxy-manager/letsencrypt/*
