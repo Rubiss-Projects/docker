@@ -171,9 +171,29 @@ labels:
   - swag_ondemand_urls=https://myservice.
 ```
 
+**⚠️ CRITICAL: Monitoring Compatibility**
+
+**DO NOT monitor on-demand containers with Uptime Kuma or other uptime monitors!** Health check traffic counts as "access" and resets the inactivity timer, preventing containers from ever stopping. On-demand containers should only be accessed by actual users, not automated monitoring.
+
+If you need to monitor availability:
+- Monitor the SWAG proxy itself (always running)
+- Use Docker health checks (doesn't trigger access logs)
+- Accept that on-demand containers may be sleeping
+
 **Log Monitoring:**
 ```bash
+# Watch on-demand activity
 docker exec swag tail -f /config/log/ondemand/ondemand.log
+
+# Check last access time (should show "Stopped" events after 10min inactivity)
+docker exec swag cat /config/log/ondemand/ondemand.log | tail -20
+```
+
+**Timeout Configuration:**
+```yaml
+# In docker-compose.yml, adjust stop threshold (default: 600 seconds)
+environment:
+  - SWAG_ONDEMAND_STOP_THRESHOLD=600  # 10 minutes
 ```
 
 ## SSL/TLS Configuration
