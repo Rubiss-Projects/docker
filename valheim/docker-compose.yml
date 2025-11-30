@@ -17,9 +17,12 @@ services:
     labels:
       - homepage.group=Gaming
       - homepage.name=Valheim
-      - homepage.icon=valheim.png
+      - homepage.icon=/icons/valheim.png
       - homepage.description=Valheim Server
-      - homepage.showStats=true
+      - homepage.widget.type=gamedig
+      - homepage.widget.serverType=valheim
+      - homepage.widget.url=udp://valheim:2456
+      - homepage.widget.fields=["status", "currentPlayers", "maxPlayers", "ping"]
     networks:
       - proxynet
 

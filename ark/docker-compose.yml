@@ -31,7 +31,22 @@ services:
       - "27016:27015/udp"
     networks:
       - default
+      - proxynet
+    labels:
+      - homepage.group=Gaming
+      - homepage.name=ARK Survival Evolved
+      - homepage.icon=/icons/ark-survival-evolved.png
+      - homepage.description=ARK SE Server
+      - homepage.widget.type=gamedig
+      - homepage.widget.serverType=ase
+      - homepage.widget.url=udp://ark:27015
+      - homepage.widget.fields=["status", "currentPlayers", "maxPlayers", "map"]
     deploy:
       resources:
         limits:
           memory: 8G
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet

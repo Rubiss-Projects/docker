@@ -10,3 +10,12 @@ services:
       - 8211:8211
     env_file:
       - .env
+    labels:
+      - homepage.group=Gaming
+      - homepage.name=Palworld
+      - homepage.icon=/icons/palworld.png
+      - homepage.description=Palworld Dedicated Server
+      - homepage.widget.type=gamedig
+      - homepage.widget.serverType=palworld
+      - homepage.widget.url=udp://palworld:8211
+      - homepage.widget.fields=["status", "currentPlayers", "maxPlayers"]
