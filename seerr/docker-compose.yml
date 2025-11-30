@@ -18,7 +18,7 @@ services:
       - homepage.group=Media Management
       - homepage.name=Seerr
       - homepage.icon=jellyseerr.png
-      - homepage.href=https://seerr.benlawson.dev/
+      - homepage.href=https://request.benlawson.dev/
       - homepage.siteMonitor=http://seerr:5055
       - homepage.description=Media requests
       - homepage.widget.type=jellyseerr
