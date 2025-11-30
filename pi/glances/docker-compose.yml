@@ -16,7 +16,7 @@ services:
       - homepage.group=Observability
       - homepage.name=Pi System Monitor
       - homepage.icon=glances.png
-      - homepage.href=http://192.168.50.216:61208
+      - homepage.href=https://glances.benlawson.dev
       - homepage.description=Pi 3 system stats
       - homepage.siteMonitor=http://192.168.50.216:61208
       - homepage.widget.type=glances
