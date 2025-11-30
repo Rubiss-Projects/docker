@@ -10,6 +10,12 @@ services:
       - 8211:8211
     env_file:
       - .env
+    stop_grace_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - homepage.group=Gaming
       - homepage.name=Palworld

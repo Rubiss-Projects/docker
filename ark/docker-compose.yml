@@ -3,6 +3,12 @@ services:
     restart: unless-stopped
     container_name: ark
     image: hermsi/ark-server:latest
+    stop_grace_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ${HOME}/ark-server:/app
       - ${HOME}/ark-server-backups:/home/steam/ARK-Backups

@@ -7,6 +7,18 @@ services:
     ports:
       - 3001:3001
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "extra/healthcheck"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 300s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - homepage.group=Observability
       - homepage.name=Uptime Kuma

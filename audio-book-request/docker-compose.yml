@@ -7,6 +7,17 @@ services:
       - '8000:8000'
     volumes:
       - ./config:/config
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - homepage.group=Media Management
       - homepage.name=Audiobook Request

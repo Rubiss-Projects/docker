@@ -5,7 +5,7 @@ services:
     volumes:
       - ./data:/config
       - ../../Media/downloads:/downloads
-    restart: always
+    restart: unless-stopped
     user: ${PUID}:${PGID}
     environment:
       - TZ=${TZ}
@@ -23,6 +23,11 @@ services:
       - UN_READARR_0_PATHS_0=${UN_READARR_0_PATHS_0}
     env_file:
       - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - proxynet
 

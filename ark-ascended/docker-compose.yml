@@ -16,6 +16,13 @@ services:
       - EXTRA_SETTINGS=?serverPVE=1?AllowHitMarkers=True?DisableWeatherFog=true?DisableCryopodFridgeRequirement=true?NightTimeSpeedScale=2.0?DayTimeSpeedScale=0.5?OverrideStructurePlatformPrevention=True?AllowAnyoneBabyImprintCuddle=True?OverrideOfficialDifficulty=5.000000?EnablePVPGamma=True?OxygenSwimSpeedStatMultiplier=2.000000?DinoCharacterFoodDrainMultiplier=1.5?TamingSpeedMultiplier=10?DinoDamageMultiplier=2?DinoResistanceMultiplier=0.8?PlayerDamageMultiplier=2.0?StructureDamageMultiplier=2.0?StructureResistanceMultiplier=0.7?HarvestAmountMultiplier=5.0?HarvestHealthMultiplier=5.0?ResourcesRespawnPeriodMultiplier=50.0?PlayerCharacterFoodDrainMultiplier=0.25?PlayerCharacterHealthRecoveryMultiplier=2.00000?PlayerCharacterStaminaDrainMultiplier=0.7000?PlayerCharacterWaterDrainMultiplier=0.25?UseCorpseLocator=true?PerPlatformMaxStructuresMultiplier=5.00000?AllowFlyerCarryPvE=1?DisableStructureDecayPvE=1?DinoCharacterHealthRecoveryMultiplier=2?DinoCharacterStaminaDrainMultiplier=.70000?XPMultiplier=20.0?MaxPlatformSaddleStructureLimit=250?AllowFlyingStaminaRecovery=1?AllowMultipleAttachedC4=1
     env_file:
       - .env
+    restart: unless-stopped
+    stop_grace_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ark-steam:/home/steam/Steam
       - ark-install:/home/steam/ark

@@ -1,7 +1,8 @@
 services:
   bitwarden:
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     image: ghcr.io/bitwarden/self-host:beta
@@ -15,6 +16,17 @@ services:
       - ./logs:/var/log/bitwarden
     networks:
       - proxynet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/alive"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Bitwarden"
@@ -24,6 +36,7 @@ services:
       - "homepage.siteMonitor=http://192.168.50.40:8083"
 
   db:
+    container_name: bitwarden-db
     env_file:
       - db.env
     image: postgres:14
@@ -32,6 +45,18 @@ services:
       - ./data:/var/lib/postgresql/data
     networks:
       - proxynet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   proxynet:

@@ -18,6 +18,17 @@ services:
       - TZ=${GENERIC_TIMEZONE}
       - N8N_USER_FOLDER=/root/.n8n
       - DOCKER_HOST=tcp://socket-proxy:2375
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ./config:/root/.n8n
       - ./workflows:/files
