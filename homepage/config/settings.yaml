@@ -3,7 +3,8 @@
 # https://gethomepage.dev/latest/configs/settings
 
 base: https://homepage.benlawson.dev/
-headerStyle: boxedWidgets
+headerStyle: clean
+maxGroupColumns: 8 # default is 4 for services, 6 for bookmarks, max 8
 layout:
   - Downloads:
       header: false
@@ -15,5 +16,4 @@ layout:
       header: false
       Media Consumption:
       AI & Automation:
-      Gaming:
-      Hardware:
+  - Gaming:
