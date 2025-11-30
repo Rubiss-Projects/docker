@@ -21,6 +21,23 @@ services:
       - ark-install:/home/steam/ark
       - ark-persistent-data:/home/steam/ark/ShooterGame/Saved
 
+    labels:
+      - homepage.group=Gaming
+      - homepage.name=ARK Survival Ascended
+      - homepage.icon=/icons/ark-survival-ascended.png
+      - homepage.description=ARK SA Server
+      - homepage.widget.type=gamedig
+      - homepage.widget.serverType=asa
+      - homepage.widget.url=udp://ark-ascended:7777
+      - homepage.widget.fields=["status", "currentPlayers", "maxPlayers", "map"]
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
+
 volumes:
   ark-persistent-data:
   ark-install:

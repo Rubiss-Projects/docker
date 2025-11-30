@@ -18,3 +18,10 @@ services:
     tty: true
     stdin_open: true
     restart: unless-stopped
+    labels:
+      - homepage.group=Gaming
+      - homepage.name=Modded Minecraft
+      - homepage.icon=minecraft.png
+      - homepage.description=Forge Modded Server
+      - homepage.widget.type=minecraft
+      - homepage.widget.url=udp://mod-mc:25565
