@@ -7,6 +7,7 @@ services:
       - 13378:80
     volumes:
       - ../../Media/audiobooks:/audiobooks
+      - ../../Media/books:/books
       - ./config:/config
       - ./metadata:/metadata
     environment:
