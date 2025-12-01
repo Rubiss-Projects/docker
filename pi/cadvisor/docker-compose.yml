@@ -19,8 +19,8 @@ services:
       - homepage.group=Observability
       - homepage.name=cAdvisor (Pi)
       - homepage.icon=cadvisor.png
-      - homepage.href=http://192.168.50.216:8080
-      - homepage.description=Pi container monitoring
+      - homepage.href=https://cadvisor-pi.benlawson.dev/
+      - homepage.description=Docker container monitoring
       - homepage.siteMonitor=http://192.168.50.216:8080
     command:
       - '--housekeeping_interval=30s'
