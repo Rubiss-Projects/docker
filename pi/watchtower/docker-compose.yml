@@ -21,7 +21,7 @@ services:
       - homepage.group=Infrastructure
       - homepage.name=Watchtower (Pi)
       - homepage.icon=watchtower.png
-      - homepage.href=http://192.168.50.216:8081/v1/metrics
+      - homepage.href=https://watchtower-pi.benlawson.dev/v1/metrics
       - homepage.description=Service updater
       - homepage.siteMonitor=http://192.168.50.216:8081/v1/metrics
       - homepage.widget.type=watchtower
