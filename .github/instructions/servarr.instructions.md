@@ -544,23 +544,6 @@ labels:
   - homepage.widget.key=${SEERR_API_KEY}
 ```
 
-## Migration from Overseerr
-
-```bash
-# Stop containers
-docker stop overseerr seerr
-
-# Copy database
-cp overseerr/config/db/db.sqlite3 seerr/config/db/
-cp overseerr/config/db/db.sqlite3-shm seerr/config/db/
-cp overseerr/config/db/db.sqlite3-wal seerr/config/db/
-
-# Start Seerr
-docker start seerr
-```
-
-This brings over users, requests, settings, and history.
-
 ## Request Workflow
 1. User searches for content
 2. User clicks "Request"
