@@ -24,5 +24,5 @@ services:
       - homepage.siteMonitor=http://192.168.50.216:8581
       - homepage.widget.type=homebridge
       - homepage.widget.url=http://192.168.50.216:8581
-      - homepage.widget.username=admin
+      - homepage.widget.username=rubiss
       - homepage.widget.password=${HOMEBRIDGE_PASSWORD}
