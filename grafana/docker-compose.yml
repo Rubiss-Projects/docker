@@ -7,10 +7,14 @@ services:
       - PGID=1000
       - TZ=America/Los_Angeles
       - UMASK_SET=022
+      - GF_PATHS_CONFIG=/etc/grafana/grafana.ini
     ports:
       - 3000:3000
     volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini:ro
       - ./data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/etc/dashboards:ro
     restart: unless-stopped
     env_file:
       - .env
@@ -30,4 +34,5 @@ services:
 
 networks:
   proxynet:
+    external: true
     name: proxynet

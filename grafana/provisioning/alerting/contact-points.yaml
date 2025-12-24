@@ -1,0 +1,14 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Discord - Lawson
+    receivers:
+      - uid: ef82p3axoi0owb
+        type: discord
+        settings:
+          url: $DISCORD_LAWSON_WEBHOOK_URL
+          use_discord_username: false
+          title: '{{ template "discord.title" . }}'
+          message: '{{ template "discord.message" . }}'
+        disableResolveMessage: false
