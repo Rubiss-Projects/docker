@@ -1,0 +1,40 @@
+apiVersion: 1
+
+# Mark provisioned data sources for deletion if they are no longer in a provisioning file.
+# Keep this false until you are confident this file is authoritative.
+prune: true
+
+datasources:
+  # InfluxDB (InfluxQL)
+  - name: influxdb
+    uid: ddvyigh44dblsd
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    isDefault: true
+    jsonData:
+      # NOTE: Grafana recommends dbName (database is deprecated)
+      dbName: ben-server
+      httpMode: POST
+      timeInterval: 10s
+      maxSeries: 1000
+      httpHeaderName1: 'Authorization'
+    secureJsonData:
+      httpHeaderValue1: 'Token $INFLUXDB_GRAFANA_TOKEN'
+    version: 1
+    editable: false
+
+  # Prometheus
+  - name: prometheus
+    uid: adw07verg2qrkd
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      allowAsRecordingRulesTarget: true
+      timeInterval: 15s
+    version: 1
+    editable: false
