@@ -1,0 +1,44 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: watchtower
+    folder: Infrastructure
+    interval: 1m
+    rules:
+      - uid: watchtower_update_failed
+        title: Watchtower Update Failed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: increase(watchtower_containers_failed_total[1h])
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Watchtower update failed"
+          description: "Watchtower failed to update one or more containers in the last hour."
+        labels:
+          severity: warning

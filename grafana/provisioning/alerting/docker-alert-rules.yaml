@@ -1,0 +1,81 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: docker-containers
+    folder: Docker
+    interval: 1m
+    rules:
+      - uid: docker_container_restarting
+        title: Docker Container Restarting
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: increase(container_start_time_seconds{name!=""}[15m])
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [2]
+                    type: gt
+                  operator:
+                    type: and
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+          description: "Container {{ $labels.name }} has restarted {{ $values.B.Value }} times in the last 15 minutes."
+        labels:
+          severity: warning
+
+      - uid: docker_container_memory_high
+        title: Docker Container High Memory
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: container_memory_usage_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [95]
+                    type: gt
+                  operator:
+                    type: and
+        for: 15m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "High memory usage in container {{ $labels.name }}"
+          description: "Container {{ $labels.name }} is using {{ $values.B.Value | printf \"%.2f\" }}% of its memory limit."
+        labels:
+          severity: warning

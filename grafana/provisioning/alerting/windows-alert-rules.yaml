@@ -1,5 +1,8 @@
 apiVersion: 1
 
+deleteRules:
+  - uid: test_alert_rule
+
 groups:
   - orgId: 1
     name: windows-dashboard
@@ -76,7 +79,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 5
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 5m
         annotations:
@@ -160,7 +163,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 5
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 5m
         annotations:
@@ -244,7 +247,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 6
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 10m
         annotations:
@@ -329,7 +332,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 6
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 10m
         annotations:
@@ -414,7 +417,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 64
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 10m
         annotations:
@@ -499,7 +502,7 @@ groups:
               type: threshold
         dashboardUid: fdvyllsgg8v7kf
         panelId: 64
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         for: 10m
         annotations:
@@ -512,4 +515,109 @@ groups:
           resource: disk
           drive: E
           severity: critical
+        isPaused: false
+
+      - uid: windows_host_down
+        title: Windows Host Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: ddvyigh44dblsd
+            model:
+              datasource:
+                type: influxdb
+                uid: ddvyigh44dblsd
+              refId: A
+              resultFormat: time_series
+              policy: default
+              rawQuery: true
+              query: "SELECT count(\"System_Up_Time\") AS \"count\" FROM \"win_system\" WHERE $timeFilter GROUP BY time(1m), host fill(0)"
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: eq
+                  operator:
+                    type: and
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        for: 5m
+        annotations:
+          summary: "Windows host {{ $labels.host }} is down"
+          description: "No metrics received from Windows host {{ $labels.host }} for more than 5 minutes."
+        labels:
+          monitor: windows
+          severity: critical
+        isPaused: false
+
+      - uid: windows_cpu_high
+        title: Windows High CPU Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: ddvyigh44dblsd
+            model:
+              datasource:
+                type: influxdb
+                uid: ddvyigh44dblsd
+              refId: A
+              resultFormat: time_series
+              policy: default
+              rawQuery: true
+              query: "SELECT mean(\"Percent_Processor_Time\") AS \"cpu\" FROM \"win_cpu\" WHERE $timeFilter GROUP BY time(1m), host fill(null)"
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        for: 5m
+        annotations:
+          summary: "High CPU usage on Windows host {{ $labels.host }}"
+          description: "CPU usage is above 90% on {{ $labels.host }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
+        labels:
+          monitor: windows
+          resource: cpu
+          severity: warning
         isPaused: false
