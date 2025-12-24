@@ -1,0 +1,155 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: linux-host
+    folder: Linux
+    interval: 1m
+    rules:
+      - uid: linux_host_down
+        title: Linux Host Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: up{job="node-exporter-pi"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: eq
+                  operator:
+                    type: and
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Host {{ $labels.instance }} is down"
+          description: "Node Exporter has been unreachable for more than 5 minutes on {{ $labels.instance }}."
+        labels:
+          severity: critical
+
+      - uid: linux_cpu_high
+        title: Linux High CPU Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 90% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
+        labels:
+          severity: warning
+
+      - uid: linux_memory_high
+        title: Linux High Memory Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
+        labels:
+          severity: warning
+
+      - uid: linux_disk_low
+        title: Linux Low Disk Space
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [10]
+                    type: lt
+                  operator:
+                    type: and
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Free disk space on / is below 10% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
+        labels:
+          severity: critical
