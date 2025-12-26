@@ -151,6 +151,49 @@ Unpackerr watches Transmission downloads:
 3. Try alternative torrent source
 4. Check for DHT/PEX if private torrent
 
+### High Memory Usage / Hitting Memory Limit
+If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafana alerts:
+
+**Is this normal?** Yes, for active torrent clients with moderate to heavy usage.
+
+**Published Limits:** Transmission itself has no hard memory limit. Memory usage scales with:
+- Cache size (16-64MB typical)
+- Number of active torrents (50MB-100MB per torrent approximately)
+- Peer connections (memory overhead per connection)
+- File tracking data
+
+**Negative Effects:**
+- **Below limit**: Normal operation, no issues
+- **At limit**: Performance degradation, potential slowdowns
+- **Above limit**: Container may be killed by Docker (OOM)
+
+**Solutions:**
+1. **Increase memory limit** in docker-compose.yml:
+   ```yaml
+   deploy:
+     resources:
+       limits:
+         memory: 3G  # or 4G for heavy usage
+   ```
+
+2. **Optimize cache size**: Increase from 16MB to 32-48MB for better performance:
+   ```yaml
+   - TRANSMISSION_CACHE_SIZE_MB=48
+   ```
+
+3. **Reduce concurrent operations** if memory is constrained:
+   ```yaml
+   - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=3
+   - TRANSMISSION_PEER_LIMIT_GLOBAL=100
+   ```
+
+4. **Adjust Grafana alert threshold**: If this is normal behavior, consider:
+   - Raising alert threshold above 95%
+   - Increasing alert duration before firing
+   - Adding context that this is expected for active usage
+
+**Recommendation**: A 3GB limit with 48MB cache is optimal for most use cases.
+
 ## Best Practices
 
 1. **Use Categories**: Separate downloads by *arr service
@@ -235,6 +278,35 @@ TR_TORRENT_DIR="$2"
 
 ## Performance Tuning
 
+### Memory and Resource Requirements
+
+Transmission's memory usage depends on several factors:
+- **Cache Size**: Larger cache reduces disk I/O but increases memory usage
+- **Number of Active Torrents**: More torrents = more memory
+- **Peer Connections**: More peers = more memory overhead
+- **File Size**: Large torrents with many pieces require more tracking
+
+**Typical Memory Usage:**
+- Light usage (1-5 torrents, 16MB cache): 256-512MB
+- Moderate usage (5-20 torrents, 32-48MB cache): 1-2GB
+- Heavy usage (20+ torrents, 64MB cache): 2-4GB
+
+**Recommended Docker Memory Limits:**
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 3G  # For moderate to heavy usage
+    reservations:
+      memory: 512M
+```
+
+**Note**: If Transmission consistently hits its memory limit (causing alerts), consider:
+1. Increasing the memory limit to 3-4GB
+2. Optimizing cache size (32-64MB recommended)
+3. Reducing concurrent torrents or peer connections
+4. This is normal behavior for active torrent clients and not harmful unless OOM kills occur
+
 ### For High-Speed Connections
 ```json
 {
@@ -242,6 +314,16 @@ TR_TORRENT_DIR="$2"
   "peer-limit-global": 500,
   "peer-limit-per-torrent": 100,
   "upload-slots-per-torrent": 14
+}
+```
+
+### For Moderate Usage (Recommended)
+```json
+{
+  "cache-size-mb": 48,
+  "peer-limit-global": 150,
+  "peer-limit-per-torrent": 30,
+  "upload-slots-per-torrent": 8
 }
 ```
 
