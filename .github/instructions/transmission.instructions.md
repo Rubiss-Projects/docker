@@ -190,19 +190,28 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
    - TRANSMISSION_CACHE_SIZE_MB=48
    ```
 
-3. **Manage seeding torrents** (if you have 100+ seeders):
+3. **Manage seeding torrents** (recommended for 100+ seeders):
    ```yaml
-   # Option 1: Limit seeding time
+   # Recommended: Seed queue (limits simultaneous active seeders)
+   - TRANSMISSION_SEED_QUEUE_ENABLED=true
+   - TRANSMISSION_SEED_QUEUE_SIZE=50  # Max 50 seeding at once
+   
+   # Reduces peer connection overhead
+   - TRANSMISSION_PEER_LIMIT_GLOBAL=100  # Down from 150
+   - TRANSMISSION_PEER_LIMIT_PER_TORRENT=25  # Down from 30
+   ```
+   
+   This approach allows all torrents to seed forever (no time/ratio limits) while controlling memory by limiting simultaneous active seeders. Torrents automatically queue and rotate based on demand.
+   
+   Alternative options (if you want to limit total seeding torrents):
+   ```yaml
+   # Option A: Limit seeding time
    - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=true
    - TRANSMISSION_IDLE_SEEDING_LIMIT=10080  # 7 days in minutes
    
-   # Option 2: Limit by ratio
+   # Option B: Limit by ratio
    - TRANSMISSION_RATIO_LIMIT_ENABLED=true
    - TRANSMISSION_RATIO_LIMIT=2.0
-   
-   # Option 3: Queue seeding (limit simultaneous seeders)
-   - TRANSMISSION_SEED_QUEUE_ENABLED=true
-   - TRANSMISSION_SEED_QUEUE_SIZE=50  # Max 50 seeding at once
    ```
 
 4. **Reduce concurrent operations** if memory is constrained:

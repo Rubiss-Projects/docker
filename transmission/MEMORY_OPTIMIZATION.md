@@ -228,12 +228,25 @@ Automatically stops seeding torrents after they've been idle for 7 days.
 ```
 Stops seeding once upload/download ratio reaches 2.0 (or your preferred value).
 
-#### Option 3: Seed Queue Management
+#### Option 3: Seed Queue Management (Recommended for Heavy Seeding)
 ```yaml
 - TRANSMISSION_SEED_QUEUE_ENABLED=true
 - TRANSMISSION_SEED_QUEUE_SIZE=50  # Max simultaneous seeding
 ```
-Limits how many torrents can seed at once. Torrents will queue and rotate.
+Limits how many torrents can seed at once. Torrents will queue and rotate. **This is the optimal approach for 400+ seeding torrents** - allows all torrents to seed forever while controlling memory usage by limiting simultaneous active seeders.
+
+**Benefits**:
+- Torrents still seed forever (no time/ratio limits)
+- Better memory control (max 50 active seeders vs. 400+)
+- Automatic rotation - inactive seeders make room for requested ones
+- Reduced peer connection overhead
+
+**Combined with Peer Limits**:
+```yaml
+- TRANSMISSION_PEER_LIMIT_GLOBAL=100  # Reduced from 150
+- TRANSMISSION_PEER_LIMIT_PER_TORRENT=25  # Reduced from 30
+```
+Further reduces memory overhead per connection.
 
 #### Option 4: Increase Memory Limit for Heavy Seeding
 ```yaml
@@ -246,14 +259,21 @@ deploy:
 **Current Configuration Analysis**:
 - `IDLE_SEEDING_LIMIT_ENABLED=false` - Torrents seed forever ✓
 - `RATIO_LIMIT_ENABLED=false` - No ratio limits ✓
-- No seed queue configured - All 400+ torrents can seed simultaneously ✓
+- `SEED_QUEUE_ENABLED=true` - Limits simultaneous active seeders to 50 ✓
+- `PEER_LIMIT_GLOBAL=100` - Reduced from 150 for better memory control ✓
+- `PEER_LIMIT_PER_TORRENT=25` - Reduced from 30 for better memory control ✓
 
-This configuration prioritizes long-term seeding, which is excellent for torrent health but requires more memory. With **400+ seeding torrents**, expect:
-- **Baseline**: 800MB-2GB just for torrent metadata
-- **Active seeding**: Additional 200MB-1GB when torrents are actively uploading
-- **Total**: 2.5-4GB is completely normal
+This configuration prioritizes long-term seeding (torrents seed forever) while managing active resources. With **400+ seeding torrents** but only **50 active at once**, expect:
+- **Baseline**: 800MB-2GB just for torrent metadata (all 400+ torrents)
+- **Active seeding**: 50 torrents × 20-50MB = 1-2.5GB (seed queue limits active seeders)
+- **Active downloads**: ~150-500MB (3 downloads)
+- **Total**: 2-5GB is normal, with seed queue providing better control
 
-**Recommendation for 400+ Seeding Torrents**: Increase memory limit to **4G** for optimal headroom.
+**Recommendation for 400+ Seeding Torrents**: 
+- Memory limit: **4G** for optimal headroom
+- **Seed queue enabled**: Limit to 50 simultaneous active seeders (current configuration)
+- **Reduced peer limits**: 100 global, 25 per torrent for better memory control
+- This allows all torrents to seed forever while managing active resource usage
 
 ## Conclusion
 
