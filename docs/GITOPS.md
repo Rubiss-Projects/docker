@@ -1,5 +1,7 @@
 # GitOps Automated Deployment
 
+> **Quick Reference**: See [GITOPS-QUICKREF.md](./GITOPS-QUICKREF.md) for common commands and examples.
+
 This repository implements automated GitOps deployment using GitHub Actions. When changes are merged to the `main` branch, affected services are automatically deployed to the appropriate host (Windows server or Raspberry Pi).
 
 ## Overview

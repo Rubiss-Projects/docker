@@ -1,0 +1,151 @@
+GitOps Deployment Flow
+=======================
+
+Developer Workflow:
+┌─────────────────────────────────────────────────────────────────┐
+│  Developer                                                       │
+│  ┌────────────┐    ┌──────────────┐    ┌───────────────┐      │
+│  │ Make       │───▶│ Create       │───▶│ Merge PR      │      │
+│  │ Changes    │    │ Pull Request │    │ to main       │      │
+│  └────────────┘    └──────────────┘    └───────┬───────┘      │
+└────────────────────────────────────────────────┼──────────────┘
+                                                  │
+                                                  ▼
+GitHub Actions Workflow:
+┌─────────────────────────────────────────────────────────────────┐
+│  GitHub Actions (on push to main)                               │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 1. Detect Changes                                          ││
+│  │    - Compare HEAD with previous commit                     ││
+│  │    - Find changed docker-compose.yml or .env files        ││
+│  │    - Extract service names                                 ││
+│  └────────────────────────┬───────────────────────────────────┘│
+│                           ▼                                      │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 2. Determine Hosts                                         ││
+│  │    - pi/* services    → Raspberry Pi                      ││
+│  │    - Other services   → Windows Server                    ││
+│  └────────────┬──────────────────────────┬───────────────────┘│
+│               │                           │                     │
+│               ▼                           ▼                     │
+│  ┌────────────────────────┐  ┌──────────────────────────────┐│
+│  │ 3a. Deploy to Pi       │  │ 3b. Deploy to Windows        ││
+│  │  (parallel, max 5)     │  │  (parallel, max 5)           ││
+│  │                        │  │                              ││
+│  │ For each service:      │  │ For each service:            ││
+│  │  - SSH to Pi          │  │  - SSH to Windows            ││
+│  │  - cd to service      │  │  - cd to service             ││
+│  │  - git pull           │  │  - git pull                  ││
+│  │  - docker compose pull│  │  - docker compose pull       ││
+│  │  - docker compose up  │  │  - docker compose up -d      ││
+│  └────────────┬───────────┘  └──────────┬───────────────────┘│
+│               │                           │                     │
+│               └───────────┬───────────────┘                     │
+│                           ▼                                      │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 4. Report Status                                           ││
+│  │    - Summary of deployed services                          ││
+│  │    - Success/failure status                                ││
+│  │    - Links to service hosts                                ││
+│  └────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+                                                  │
+                                                  ▼
+Service Deployment:
+┌─────────────────────────────────────────────────────────────────┐
+│  Host Servers                                                    │
+│                                                                  │
+│  ┌──────────────────────┐           ┌──────────────────────┐  │
+│  │ Windows Server       │           │ Raspberry Pi         │  │
+│  │ (192.168.50.40)      │           │ (192.168.50.216)     │  │
+│  │                      │           │                      │  │
+│  │ Services:            │           │ Services:            │  │
+│  │ • Plex               │           │ • Homebridge         │  │
+│  │ • Sonarr             │           │ • Pi-hole            │  │
+│  │ • Radarr             │           │ • cAdvisor           │  │
+│  │ • Bitwarden          │           │ • Node Exporter      │  │
+│  │ • Homepage           │           │ • Watchtower         │  │
+│  │ • Grafana            │           │ • Cloudflare Tunnel  │  │
+│  │ • Prometheus         │           │                      │  │
+│  │ • and 20+ more...    │           │                      │  │
+│  └──────────────────────┘           └──────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+
+Manual Deployment Alternatives:
+┌─────────────────────────────────────────────────────────────────┐
+│  Option 1: GitHub Actions Manual Trigger                        │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ 1. Go to Actions → Deploy Services                         ││
+│  │ 2. Click "Run workflow"                                    ││
+│  │ 3. Enter service name (e.g., "plex")                      ││
+│  │ 4. Click "Run workflow"                                    ││
+│  └────────────────────────────────────────────────────────────┘│
+│                                                                  │
+│  Option 2: Local Script                                         │
+│  ┌────────────────────────────────────────────────────────────┐│
+│  │ SSH to host:                                               ││
+│  │   $ ssh user@host                                          ││
+│  │                                                             ││
+│  │ Run deployment script:                                     ││
+│  │   $ cd /path/to/docker                                     ││
+│  │   $ ./scripts/deploy-service.sh <service-name>            ││
+│  └────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+
+
+Security Model:
+┌─────────────────────────────────────────────────────────────────┐
+│  GitHub Secrets (Encrypted)                                      │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ • WINDOWS_SSH_KEY      - Windows server SSH private key  │  │
+│  │ • WINDOWS_HOST         - Windows server hostname/IP      │  │
+│  │ • WINDOWS_SSH_USER     - Windows SSH username            │  │
+│  │ • WINDOWS_SSH_PORT     - Windows SSH port                │  │
+│  │ • PI_SSH_KEY           - Pi SSH private key              │  │
+│  │ • PI_HOST              - Pi hostname/IP                  │  │
+│  │ • PI_SSH_USER          - Pi SSH username                 │  │
+│  │ • PI_SSH_PORT          - Pi SSH port                     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  SSH Connection (Encrypted)                                      │
+│  ┌────────────┐         Encrypted SSH         ┌─────────────┐ │
+│  │  GitHub    │────────────────────────────────│  Host       │ │
+│  │  Actions   │◀───────────────────────────────│  Server     │ │
+│  └────────────┘                                └─────────────┘ │
+│                                                                  │
+│  git-crypt (Transparent Encryption)                              │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ • .env files encrypted in git                            │  │
+│  │ • Hosts have git-crypt key to decrypt                    │  │
+│  │ • GitHub Actions doesn't need git-crypt access           │  │
+│  │ • Secrets remain secure                                  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+
+Example Scenarios:
+┌─────────────────────────────────────────────────────────────────┐
+│  Scenario 1: Update Plex Configuration                          │
+│  ────────────────────────────────────────────────────────────   │
+│  1. Edit plex/docker-compose.yml (add environment variable)    │
+│  2. Commit and push to branch                                   │
+│  3. Create PR                                                    │
+│  4. Review and merge to main                                    │
+│  5. ✓ Workflow automatically deploys Plex on Windows           │
+│                                                                  │
+│  Scenario 2: Update Pi-hole and Homebridge                     │
+│  ────────────────────────────────────────────────────────────   │
+│  1. Edit pi/pi-hole/.env and pi/homebridge/docker-compose.yml │
+│  2. Commit both changes                                         │
+│  3. Create PR and merge                                         │
+│  4. ✓ Workflow deploys both services to Pi in parallel         │
+│                                                                  │
+│  Scenario 3: Emergency Rollback                                │
+│  ────────────────────────────────────────────────────────────   │
+│  1. Service broken after deployment                             │
+│  2. Find bad commit: git log                                    │
+│  3. Revert: git revert <commit-hash>                           │
+│  4. Push revert commit                                          │
+│  5. ✓ Workflow automatically redeploys previous version        │
+└─────────────────────────────────────────────────────────────────┘
