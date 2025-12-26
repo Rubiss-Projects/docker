@@ -35,9 +35,13 @@ groups:
                   operator:
                     type: and
         for: 0m
+        dashboardUid: fdw07wwnc7y0wa
+        panelId: 3
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: fdw07wwnc7y0wa
+          __panelId__: "3"
           summary: "Container {{ $labels.name }} is restarting"
           description: "Container {{ $labels.name }} has restarted {{ $values.B.Value }} times in the last 15 minutes."
         labels:
@@ -72,9 +76,13 @@ groups:
                   operator:
                     type: and
         for: 15m
+        dashboardUid: fdw07wwnc7y0wa
+        panelId: 2
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: fdw07wwnc7y0wa
+          __panelId__: "2"
           summary: "High memory usage in container {{ $labels.name }}"
           description: "Container {{ $labels.name }} is using {{ $values.B.Value | printf \"%.2f\" }}% of its memory limit."
         labels:

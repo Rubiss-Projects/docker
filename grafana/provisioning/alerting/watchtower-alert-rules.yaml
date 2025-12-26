@@ -35,9 +35,13 @@ groups:
                   operator:
                     type: and
         for: 0m
+        dashboardUid: d7bdoT-Gz
+        panelId: 5
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: d7bdoT-Gz
+          __panelId__: "5"
           summary: "Watchtower update failed"
           description: "Watchtower failed to update one or more containers in the last hour."
         labels:
