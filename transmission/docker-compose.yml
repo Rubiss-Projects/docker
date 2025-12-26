@@ -38,7 +38,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
+          memory: 4G
         reservations:
           memory: 512M
     healthcheck:

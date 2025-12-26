@@ -35,13 +35,37 @@ Transmission itself **does not have published hard memory limits**. Memory usage
 
 ### Typical Memory Usage Patterns
 
-| Usage Level | Torrents | Cache | Expected Memory | Recommended Limit |
-|------------|----------|-------|-----------------|-------------------|
-| Light      | 1-5      | 16MB  | 256-512MB       | 1G                |
-| Moderate   | 5-20     | 32-48MB | 1-2GB         | 3G                |
-| Heavy      | 20+      | 64MB  | 2-4GB           | 4G                |
+| Usage Level | Active Downloads | Seeding Torrents | Cache | Expected Memory | Recommended Limit |
+|------------|------------------|------------------|-------|-----------------|-------------------|
+| Light      | 1-5      | 0-50    | 16MB  | 256-512MB       | 1G                |
+| Moderate   | 5-20     | 50-200  | 32-48MB | 1-2GB         | 3G                |
+| Heavy      | 20+      | 200-500 | 64MB  | 2-4GB           | 4G                |
+| **Heavy Seeding** | **Few** | **400+** | **48-64MB** | **2-4GB** | **4G** |
 
-**Current configuration**: Moderate usage profile (3G limit, 48MB cache)
+**Current configuration**: Heavy seeding profile (3G limit, 48MB cache)
+
+### Seeding vs. Active Downloading - Memory Impact
+
+**Seeding Torrents (Idle)**:
+- **Memory per torrent**: ~2-5MB per seeding torrent (minimal overhead)
+- Includes: Torrent metadata, piece map, file information
+- Does NOT include: Active peer connections, upload buffers (unless actively uploading)
+- **400 seeding torrents**: ~800MB-2GB baseline memory usage
+
+**Seeding Torrents (Active Upload)**:
+- **Memory per torrent**: ~20-50MB per actively seeding torrent
+- Includes: Peer connections, upload buffers, piece verification
+- Similar to downloading but typically fewer peers connected
+- **Several active seeders**: Additional ~100-250MB
+
+**Combined Impact**:
+- 400 idle seeders: ~800MB-2GB
+- 3-5 active downloads: ~150-500MB
+- 10-20 active seeders: ~200-1GB
+- Cache + overhead: ~100-200MB
+- **Total expected**: 2.5-4GB memory usage
+
+This explains why the 2G limit was consistently exceeded - the configuration has **400+ seeding torrents**, which requires significantly more memory than typical usage.
 
 ## Negative Effects of Memory Limits
 
@@ -185,6 +209,51 @@ If memory usage remains a concern:
 - TRANSMISSION_CACHE_SIZE_MB=32  # Reduced from 48
 ```
 **Note**: This may hurt performance due to increased disk I/O.
+
+### Manage Seeding Torrents (Heavy Seeding Scenarios)
+
+If you have **hundreds of seeding torrents** (e.g., 400+), this significantly increases baseline memory usage (~2-5MB per torrent). Consider these options:
+
+#### Option 1: Enable Seeding Time Limits
+```yaml
+- TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=true
+- TRANSMISSION_IDLE_SEEDING_LIMIT=10080  # Minutes (7 days)
+```
+Automatically stops seeding torrents after they've been idle for 7 days.
+
+#### Option 2: Enable Ratio Limits
+```yaml
+- TRANSMISSION_RATIO_LIMIT_ENABLED=true
+- TRANSMISSION_RATIO_LIMIT=2.0
+```
+Stops seeding once upload/download ratio reaches 2.0 (or your preferred value).
+
+#### Option 3: Seed Queue Management
+```yaml
+- TRANSMISSION_SEED_QUEUE_ENABLED=true
+- TRANSMISSION_SEED_QUEUE_SIZE=50  # Max simultaneous seeding
+```
+Limits how many torrents can seed at once. Torrents will queue and rotate.
+
+#### Option 4: Increase Memory Limit for Heavy Seeding
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 4G  # Or even 6G for 400+ seeding torrents
+```
+
+**Current Configuration Analysis**:
+- `IDLE_SEEDING_LIMIT_ENABLED=false` - Torrents seed forever ✓
+- `RATIO_LIMIT_ENABLED=false` - No ratio limits ✓
+- No seed queue configured - All 400+ torrents can seed simultaneously ✓
+
+This configuration prioritizes long-term seeding, which is excellent for torrent health but requires more memory. With **400+ seeding torrents**, expect:
+- **Baseline**: 800MB-2GB just for torrent metadata
+- **Active seeding**: Additional 200MB-1GB when torrents are actively uploading
+- **Total**: 2.5-4GB is completely normal
+
+**Recommendation for 400+ Seeding Torrents**: Increase memory limit to **4G** for optimal headroom.
 
 ## Conclusion
 

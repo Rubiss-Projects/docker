@@ -159,8 +159,15 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
 **Published Limits:** Transmission itself has no hard memory limit. Memory usage scales with:
 - Cache size (16-64MB typical)
 - Number of active torrents (50MB-100MB per torrent approximately)
+- **Number of seeding torrents** (2-5MB per idle seeder, 20-50MB per active seeder)
 - Peer connections (memory overhead per connection)
 - File tracking data
+
+**Memory Impact: Seeding vs. Downloading**
+- **Idle seeding torrents**: ~2-5MB per torrent (just metadata)
+- **Active seeding torrents**: ~20-50MB per torrent (peers + upload buffers)
+- **Downloading torrents**: ~50-100MB per torrent (peers + buffers + verification)
+- **Example**: 400 seeding torrents = 800MB-2GB baseline + active overhead
 
 **Negative Effects:**
 - **Below limit**: Normal operation, no issues
@@ -173,7 +180,9 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
    deploy:
      resources:
        limits:
-         memory: 3G  # or 4G for heavy usage
+         memory: 4G  # For 400+ seeding torrents
+         # 3G for 50-200 seeders
+         # 6G for 500+ seeders
    ```
 
 2. **Optimize cache size**: Increase from 16MB to 32-48MB for better performance:
@@ -181,18 +190,36 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
    - TRANSMISSION_CACHE_SIZE_MB=48
    ```
 
-3. **Reduce concurrent operations** if memory is constrained:
+3. **Manage seeding torrents** (if you have 100+ seeders):
+   ```yaml
+   # Option 1: Limit seeding time
+   - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=true
+   - TRANSMISSION_IDLE_SEEDING_LIMIT=10080  # 7 days in minutes
+   
+   # Option 2: Limit by ratio
+   - TRANSMISSION_RATIO_LIMIT_ENABLED=true
+   - TRANSMISSION_RATIO_LIMIT=2.0
+   
+   # Option 3: Queue seeding (limit simultaneous seeders)
+   - TRANSMISSION_SEED_QUEUE_ENABLED=true
+   - TRANSMISSION_SEED_QUEUE_SIZE=50  # Max 50 seeding at once
+   ```
+
+4. **Reduce concurrent operations** if memory is constrained:
    ```yaml
    - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=3
    - TRANSMISSION_PEER_LIMIT_GLOBAL=100
    ```
 
-4. **Adjust Grafana alert threshold**: If this is normal behavior, consider:
+5. **Adjust Grafana alert threshold**: If this is normal behavior, consider:
    - Raising alert threshold above 95%
    - Increasing alert duration before firing
    - Adding context that this is expected for active usage
 
-**Recommendation**: A 3GB limit with 48MB cache is optimal for most use cases.
+**Recommendation**: 
+- **3GB**: Good for 50-200 seeding torrents
+- **4GB**: Optimal for 400+ seeding torrents (current configuration)
+- **6GB**: For 500+ seeding torrents or very heavy usage
 
 ## Best Practices
 
