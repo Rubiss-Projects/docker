@@ -35,9 +35,13 @@ groups:
                   operator:
                     type: and
         for: 5m
+        dashboardUid: rYdddlPWk
+        panelId: 15
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: rYdddlPWk
+          __panelId__: "15"
           summary: "Host {{ $labels.instance }} is down"
           description: "Node Exporter has been unreachable for more than 5 minutes on {{ $labels.instance }}."
         labels:
@@ -72,9 +76,13 @@ groups:
                   operator:
                     type: and
         for: 5m
+        dashboardUid: rYdddlPWk
+        panelId: 77
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: rYdddlPWk
+          __panelId__: "77"
           summary: "High CPU usage on {{ $labels.instance }}"
           description: "CPU usage is above 90% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
@@ -109,9 +117,13 @@ groups:
                   operator:
                     type: and
         for: 5m
+        dashboardUid: rYdddlPWk
+        panelId: 78
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: rYdddlPWk
+          __panelId__: "78"
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is above 90% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
@@ -146,9 +158,13 @@ groups:
                   operator:
                     type: and
         for: 5m
+        dashboardUid: rYdddlPWk
+        panelId: 152
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: rYdddlPWk
+          __panelId__: "152"
           summary: "Low disk space on {{ $labels.instance }}"
           description: "Free disk space on / is below 10% on {{ $labels.instance }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
