@@ -1,0 +1,177 @@
+name: Deploy Services
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Specific service to deploy (leave empty for auto-detect)'
+        required: false
+        type: string
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for diff
+
+      - name: Detect changed services
+        id: detect
+        run: |
+          # If manual dispatch with specific service, use that
+          if [ -n "${{ inputs.service }}" ]; then
+            echo "services=[\"${{ inputs.service }}\"]" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get list of changed files
+          if [ "${{ github.event_name }}" == "push" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Extract service directories from changed files
+          SERVICES=$(echo "$CHANGED_FILES" | \
+            grep -E '^[^/]+/(docker-compose\.yml|\.env)$' | \
+            cut -d'/' -f1 | \
+            sort -u | \
+            jq -R -s -c 'split("\n") | map(select(length > 0))')
+          
+          echo "Detected services: $SERVICES"
+          
+          if [ "$SERVICES" == "[]" ] || [ -z "$SERVICES" ]; then
+            echo "services=[]" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "services=$SERVICES" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-windows-services:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+      fail-fast: false
+      max-parallel: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine deployment target
+        id: target
+        run: |
+          # Check if service is in pi/ directory
+          if [ -d "pi/${{ matrix.service }}" ]; then
+            echo "host=pi" >> $GITHUB_OUTPUT
+            echo "path=/home/rubiss/docker/pi/${{ matrix.service }}" >> $GITHUB_OUTPUT
+          elif [ -d "${{ matrix.service }}" ]; then
+            echo "host=windows" >> $GITHUB_OUTPUT
+            echo "path=/mnt/e/Docker/${{ matrix.service }}" >> $GITHUB_OUTPUT
+          else
+            echo "Service directory not found"
+            exit 1
+          fi
+
+      - name: Deploy to Windows Host
+        if: steps.target.outputs.host == 'windows'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.WINDOWS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.WINDOWS_HOST }}
+          SSH_USER: ${{ secrets.WINDOWS_SSH_USER }}
+          SSH_PORT: ${{ secrets.WINDOWS_SSH_PORT || '22' }}
+          SERVICE: ${{ matrix.service }}
+          SERVICE_PATH: ${{ steps.target.outputs.path }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p $SSH_PORT -H $SSH_HOST >> ~/.ssh/known_hosts 2>/dev/null
+          
+          # Deploy service
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            cd "$SERVICE_PATH"
+            echo "Deploying service: $SERVICE"
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Pull latest Docker images
+            docker compose pull
+            
+            # Restart service
+            docker compose up -d
+            
+            # Show status
+            docker compose ps
+            
+            echo "✓ Service $SERVICE deployed successfully"
+          ENDSSH
+
+      - name: Deploy to Raspberry Pi
+        if: steps.target.outputs.host == 'pi'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PI_SSH_KEY }}
+          SSH_HOST: ${{ secrets.PI_HOST }}
+          SSH_USER: ${{ secrets.PI_SSH_USER }}
+          SSH_PORT: ${{ secrets.PI_SSH_PORT || '22' }}
+          SERVICE: ${{ matrix.service }}
+          SERVICE_PATH: ${{ steps.target.outputs.path }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p $SSH_PORT -H $SSH_HOST >> ~/.ssh/known_hosts 2>/dev/null
+          
+          # Deploy service
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            cd "$SERVICE_PATH"
+            echo "Deploying service: $SERVICE"
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Pull latest Docker images
+            docker compose pull
+            
+            # Restart service
+            docker compose up -d
+            
+            # Show status
+            docker compose ps
+            
+            echo "✓ Service $SERVICE deployed successfully"
+          ENDSSH
+
+  notify:
+    needs: [detect-changes, deploy-windows-services]
+    if: always() && needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services:** ${{ needs.detect-changes.outputs.services }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.deploy-windows-services.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
