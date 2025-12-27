@@ -316,32 +316,15 @@ TR_TORRENT_DIR="$2"
 
 ### Memory and Resource Requirements
 
-Transmission's memory usage depends on several factors:
-- **Cache Size**: Larger cache reduces disk I/O but increases memory usage
-- **Number of Active Torrents**: More torrents = more memory
-- **Peer Connections**: More peers = more memory overhead
-- **File Size**: Large torrents with many pieces require more tracking
+Transmission's memory usage depends primarily on the number of active torrents, peer connections, and the configured cache size.
 
-**Typical Memory Usage:**
-- Light usage (1-5 torrents, 16MB cache): 256-512MB
-- Moderate usage (5-20 torrents, 32-48MB cache): 1-2GB
-- Heavy usage (20+ torrents, 64MB cache): 2-4GB
+For detailed guidance on typical memory usage patterns, recommended Docker memory limits, and cache tuning, see the **"High Memory Usage / Hitting Memory Limit"** troubleshooting section above. That section is the single source of truth for memory sizing examples and configuration snippets.
 
-**Recommended Docker Memory Limits:**
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: 3G  # For moderate to heavy usage
-    reservations:
-      memory: 512M
-```
+In general, if you see frequent memory limit alerts or any OOM kills:
+1. Increase the container's memory limit if host resources allow, and/or
+2. Reduce concurrent torrents or peer connections and tune the cache size accordingly.
 
-**Note**: If Transmission consistently hits its memory limit (causing alerts), consider:
-1. Increasing the memory limit to 3-4GB
-2. Optimizing cache size (32-64MB recommended)
-3. Reducing concurrent torrents or peer connections
-4. This is normal behavior for active torrent clients and not harmful unless OOM kills occur
+This behavior is expected for busy torrent clients; it becomes a problem only when the kernel starts killing processes due to out-of-memory conditions.
 
 ### For High-Speed Connections
 ```json
@@ -357,8 +340,8 @@ deploy:
 ```json
 {
   "cache-size-mb": 48,
-  "peer-limit-global": 150,
-  "peer-limit-per-torrent": 30,
+  "peer-limit-global": 100,
+  "peer-limit-per-torrent": 25,
   "upload-slots-per-torrent": 8
 }
 ```
