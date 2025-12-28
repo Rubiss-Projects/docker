@@ -15,6 +15,7 @@ nginx-proxy-manager/letsencrypt/*
 palworld/win/*
 pi-hole/etc-*/*
 pi/pi-hole/etc-*/*
+!pi/pi-hole/etc-dnsmasq.d/99-blitz-ads.conf
 plex/library/*
 vrising/Backups/*
 vrising/persistentdata/*
