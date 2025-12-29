@@ -7,6 +7,10 @@ services:
     ports:
       - 3001:3001
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     labels:
       - homepage.group=Observability
       - homepage.name=Uptime Kuma

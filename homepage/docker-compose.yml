@@ -17,6 +17,10 @@ services:
       - /mnt/c:/c:ro
       - /mnt/e:/e:ro
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - proxynet
       - socket-proxy-net

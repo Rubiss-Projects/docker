@@ -11,6 +11,10 @@ services:
     ports:
       - 6767:6767
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     env_file:
       - .env
     labels:

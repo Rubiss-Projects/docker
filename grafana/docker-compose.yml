@@ -16,6 +16,10 @@ services:
       - ./provisioning:/etc/grafana/provisioning:ro
       - ./dashboards:/etc/dashboards:ro
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     env_file:
       - .env
     labels:

@@ -3,6 +3,10 @@ services:
     container_name: pihole
     image: pihole/pihole:latest
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     ports:
       - "53:53/tcp"
       - "53:53/udp"

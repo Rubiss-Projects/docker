@@ -3,6 +3,10 @@ services:
     image: docker.io/sakowicz/actual-ai:latest
     container_name: actual-ai
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     env_file:
       - .env
     networks:

@@ -18,6 +18,10 @@ services:
       - 8091:8181   # Calibre desktop GUI (HTTPS)
       - 8092:8081   # Calibre Content Server
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
     networks:
       - proxynet
     labels:

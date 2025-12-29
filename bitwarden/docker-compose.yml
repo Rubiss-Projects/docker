@@ -15,6 +15,10 @@ services:
       - ./logs:/var/log/bitwarden
     networks:
       - proxynet
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Bitwarden"

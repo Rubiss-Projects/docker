@@ -7,6 +7,10 @@ services:
     ports:
       - 9090:9090
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     volumes:
       - ./config:/etc/prometheus
       - ./data:/prometheus

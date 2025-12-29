@@ -12,6 +12,10 @@ services:
     ports:
       - 5056:5055
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     networks:
       - proxynet
     labels:

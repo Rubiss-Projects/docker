@@ -57,7 +57,7 @@ groups:
               to: 0
             datasourceUid: adw07verg2qrkd
             model:
-              expr: container_memory_usage_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100
+              expr: container_memory_working_set_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100
           - refId: B
             datasourceUid: __expr__
             model:
@@ -71,11 +71,11 @@ groups:
               type: threshold
               conditions:
                 - evaluator:
-                    params: [95]
+                    params: [90]
                     type: gt
                   operator:
                     type: and
-        for: 15m
+        for: 5m
         dashboardUid: fdw07wwnc7y0wa
         panelId: 2
         noDataState: OK
@@ -83,7 +83,89 @@ groups:
         annotations:
           __dashboardUid__: fdw07wwnc7y0wa
           __panelId__: "2"
-          summary: "High memory usage in container {{ $labels.name }}"
-          description: "Container {{ $labels.name }} is using {{ $values.B.Value | printf \"%.2f\" }}% of its memory limit."
+          summary: "High memory usage (working set) in container {{ $labels.name }}"
+          description: "Container {{ $labels.name }} working set is using {{ $values.B.Value | printf \"%.2f\" }}% of its memory limit. This metric excludes reclaimable cache."
         labels:
           severity: warning
+
+      - uid: docker_container_memory_critical
+        title: Docker Container Critical Memory
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: container_memory_working_set_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [98]
+                    type: gt
+                  operator:
+                    type: and
+        for: 2m
+        dashboardUid: fdw07wwnc7y0wa
+        panelId: 2
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: fdw07wwnc7y0wa
+          __panelId__: "2"
+          summary: "CRITICAL memory usage in container {{ $labels.name }}"
+          description: "Container {{ $labels.name }} working set is at {{ $values.B.Value | printf \"%.2f\" }}%. OOM kill is imminent."
+        labels:
+          severity: critical
+
+      - uid: docker_container_oom_killed
+        title: Docker Container OOM Killed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: increase(container_oom_events_total{name!=""}[5m])
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+        for: 0m
+        dashboardUid: fdw07wwnc7y0wa
+        panelId: 2
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: fdw07wwnc7y0wa
+          __panelId__: "2"
+          summary: "Container {{ $labels.name }} OOM killed"
+          description: "Container {{ $labels.name }} has been killed by the kernel due to out-of-memory conditions."
+        labels:
+          severity: critical

@@ -27,6 +27,8 @@ services:
       - .env
     deploy:
       resources:
+        limits:
+          memory: 10G
         reservations:
           devices:
             - driver: nvidia

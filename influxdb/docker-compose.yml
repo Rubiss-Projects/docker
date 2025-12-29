@@ -7,6 +7,10 @@ services:
     ports:
       - "8086:8086"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     labels:
       - homepage.group=Observability
       - homepage.name=Influxdb
