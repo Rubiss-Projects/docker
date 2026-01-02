@@ -27,7 +27,7 @@ services:
       - swag_ondemand=enable
       - swag_ondemand_urls=https://ai.
       - 'swag_server_custom_directive=include /config/nginx/ondemand.conf;'
-      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.enabled=false
       - swag.uptime-kuma.monitor.parent=AI & Automation
       - swag.uptime-kuma.monitor.url=https://ai.benlawson.dev/
 
