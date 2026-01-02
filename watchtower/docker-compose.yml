@@ -31,6 +31,10 @@ services:
       - homepage.widget.type=watchtower
       - homepage.widget.url=http://watchtower:8080
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Infrastructure
+      - swag.uptime-kuma.monitor.url=https://watchtower.benlawson.dev/v1/metrics
+      - 'swag.uptime-kuma.monitor.headers={"Authorization": "Bearer ${WATCHTOWER_HTTP_API_TOKEN}"}'
     networks:
       - proxynet
       - socket-proxy-net

@@ -18,6 +18,9 @@ services:
       - homepage.href=https://influx.benlawson.dev/
       - homepage.siteMonitor=http://influxdb:8086/health
       - homepage.description=Metrics database
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Observability
+      - swag.uptime-kuma.monitor.url=https://influx.benlawson.dev/health
     networks:
       - proxynet
 

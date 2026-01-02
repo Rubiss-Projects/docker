@@ -26,6 +26,9 @@ services:
       - homepage.widget.fields=["numberOfGrabs", "numberOfQueries", "numberOfFailGrabs"]
       - homepage.widget.url=http://prowlarr:9696
       - homepage.widget.key=${PROWLARR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
+      - swag.uptime-kuma.monitor.url=https://prowlarr.benlawson.dev/ping
     networks:
       - proxynet
 

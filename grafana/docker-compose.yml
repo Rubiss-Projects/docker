@@ -33,6 +33,9 @@ services:
       - homepage.widget.url=http://grafana:3000
       - homepage.widget.username=rubiss
       - homepage.widget.password=${GRAFANA_PASSWORD}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Observability
+      - swag.uptime-kuma.monitor.url=https://grafana.benlawson.dev/healthz
     networks:
       - proxynet
 

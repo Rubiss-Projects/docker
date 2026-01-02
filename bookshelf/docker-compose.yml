@@ -23,6 +23,8 @@ services:
       - homepage.widget.type=readarr
       - homepage.widget.url=http://bookshelf:8787
       - homepage.widget.key=${BOOKSHELF_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
     networks:
       - proxynet
 

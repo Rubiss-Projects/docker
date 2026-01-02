@@ -27,6 +27,9 @@ services:
       - homepage.widget.type=bazarr
       - homepage.widget.url=http://bazarr:6767
       - homepage.widget.key=${BAZARR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
+      - swag.uptime-kuma.monitor.url=https://bazarr.benlawson.dev/series
     networks:
       - proxynet
 

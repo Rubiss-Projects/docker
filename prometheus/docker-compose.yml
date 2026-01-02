@@ -23,6 +23,9 @@ services:
       - homepage.description=Metrics database
       - homepage.widget.type=prometheus
       - homepage.widget.url=http://prometheus:9090
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Observability
+      - swag.uptime-kuma.monitor.url=https://prometheus.benlawson.dev/-/healthy
     networks:
       - proxynet
 

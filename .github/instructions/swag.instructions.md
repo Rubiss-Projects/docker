@@ -23,6 +23,8 @@ SWAG is a LinuxServer.io container that bundles Nginx, Let's Encrypt SSL certifi
 - **Docker Mods**:
   - `swag-dashboard` - Analytics dashboard at https://dashboard.benlawson.dev
   - `swag-ondemand` - Automatic container start/stop on access
+  - `swag-auto-uptime-kuma` - Automated Uptime Kuma monitor sync
+  - `universal-docker` - Required for auto-uptime-kuma to access Docker socket
 
 ### Key Features
 1. **Automatic SSL**: Wildcard certificate for *.benlawson.dev, auto-renewed
@@ -30,6 +32,7 @@ SWAG is a LinuxServer.io container that bundles Nginx, Let's Encrypt SSL certifi
 3. **Security**: fail2ban, ModSecurity, rate limiting
 4. **Dashboard**: Real-time analytics via swag-dashboard mod
 5. **On-Demand Containers**: Services auto-start when accessed (ollama, open-webui)
+6. **Automated Monitoring**: Syncs container labels to Uptime Kuma monitors
 
 ## Configuration Files
 
@@ -55,6 +58,12 @@ Located in `/mnt/e/Docker/swag/.env`:
 - `DNSPLUGIN=cloudflare` - Cloudflare for DNS challenges
 - `EMAIL` - Let's Encrypt registration email
 - `STAGING=false` - Use production certificates
+
+### Uptime Kuma Sync Variables
+- `UPTIME_KUMA_URL` - Internal URL (e.g., `http://uptime-kuma:3001/`)
+- `UPTIME_KUMA_USER` - Admin username
+- `UPTIME_KUMA_PASS` - Admin password
+- `UPTIME_KUMA_API_VERSION=2` - Use v2 API for newer Uptime Kuma versions
 
 ## Adding a New Proxied Service
 

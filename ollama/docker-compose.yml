@@ -36,10 +36,13 @@ services:
       - swag_ondemand=enable
       - swag_ondemand_urls=https://ollama.,https://ai.
       - 'swag_server_custom_directive=include /config/nginx/ondemand.conf;'
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=AI & Automation
+      - swag.uptime-kuma.monitor.url=https://ollama.benlawson.dev/
     networks:
       - proxynet
 
 networks:
   proxynet:
-    external:
-      name: proxynet
+    external: true
+    name: proxynet

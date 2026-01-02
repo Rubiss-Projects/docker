@@ -29,6 +29,9 @@ services:
       - homepage.description=Internet Speed
       - homepage.widget.type=speedtest
       - homepage.widget.url=http://speedtesttracker:80
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Observability
+      - swag.uptime-kuma.monitor.url=https://speed.benlawson.dev/
     networks:
       - proxynet
 

@@ -33,10 +33,13 @@ services:
       - homepage.description=DVR and TV streaming
       - homepage.widget.type=channelsdvrserver
       - homepage.widget.url=http://channels-dvr:8089
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Consumption
+      - swag.uptime-kuma.monitor.url=http://channels-dvr:8089
     networks:
       - proxynet
 
 networks:
   proxynet:
-    external:
-        name: proxynet
+    external: true
+    name: proxynet

@@ -28,6 +28,9 @@ services:
       - homepage.widget.type=jellyseerr
       - homepage.widget.url=http://seerr:5055
       - homepage.widget.key=${SEERR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
+      - swag.uptime-kuma.monitor.url=https://request.benlawson.dev
 
 networks:
   proxynet:

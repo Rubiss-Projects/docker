@@ -27,9 +27,13 @@ services:
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
       - homepage.widget.key=${SONARR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
+      - swag.uptime-kuma.monitor.url=https://sonarr.benlawson.dev/ping
     networks:
       - proxynet
 
 networks:
   proxynet:
+    external: true
     name: proxynet

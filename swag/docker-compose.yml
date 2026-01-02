@@ -18,8 +18,12 @@ services:
       - STAGING=${STAGING}
       - DISABLE_F2B=${DISABLE_F2B}
       - SWAG_AUTORELOAD=${SWAG_AUTORELOAD}
-      - DOCKER_MODS=linuxserver/mods:swag-dashboard|linuxserver/mods:swag-ondemand
+      - DOCKER_MODS=linuxserver/mods:swag-dashboard|linuxserver/mods:swag-ondemand|linuxserver/mods:universal-docker|linuxserver/mods:swag-auto-uptime-kuma
       - DOCKER_HOST=tcp://socket-proxy:2375
+      - UPTIME_KUMA_URL=http://uptime-kuma:3001/
+      - UPTIME_KUMA_USERNAME=${UPTIME_KUMA_USERNAME}
+      - UPTIME_KUMA_PASSWORD=${UPTIME_KUMA_PASSWORD}
+      - UPTIME_KUMA_API_VERSION=2
     volumes:
       - ./config:/config
     ports:
@@ -38,6 +42,9 @@ services:
       - homepage.description=Nginx reverse proxy with analytics
       - homepage.widget.type=swagdashboard
       - homepage.widget.url=https://dashboard.benlawson.dev
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Infrastructure
+      - swag.uptime-kuma.monitor.url=https://dashboard.benlawson.dev
     networks:
       - socket-proxy-net  # For Docker socket access via proxy
       - proxynet          # For routing to backend services

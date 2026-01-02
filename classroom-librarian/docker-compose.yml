@@ -27,6 +27,8 @@ services:
       start_period: 40s
     labels:
       - com.centurylinklabs.watchtower.enable=false
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Infrastructure
     networks:
       - proxynet
 

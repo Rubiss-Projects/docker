@@ -27,9 +27,13 @@ services:
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
       - homepage.widget.key=${RADARR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Management
+      - swag.uptime-kuma.monitor.url=https://radarr.benlawson.dev/ping
     networks:
       - proxynet
 
 networks:
   proxynet:
+    external: true
     name: proxynet

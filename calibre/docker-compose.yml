@@ -30,6 +30,9 @@ services:
       - homepage.icon=calibre.png
       - homepage.href=https://calibre.benlawson.dev/
       - homepage.description=Ebook library management
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Consumption
+      - swag.uptime-kuma.monitor.accepted_statuscodes=200-299,401
 
 networks:
   proxynet:

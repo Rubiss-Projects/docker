@@ -187,13 +187,30 @@ If icon not in default set:
 
 ## Step 6: Add Uptime Kuma Monitor
 
-1. **Login**: https://uptime.benlawson.dev
-2. **Add New Monitor**:
-   - Monitor Type: HTTP(s)
-   - Friendly Name: `myservice`
-   - URL: `http://myservice:8080` (internal Docker URL)
-   - Heartbeat Interval: 60 seconds
-3. **Notifications**: Enable Discord and n8n notifications
+Monitoring is automated via the `swag-auto-uptime-kuma` mod. Add labels to `docker-compose.yml` to create monitors automatically.
+
+### Basic Monitor
+```yaml
+labels:
+  - swag.uptime-kuma.enabled=true
+  - swag.uptime-kuma.monitor.url=http://myservice:8080
+  - swag.uptime-kuma.monitor.parent=Media  # Category in Uptime Kuma
+```
+
+### Advanced Configuration
+
+**Custom Status Codes**:
+```yaml
+labels:
+  - swag.uptime-kuma.monitor.accepted_statuscodes=200-299,401
+```
+
+**Auth Headers (e.g., Watchtower)**:
+```yaml
+labels:
+  - swag.uptime-kuma.monitor.headers={"Authorization": "Bearer $${API_TOKEN}"}
+```
+*Note: Use double `$$` for environment variables in labels.*
 
 ### Port Mapping Note
 

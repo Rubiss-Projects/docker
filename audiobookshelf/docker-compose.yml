@@ -22,6 +22,8 @@ services:
       - homepage.widget.type=audiobookshelf
       - homepage.widget.url=http://audiobookshelf:80
       - homepage.widget.key=${AUDIOBOOKSHELF_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Consumption
     networks:
       - proxynet
 

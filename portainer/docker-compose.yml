@@ -23,6 +23,8 @@ services:
       - homepage.widget.url=http://portainer:9000
       - homepage.widget.env=2
       - homepage.widget.key=${PORTAINER_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Infrastructure
     networks:
       - proxynet
 

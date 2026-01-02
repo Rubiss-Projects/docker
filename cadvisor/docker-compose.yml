@@ -18,6 +18,9 @@ services:
         - homepage.href=https://cadvisor.benlawson.dev/
         - homepage.siteMonitor=http://cadvisor:8080/containers
         - homepage.description=Docker container monitoring
+        - swag.uptime-kuma.enabled=true
+        - swag.uptime-kuma.monitor.parent=Observability
+        - swag.uptime-kuma.monitor.url=https://cadvisor.benlawson.dev/containers/
       networks:
         - proxynet
 

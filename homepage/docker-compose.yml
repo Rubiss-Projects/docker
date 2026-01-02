@@ -17,6 +17,9 @@ services:
       - /mnt/c:/c:ro
       - /mnt/e:/e:ro
     restart: unless-stopped
+    labels:
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Infrastructure
     deploy:
       resources:
         limits:

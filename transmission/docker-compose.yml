@@ -59,6 +59,9 @@ services:
       - homepage.widget.url=http://transmission:9091
       - homepage.widget.username=
       - homepage.widget.password=
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Downloads
+      - swag.uptime-kuma.monitor.url=https://transmission.benlawson.dev/transmission/web/
     networks:
       - proxynet
 

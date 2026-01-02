@@ -56,10 +56,13 @@ services:
       - homepage.widget.type=plex
       - homepage.widget.url=http://plex:32400
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Media Consumption
+      - swag.uptime-kuma.monitor.url=https://plex.benlawson.dev/identity
     networks:
       - proxynet
 
 networks:
   proxynet:
-    external:
-      name: proxynet
+    external: true
+    name: proxynet

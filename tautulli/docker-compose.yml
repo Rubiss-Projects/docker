@@ -23,10 +23,13 @@ services:
       - homepage.widget.type=tautulli
       - homepage.widget.url=http://tautulli:8181
       - homepage.widget.key=${TAUTULLI_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Observability
+      - swag.uptime-kuma.monitor.url=https://tautulli.benlawson.dev/status
     networks:
       - proxynet
 
 networks:
   proxynet:
-    external:
-      name: proxynet
+    external: true
+    name: proxynet

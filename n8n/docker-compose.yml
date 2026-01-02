@@ -37,6 +37,8 @@ services:
       - homepage.widget.type=n8n
       - homepage.widget.url=http://n8n:5678
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=AI & Automation
     networks:
       - proxynet
       - socket-proxy-net

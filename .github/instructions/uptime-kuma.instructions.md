@@ -461,3 +461,34 @@ Alert: 30 days before expiry
 ```
 
 This self-hosted monitoring solution provides comprehensive uptime tracking with beautiful visualizations and flexible alerting for the entire homelab infrastructure.
+
+## Automated Monitoring (SWAG Mod)
+
+Most monitors are managed automatically via the `swag-auto-uptime-kuma` mod in the SWAG container.
+
+### How it Works
+The mod scans all containers on the `proxynet` network for specific labels and syncs them to Uptime Kuma.
+
+### Required Labels
+Add these to any service's `docker-compose.yml`:
+```yaml
+labels:
+  - swag.uptime-kuma.enabled=true
+  - swag.uptime-kuma.monitor.url=http://container_name:port
+  - swag.uptime-kuma.monitor.parent=CategoryName
+```
+
+### Advanced Labels
+- `swag.uptime-kuma.monitor.accepted_statuscodes=200-299,401`
+- `swag.uptime-kuma.monitor.headers={"Authorization": "Bearer $${TOKEN}"}`
+
+### Manual Sync
+The sync runs automatically on SWAG container start and periodically. To force a sync:
+```bash
+docker exec swag python3 /app/auto_uptime_kuma/sync.py
+```
+
+### Troubleshooting
+- **Monitor Deleted?** Ensure the container is running or the mod is patched to include stopped containers (`all=True`).
+- **401/403 Errors?** Check if the service requires authentication or if you should use the internal container URL instead of the public one.
+- **Duplicate Monitors?** The mod matches by `Friendly Name` (which defaults to the container name). Ensure manual monitors don't conflict.
