@@ -1,30 +1,28 @@
 services:
   classroom-librarian:
-    image: rubiss/classroom-librarian:latest
+    image: rubiss/classroom-library:latest
     container_name: classroom-librarian
     restart: unless-stopped
     ports:
-      - "4000:4000" # Angular SSR frontend
-      - "4001:8080" # ASP.NET Core API
-      - "27017:27017" # MongoDB (optional external access)
-      - "6379:6379" # Redis (optional external access)
-    environment:
-      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
-      GoogleBooks__ApiKey: "${GOOGLE_BOOKS_API_KEY:-}"
-      Jwt__Issuer: "${JWT_ISSUER:-ClassroomLibrarian}"
-      Jwt__Audience: "${JWT_AUDIENCE:-ClassroomLibrarianClients}"
-      Jwt__SigningKey: "${JWT_SIGNING_KEY:-ChangeThisSigningKeyToAStrongRandomValue}"
-      Cors__AllowedOrigins__0: "${CORS_ALLOWED_ORIGIN:-http://localhost:4000}"
-      API_BASE_URL: "${API_BASE_URL:-http://localhost:8080}"
+      - "4000:80"
     volumes:
-      - mongo-data:/data/db
-      - redis-data:/data/redis
+      # Persist MongoDB data
+      - mongo_data:/data/db
+    environment:
+      # JWT settings (change in production!)
+      - Jwt__Secret=${JWT_KEY:-YourSuperSecretKeyThatShouldBeAtLeast32Characters!}
+      - Jwt__Issuer=${JWT_ISSUER:-ClassroomLibrary}
+      - Jwt__Audience=${JWT_AUDIENCE:-ClassroomLibraryUsers}
+      - Jwt__ExpirationMinutes=${JWT_EXPIRE_MINUTES:-60}
+      # Google Books API (optional - enables ISBN lookup for book metadata)
+      # Get your free API key at: https://console.cloud.google.com/apis/library/books.googleapis.com
+      - GoogleBooks__ApiKey=${GOOGLE_BOOKS_API_KEY:-}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:4000/ || exit 1"]
+      test: ["CMD", "curl", "--fail", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 40s
+      retries: 3
+      start_period: 30s
     labels:
       - com.centurylinklabs.watchtower.enable=false
       - swag.uptime-kuma.enabled=true
@@ -37,5 +35,4 @@ networks:
     name: proxynet
 
 volumes:
-  mongo-data:
-  redis-data:
+  mongo_data:
