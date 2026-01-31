@@ -14,8 +14,8 @@ Navigate to the appropriate instructions file based on the task:
 | **Uptime Kuma monitoring** | `uptime-kuma.instructions.md` |
 | **Servarr stack** (Sonarr, Radarr, Prowlarr, Bazarr, Bookshelf, Seerr) | `servarr.instructions.md` |
 | **Calibre** | `calibre.instructions.md` |
-| **Kavita** | `kavita.instructions.md` |
 | **n8n workflows** | `n8n.instructions.md` |
+| **OpenClaw AI Gateway** | `openclaw.instructions.md` |
 | **Gaming servers** | See individual: `valheim`, `minecraft`, `ark`, `palworld` |
 | **Pi services** | See individual in `/pi/` folder |
 
@@ -94,6 +94,24 @@ volumes:
 
 ### Database Services
 Multi-container services use `depends_on` for startup ordering (e.g., Bitwarden + PostgreSQL).
+
+## Terminal Commands
+
+**CRITICAL**: NEVER use multiline commands in the terminal. The WSL/Docker Desktop environment does not handle them correctly. Always use single-line commands with `&&` to chain operations or `;` to separate commands.
+
+❌ **DON'T DO THIS:**
+```bash
+cat > file.txt << 'EOF'
+content
+EOF
+```
+
+✅ **DO THIS INSTEAD:**
+```bash
+echo 'content' > file.txt
+```
+
+For complex operations, create a script file first, then execute it.
 
 ## Troubleshooting
 - Check container logs: `docker logs {container_name}`

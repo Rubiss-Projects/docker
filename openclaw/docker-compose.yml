@@ -1,0 +1,72 @@
+services:
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:main}
+    container_name: openclaw-gateway
+    user: root
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      MOLTBOOK_API_KEY: ${MOLTBOOK_API_KEY}
+    volumes:
+      - ./config:/home/node/.openclaw
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "${OPENCLAW_GATEWAY_PORT:-18789}",
+      ]
+    networks:
+      - ollama-net
+      - proxynet
+    labels:
+      - homepage.group=AI & Automation
+      - homepage.name=OpenClaw
+      - homepage.icon=/icons/openclaw.png
+      - homepage.href=https://openclaw.benlawson.dev/?token=${OPENCLAW_GATEWAY_TOKEN}
+      - homepage.description=AI Gateway Service
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=AI & Automation
+      - swag.uptime-kuma.monitor.url=https://openclaw.benlawson.dev/
+
+  openclaw-cli:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:main}
+    container_name: openclaw-cli
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      BROWSER: echo
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      MOLTBOOK_API_KEY: ${MOLTBOOK_API_KEY}
+    volumes:
+      - ./config:/home/node/.openclaw
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    networks:
+      - ollama-net
+      - proxynet
+
+networks:
+  ollama-net:
+    external: true
+    name: ollama-net
+  proxynet:
+    external: true
+    name: proxynet

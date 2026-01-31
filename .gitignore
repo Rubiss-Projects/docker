@@ -6,6 +6,13 @@
 !homepage/config/
 !homepage/config/*
 !swag/config/**
+!openclaw/config/workspace/
+!openclaw/config/workspace/**
+!openclaw/config/openclaw.json
+!openclaw/config/auth-profiles.json
+!openclaw/config/agents/
+!openclaw/config/agents/**
+openclaw/config/agents/*/sessions/
 **/data/*
 **/logs/*
 **/metadata/*
