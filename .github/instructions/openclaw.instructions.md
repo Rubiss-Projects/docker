@@ -2,176 +2,154 @@
 applyTo: 'openclaw/**'
 ---
 
-# OpenClaw AI Gateway
+# OpenClaw AI Gateway - TrollClaw Bot
 
 ## Service Overview
-OpenClaw is a personal AI assistant that runs on your own devices. It provides a WebSocket-based gateway (control plane) that connects to multiple messaging channels (WhatsApp, Telegram, Slack, Discord, Signal, iMessage, etc.) and provides AI assistant capabilities through various LLM providers.
 
-**Key Concept**: The Gateway is the control plane — it manages sessions, channels, tools, and events. The product is the AI assistant that answers you across connected channels.
+OpenClaw is deployed as **TrollClaw** — a cantankerous swamp troll Discord bot powered by GitHub Copilot models. It connects to Discord and provides AI assistant capabilities via the OpenClaw gateway.
 
-## Container Configuration
-- **Gateway Image**: `ghcr.io/openclaw/openclaw:main` (or build locally with `openclaw:local`)
-- **Gateway Container**: `openclaw-gateway`
-- **CLI Container**: `openclaw-cli`
-- **Gateway Port**: `18789` (WebSocket/HTTP)
-- **Bridge Port**: `18790` (for mobile nodes)
-- **Networks**: `proxynet`, `ollama-net`
+**Identity**: TrollClaw is a chaotic-neutral, sharp-tongued troll who lives under the bridge between servers. Sarcastic and mischievous, it roasts other bots but is friendly to humans.
 
-## Volume Mounts
+## Current Configuration
+
+### Model Provider: GitHub Copilot
+
+TrollClaw uses **GitHub Copilot** as its LLM provider via device flow authentication.
+
+| Setting | Value |
+|---------|-------|
+| Primary Model | `github-copilot/claude-haiku-4.5` |
+| Fallback 1 | `github-copilot/claude-sonnet-4.5` |
+| Fallback 2 | `github-copilot/gpt-5.2` |
+| Provider | `github-copilot` (device flow auth) |
+
+**Available Models** (all via `github-copilot/` prefix):
+- `claude-haiku-4.5`, `claude-sonnet-4.5`, `claude-opus-4.5`
+- `gpt-5.2`, `gpt-5.2-codex`, `gpt-5-mini`, `gpt-4.1`, `gpt-4o`
+- `gemini-3-pro`, `gemini-3-flash`
+- `grok-code-fast-1`, `raptor-mini`
+
+### Discord Configuration
+
+| Setting | Value |
+|---------|-------|
+| Bot Name | @trollclaw |
+| Bot ID | `1467341771443798057` |
+| Guild ID | `1439620486463098932` |
+| Channel ID | `1467343589272195288` |
+| Group Policy | `allowlist` (only allowed guilds/channels) |
+| DM Policy | `pairing` (requires approval code) |
+| Require Mention | `true` |
+
+## Container Setup
+
+### Containers
+| Container | Purpose |
+|-----------|---------|
+| `openclaw-gateway` | Long-running daemon handling Discord connections and AI |
+| `openclaw-cli` | Ephemeral container for CLI commands |
+
+### Ports
+| Port | Purpose |
+|------|---------|
+| `18789` | Gateway WebSocket/HTTP |
+| `18790` | Bridge (mobile nodes) |
+
+### Networks
+| Network | Purpose |
+|---------|---------|
+| `proxynet` | SWAG reverse proxy, inter-service communication |
+| `ollama-net` | Local Ollama access (optional, for local models) |
+
+## File Structure
+
 ```
-${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw          # Configuration and credentials
-${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace  # Agent workspace (skills, agents)
+openclaw/
+├── docker-compose.yml
+├── .env                              # Secrets (git-crypt encrypted)
+└── config/
+    ├── openclaw.json                 # Main config (git-crypt encrypted)
+    ├── auth-profiles.json            # Copilot token backup (git-crypt encrypted)
+    ├── agents/
+    │   └── main/
+    │       └── agent/
+    │           ├── auth-profiles.json  # GitHub Copilot token (git-crypt encrypted)
+    │           └── models.json         # Provider config (git-crypt encrypted)
+    └── workspace/
+        ├── IDENTITY.md               # TrollClaw personality
+        ├── SOUL.md                   # Core behaviors
+        ├── TOOLS.md                  # Tool instructions
+        ├── AGENTS.md                 # Multi-agent config
+        ├── USER.md                   # User context
+        └── memory/                   # Session memories
 ```
+
+## Authentication
+
+### GitHub Copilot Device Flow
+
+The bot authenticates with GitHub Copilot using device flow. Tokens are stored in:
+- `config/agents/main/agent/auth-profiles.json`
+
+**To re-authenticate** (if token expires):
+```bash
+docker compose run --rm openclaw-cli setup
+# Follow the device flow prompts
+```
+
+**Token format** in auth-profiles.json:
+```json
+{
+  "version": 1,
+  "profiles": {
+    "github-copilot:github": {
+      "type": "token",
+      "provider": "github-copilot",
+      "token": "ghu_xxxxx..."
+    }
+  }
+}
+```
+
+### Gateway Token
+
+The gateway requires a token for API/UI access:
+- Set in `.env` as `OPENCLAW_GATEWAY_TOKEN`
+- Access Control UI: `https://openclaw.benlawson.dev/?token=<token>`
 
 ## Environment Variables
 
-### Required
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENCLAW_GATEWAY_TOKEN` | Authentication token for Gateway UI/API | Generate with `openssl rand -hex 32` |
-| `OPENCLAW_CONFIG_DIR` | Host path to config directory | `./config` |
-| `OPENCLAW_WORKSPACE_DIR` | Host path to workspace directory | `./config/workspace` |
+### Required (.env)
+```bash
+OPENCLAW_GATEWAY_TOKEN=<gateway-auth-token>
+DISCORD_BOT_TOKEN=<discord-bot-token>
+```
 
 ### Optional
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENCLAW_IMAGE` | Docker image to use | `ghcr.io/openclaw/openclaw:main` |
-| `OPENCLAW_GATEWAY_PORT` | Gateway WebSocket/HTTP port | `18789` |
-| `OPENCLAW_BRIDGE_PORT` | Bridge port for mobile nodes | `18790` |
-| `OPENCLAW_GATEWAY_BIND` | Network binding mode | `lan` |
-| `OLLAMA_API_KEY` | API key for local Ollama (can be any string) | `ollama-local` |
-| `HOME` | Home directory inside container | `/home/node` |
-| `TERM` | Terminal type | `xterm-256color` |
-
-### Channel Tokens (set in .env or config)
-| Variable | Description |
-|----------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `DISCORD_BOT_TOKEN` | Discord bot token |
-| `SLACK_BOT_TOKEN` | Slack bot token |
-| `SLACK_APP_TOKEN` | Slack app-level token |
-
-## Network Configuration
-
-### Required Networks
-```yaml
-networks:
-  proxynet:    # For SWAG reverse proxy and inter-service communication
-    external: true
-    name: proxynet
-  ollama-net:  # For local LLM access via Ollama
-    external: true
-    name: ollama-net
+```bash
+OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:main
+OPENCLAW_GATEWAY_PORT=18789
+OPENCLAW_GATEWAY_BIND=lan
+OLLAMA_API_KEY=ollama-local
+MOLTBOOK_API_KEY=<moltbook-api-key>
+DISCORD_WEBHOOK_URL=<webhook-for-notifications>
 ```
 
-**Network Purpose**:
-- `proxynet`: Enables SWAG reverse proxy access and communication with Homepage
-- `ollama-net`: Connects to local Ollama LLM server for AI inference
+## Skills
 
-## Architecture
+### Moltbook Integration
 
-### Gateway Mode
-```
-Messaging Channels (WhatsApp/Telegram/Slack/Discord/etc.)
-               │
-               ▼
-┌───────────────────────────────┐
-│            Gateway            │
-│       (control plane)         │
-│     ws://127.0.0.1:18789      │
-└──────────────┬────────────────┘
-               │
-               ├─ Pi agent (RPC)
-               ├─ CLI (openclaw …)
-               ├─ WebChat UI
-               ├─ Control UI
-               └─ iOS / Android nodes
-```
-
-### Two-Container Pattern
-This deployment uses two containers:
-1. **openclaw-gateway**: Long-running daemon that handles all connections
-2. **openclaw-cli**: Ephemeral container for running CLI commands (onboard, config, etc.)
-
-## Configuration Files
-
-### Primary Config (`config/openclaw.json`)
+TrollClaw has the Moltbook skill enabled for posting to the Moltbook social network:
 ```json
 {
-  "agents": {
-    "defaults": {
-      "model": {
-        "primary": "copilot-proxy/claude-opus-4.5"
-      },
-      "workspace": "/home/node/.openclaw/workspace"
-    }
-  },
-  "gateway": {
-    "auth": {
-      "mode": "token",
-      "token": "${OPENCLAW_GATEWAY_TOKEN}"
-    },
-    "port": 18789,
-    "bind": "lan"
-  }
-}
-```
-
-### Directory Structure
-```
-config/
-├── openclaw.json        # Main configuration
-├── agents/              # Agent definitions
-├── canvas/              # Canvas data
-├── cron/                # Cron job definitions
-├── identity/            # Identity configuration
-├── workspace/           # Agent workspace root
-│   └── skills/          # Installed skills
-└── exec-approvals.json  # Tool execution approvals
-```
-
-## Model Providers
-
-### Using Ollama (Local LLMs)
-To use local Ollama models, configure in `openclaw.json`:
-```json
-{
-  "models": {
-    "providers": {
-      "ollama": {
-        "baseUrl": "http://ollama:11434/v1",
-        "apiKey": "ollama-local",
-        "api": "openai-completions"
+  "skills": {
+    "entries": {
+      "moltbook": {
+        "enabled": true,
+        "env": {
+          "MOLTBOOK_API_KEY": "..."
+        }
       }
-    }
-  }
-}
-```
-
-### Using Copilot Proxy
-For GitHub Copilot models via proxy:
-```json
-{
-  "models": {
-    "providers": {
-      "copilot-proxy": {
-        "baseUrl": "http://localhost:3000/v1",
-        "apiKey": "n/a",
-        "api": "openai-completions"
-      }
-    }
-  }
-}
-```
-
-### Cloud Providers (Anthropic/OpenAI)
-For direct API access, configure with your API keys:
-```json
-{
-  "models": {
-    "providers": {
-      "anthropic": { "apiKey": "${ANTHROPIC_API_KEY}" },
-      "openai": { "apiKey": "${OPENAI_API_KEY}" }
     }
   }
 }
@@ -179,115 +157,68 @@ For direct API access, configure with your API keys:
 
 ## CLI Commands
 
-### Shell Alias Setup (Recommended)
-Add this alias to your `~/.bashrc` for easier CLI access:
+### Shell Alias (Recommended)
 ```bash
-echo "alias openclaw='docker compose -f /mnt/e/Docker/openclaw/docker-compose.yml run --rm openclaw-cli'" >> ~/.bashrc
-source ~/.bashrc
+alias openclaw='docker compose -f /mnt/e/Docker/openclaw/docker-compose.yml run --rm openclaw-cli'
 ```
 
-After setup, you can run commands directly:
+### Common Commands
 ```bash
-# Instead of: docker compose run --rm openclaw-cli agent --message "Hello"
-openclaw agent --message "Hello"
+# Re-run setup (auth, model selection)
+openclaw setup
 
-# Help
-openclaw --help
-
-# Configuration
+# Check configuration
 openclaw config get
-openclaw config set agents.defaults.model.primary "ollama/llama3.2:3b"
 
-# Agent interaction
-openclaw agent --agent main --local --message "Hello"
+# Change primary model
+openclaw config set agents.defaults.model.primary "github-copilot/claude-sonnet-4.5"
+
+# Run diagnostics
+openclaw doctor
+
+# Approve a DM pairing request
+openclaw pairing approve discord <code>
+
+# Send a test message
+openclaw agent --message "Hello" --local
 ```
 
-### Full Docker Compose Commands
-Run commands via the CLI container:
-```bash
-# Run onboarding wizard
-docker compose run --rm openclaw-cli onboard
+## Chat Commands (In Discord)
 
-# Health check
-docker compose exec openclaw-gateway node dist/index.js health --token "$OPENCLAW_GATEWAY_TOKEN"
+Send these in the allowed channel or DM:
+| Command | Description |
+|---------|-------------|
+| `/status` | Session status (model, tokens, cost) |
+| `/new` or `/reset` | Reset the session |
+| `/compact` | Compact session context |
+| `/think <level>` | Set thinking: off|minimal|low|medium|high|xhigh |
+| `/verbose on|off` | Toggle verbose mode |
+| `/usage off|tokens|full` | Usage footer style |
 
-# Channel management
-docker compose run --rm openclaw-cli channels login          # WhatsApp QR
-docker compose run --rm openclaw-cli channels add --channel telegram --token "TOKEN"
-docker compose run --rm openclaw-cli channels add --channel discord --token "TOKEN"
+## Security
 
-# Send a message
-docker compose run --rm openclaw-cli message send --to "+1234567890" --message "Hello"
+### Git-Crypt Encrypted Files
+These files contain secrets and are encrypted in the repository:
+- `openclaw/.env`
+- `openclaw/config/openclaw.json`
+- `openclaw/config/auth-profiles.json`
+- `openclaw/config/agents/**/auth-profiles.json`
+- `openclaw/config/agents/**/models.json`
 
-# Agent interaction
-docker compose run --rm openclaw-cli agent --message "Hello" --thinking high
-
-# Diagnostics
-docker compose run --rm openclaw-cli doctor
-```
-
-## Chat Commands (In-Channel)
-Send these in connected channels:
-- `/status` — Session status (model + tokens, cost)
-- `/new` or `/reset` — Reset the session
-- `/compact` — Compact session context
-- `/think <level>` — off|minimal|low|medium|high|xhigh
-- `/verbose on|off` — Toggle verbose mode
-- `/usage off|tokens|full` — Usage footer
-- `/restart` — Restart gateway (owner-only)
-
-## Security Considerations
-
-### Gateway Authentication
-Always use token authentication in production:
-```json
-{
-  "gateway": {
-    "auth": {
-      "mode": "token",
-      "token": "your-secure-token"
-    }
-  }
-}
-```
-
-### Channel Allowlists
-Configure allowlists to control who can interact:
-```json
-{
-  "channels": {
-    "whatsapp": {
-      "allowFrom": ["+1234567890"]
-    },
-    "telegram": {
-      "allowFrom": ["username1", "username2"]
-    },
-    "discord": {
-      "dm": {
-        "policy": "pairing",
-        "allowFrom": ["user_id1"]
-      }
-    }
-  }
-}
-```
-
-### DM Policy
-Default `dmPolicy="pairing"` requires approval for new senders:
-```bash
-# Approve a pairing request
-docker compose run --rm openclaw-cli pairing approve <channel> <code>
-```
+### Discord Lockdown
+- **Group Policy**: `allowlist` — only specified guilds/channels can interact
+- **DM Policy**: `pairing` — new DM senders must be approved with a code
+- **Require Mention**: Bot only responds when @mentioned in channels
 
 ## Troubleshooting
 
-### Check Container Logs
+### Check Logs
 ```bash
 docker logs openclaw-gateway
 docker logs -f openclaw-gateway --tail 100
 ```
 
-### Gateway Health Check
+### Gateway Health
 ```bash
 curl http://localhost:18789/health
 ```
@@ -298,35 +229,43 @@ docker compose run --rm openclaw-cli doctor
 ```
 
 ### Common Issues
-- **"token invalid"**: Ensure `OPENCLAW_GATEWAY_TOKEN` matches config
-- **Model unavailable**: Check model provider configuration and network
-- **Channel not connecting**: Verify tokens and channel configuration
-- **Permission errors**: Check PUID/PGID match volume ownership
 
-## Integration with Other Services
+| Issue | Solution |
+|-------|----------|
+| "token invalid" | Re-run `openclaw setup` for fresh Copilot auth |
+| Bot not responding | Check Discord token, verify channel is in allowlist |
+| Model unavailable | Verify `github-copilot` provider has valid auth |
+| "Channel unresolved" | Guild/channel IDs may be wrong in config |
 
-### Ollama
-Ensure `ollama-net` network is created and Ollama container is running:
+### Restart Gateway
 ```bash
-docker network create ollama-net
+cd /mnt/e/Docker/openclaw
+docker compose restart openclaw-gateway
 ```
 
+## Integration
+
 ### SWAG Reverse Proxy
-Use WebSocket proxy config for the gateway:
+WebSocket proxy config at `swag/config/nginx/proxy-confs/openclaw.subdomain.conf`:
 ```nginx
 location / {
     proxy_pass http://openclaw-gateway:18789;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
 }
 ```
 
+### Homepage
+Labels in docker-compose.yml provide Homepage integration:
+- Group: `AI & Automation`
+- URL: `https://openclaw.benlawson.dev/?token=...`
+
+### Uptime Kuma
+Automatic monitoring via SWAG labels:
+- Monitor URL: `https://openclaw.benlawson.dev/`
+
 ## Useful Resources
-- [Official Docs](https://docs.openclaw.ai/)
-- [GitHub Repository](https://github.com/openclaw/openclaw)
-- [Configuration Reference](https://docs.openclaw.ai/gateway/configuration)
-- [Docker Guide](https://docs.openclaw.ai/install/docker)
-- [Channel Setup](https://docs.openclaw.ai/channels)
-- [Skills (ClawHub)](https://clawhub.com/)
+- [OpenClaw Docs](https://docs.openclaw.ai/)
+- [GitHub Copilot Models](https://docs.github.com/en/copilot)
+- [Discord Developer Portal](https://discord.com/developers/applications)
