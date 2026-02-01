@@ -35,7 +35,7 @@ services:
       - homepage.widget.url=http://ollama:11434
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=AI & Automation
-      - swag.uptime-kuma.monitor.url=http://ollama:11434
+      - swag.uptime-kuma.monitor.url=https://ollama.benlawson.dev/
     networks:
       - proxynet
       - ollama-net
