@@ -2,6 +2,13 @@
 
 Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
 
+## Docker / Homelab
+
+- **Socket Proxy:** http://socket-proxy:2375 — Docker daemon access for monitoring containerized services
+  - Running on `socket-proxy-net` with gateway container
+  - Access via `curl http://socket-proxy:2375/v1.40/containers/json`
+  - Permissions: containers, images, networks, events, start/stop/restart, system info
+
 ## What Goes Here
 
 Things like:

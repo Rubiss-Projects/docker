@@ -60,6 +60,17 @@ TrollClaw uses **GitHub Copilot** as its LLM provider via device flow authentica
 |---------|---------|
 | `proxynet` | SWAG reverse proxy, inter-service communication |
 | `ollama-net` | Local Ollama access (optional, for local models) |
+| `socket-proxy-net` | Docker socket proxy for container monitoring |
+
+### Docker Socket Proxy Integration
+
+The gateway connects to the Docker API via `socket-proxy` for container monitoring:
+- **DOCKER_HOST**: `tcp://socket-proxy:2375`
+- **Network**: `socket-proxy-net` (external)
+- **Access**: Read-only container listing, plus start/stop/restart (inherited from socket-proxy permissions)
+- **Use case**: Monitoring Docker services, container status checks, health reporting
+
+The socket-proxy provides filtered Docker API access (no direct socket mount needed).
 
 ## File Structure
 
@@ -68,21 +79,14 @@ openclaw/
 ├── docker-compose.yml
 ├── .env                              # Secrets (git-crypt encrypted)
 └── config/
-    ├── openclaw.json                 # Main config (git-crypt encrypted)
-    ├── auth-profiles.json            # Copilot token backup (git-crypt encrypted)
-    ├── agents/
-    │   └── main/
-    │       └── agent/
-    │           ├── auth-profiles.json  # GitHub Copilot token (git-crypt encrypted)
-    │           └── models.json         # Provider config (git-crypt encrypted)
-    └── workspace/
-        ├── IDENTITY.md               # TrollClaw personality
-        ├── SOUL.md                   # Core behaviors
-        ├── TOOLS.md                  # Tool instructions
-        ├── AGENTS.md                 # Multi-agent config
-        ├── USER.md                   # User context
-        └── memory/                   # Session memories
+    ├── openclaw.json                 # Main config (agents-only, git-crypt encrypted)
+    └── agents/
+        └── main/
+            └── agent/
+                └── auth-profiles.json  # GitHub Copilot token (git-crypt encrypted)
 ```
+
+**Note**: The config directory was reset to a clean state. OpenClaw will regenerate additional files/directories (workspace/, identity/, logs/, etc.) on first startup.
 
 ## Authentication
 
@@ -91,14 +95,41 @@ openclaw/
 The bot authenticates with GitHub Copilot using device flow. Tokens are stored in:
 - `config/agents/main/agent/auth-profiles.json`
 
-**To re-authenticate** (if token expires):
-```bash
-docker compose run --rm openclaw-cli setup
-# Follow the device flow prompts
-```
+### Device Flow Workaround (Host-Side)
 
-**Token format** in auth-profiles.json:
-```json
+The device flow does NOT work inside the Docker container (headless, no browser). Use this workaround to obtain and inject tokens from the WSL host:
+
+**Step 1: Initiate device flow**
+```bash
+curl -s -X POST "https://github.com/login/device/code" \
+  -H "Accept: application/json" \
+  -d "client_id=Iv1.b507a08c87ecfe98&scope="
+```
+This returns a `user_code` and `verification_uri`.
+
+**Step 2: Authorize**
+Go to https://github.com/login/device and enter the `user_code`.
+
+**Step 3: Poll for token**
+```bash
+curl -s -X POST "https://github.com/login/oauth/access_token" \
+  -H "Accept: application/json" \
+  -d "client_id=Iv1.b507a08c87ecfe98&device_code=<DEVICE_CODE>&grant_type=urn:ietf:params:oauth:grant-type:device_code"
+```
+Poll every 5-10 seconds until you get an `access_token` (starts with `ghu_`).
+
+**Step 4: Verify token works**
+```bash
+curl -s -H "Authorization: token ghu_xxxxx" \
+  -H "Accept: application/json" \
+  https://api.github.com/copilot_internal/v2/token
+```
+Should return HTTP 200 with a JWT.
+
+**Step 5: Inject into auth-profiles.json**
+```bash
+mkdir -p openclaw/config/agents/main/agent
+cat > openclaw/config/agents/main/agent/auth-profiles.json << 'EOF'
 {
   "version": 1,
   "profiles": {
@@ -109,7 +140,22 @@ docker compose run --rm openclaw-cli setup
     }
   }
 }
+EOF
 ```
+
+### Native Auth (Future)
+
+When OpenClaw fixes the Copilot client headers issue (PR #13644 - missing `Editor-Version` header), the built-in `openclaw setup` command should work:
+```bash
+docker compose run --rm openclaw-cli setup
+```
+This will handle device flow within the container using `BROWSER=echo` to print the URL.
+
+### Token Notes
+
+- `ghu_` tokens from the Copilot device flow are **long-lived** (they don't expire on their own)
+- OpenClaw exchanges the `ghu_` token for short-lived JWTs internally
+- The Copilot client ID is `Iv1.b507a08c87ecfe98`
 
 ### Gateway Token
 
@@ -201,9 +247,7 @@ Send these in the allowed channel or DM:
 These files contain secrets and are encrypted in the repository:
 - `openclaw/.env`
 - `openclaw/config/openclaw.json`
-- `openclaw/config/auth-profiles.json`
 - `openclaw/config/agents/**/auth-profiles.json`
-- `openclaw/config/agents/**/models.json`
 
 ### Discord Lockdown
 - **Group Policy**: `allowlist` — only specified guilds/channels can interact
@@ -228,14 +272,18 @@ curl http://localhost:18789/health
 docker compose run --rm openclaw-cli doctor
 ```
 
+### Re-authenticate Copilot
+If Copilot auth fails, re-run the device flow workaround (see Authentication section above).
+
 ### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| "token invalid" | Re-run `openclaw setup` for fresh Copilot auth |
+| "token invalid" | Re-run device flow workaround for fresh `ghu_` token |
 | Bot not responding | Check Discord token, verify channel is in allowlist |
-| Model unavailable | Verify `github-copilot` provider has valid auth |
+| Model unavailable | Verify auth-profiles.json has valid `ghu_` token |
 | "Channel unresolved" | Guild/channel IDs may be wrong in config |
+| Docker API unreachable | Verify socket-proxy is running and on same network |
 
 ### Restart Gateway
 ```bash
@@ -264,6 +312,12 @@ Labels in docker-compose.yml provide Homepage integration:
 ### Uptime Kuma
 Automatic monitoring via SWAG labels:
 - Monitor URL: `https://openclaw.benlawson.dev/`
+
+### Docker Socket Proxy
+The gateway uses `socket-proxy` for Docker API access:
+- Network: `socket-proxy-net`
+- Env: `DOCKER_HOST=tcp://socket-proxy:2375`
+- Capabilities: Container listing, start/stop/restart, images, info, events, networks
 
 ## Useful Resources
 - [OpenClaw Docs](https://docs.openclaw.ai/)

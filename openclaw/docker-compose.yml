@@ -6,11 +6,9 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
+      DOCKER_HOST: tcp://socket-proxy:2375
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
-      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      MOLTBOOK_API_KEY: ${MOLTBOOK_API_KEY}
     volumes:
       - ./config:/home/node/.openclaw
     ports:
@@ -31,6 +29,7 @@ services:
     networks:
       - ollama-net
       - proxynet
+      - socket-proxy-net
     labels:
       - homepage.group=AI & Automation
       - homepage.name=OpenClaw
@@ -44,15 +43,13 @@ services:
   openclaw-cli:
     image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:main}
     container_name: openclaw-cli
+    user: root
     environment:
       HOME: /home/node
       TERM: xterm-256color
       BROWSER: echo
-      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
-      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      MOLTBOOK_API_KEY: ${MOLTBOOK_API_KEY}
     volumes:
       - ./config:/home/node/.openclaw
     stdin_open: true
@@ -70,3 +67,6 @@ networks:
   proxynet:
     external: true
     name: proxynet
+  socket-proxy-net:
+    external: true
+    name: socket-proxy-net

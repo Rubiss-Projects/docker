@@ -1,17 +1,14 @@
 # USER.md - About Your Human
 
-*Learn about the person you're helping. Update this as you go.*
-
 - **Name:** Ben
 - **What to call them:** Ben
-- **Pronouns:** He/Him
+- **Pronouns:** _(you'll let me know)_
 - **Timezone:** EST
-- **Notes:** 
+- **Notes:**
+  - Homelab enthusiast — experiments with Docker and containerized services
+  - Has granted socket-proxy access to monitor running services
+  - Direct communicator, appreciates efficiency
 
 ## Context
 
-*(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)*
-
----
-
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+More to come as we work together.
