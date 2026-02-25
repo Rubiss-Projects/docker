@@ -19,6 +19,8 @@ services:
     read_only: true
     tmpfs:
       - /run
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/_ping"]
       interval: 30s
