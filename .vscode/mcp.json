@@ -3,7 +3,48 @@
 		"n8n-mcp": {
 			"url": "https://n8n.benlawson.dev/mcp-server/http",
 			"type": "http"
+		},
+		"grafana": {
+			"command": "uvx",
+			"args": ["mcp-grafana"],
+			"env": {
+				"GRAFANA_URL": "https://grafana.benlawson.dev",
+				"GRAFANA_SERVICE_ACCOUNT_TOKEN": "${input:grafana_service_account_token}"
+			}
+		},
+		"portainer": {
+			"command": "/home/rubiss/.local/bin/portainer-mcp",
+			"args": [
+				"-server",
+				"portainer.benlawson.dev:443",
+				"-token",
+				"${input:portainer_api_token}",
+				"-tools",
+				"/home/rubiss/.local/bin/portainer-mcp-tools.yaml",
+				"-disable-version-check"
+			]
+		},
+		"cloudflare-observability": {
+			"type": "http",
+			"url": "https://observability.mcp.cloudflare.com/mcp"
+		},
+		"cloudflare-dns-analytics": {
+			"type": "http",
+			"url": "https://dns-analytics.mcp.cloudflare.com/mcp"
 		}
 	},
-	"inputs": []
+	"inputs": [
+		{
+			"id": "grafana_service_account_token",
+			"type": "promptString",
+			"description": "Grafana Service Account Token (create in Grafana > Admin > Service Accounts with Editor role)",
+			"password": true
+		},
+		{
+			"id": "portainer_api_token",
+			"type": "promptString",
+			"description": "Portainer API Token (create in Portainer > My Account > Access Tokens)",
+			"password": true
+		}
+	]
 }
