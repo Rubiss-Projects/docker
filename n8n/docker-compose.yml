@@ -22,6 +22,7 @@ services:
       - TZ=${GENERIC_TIMEZONE}
       - N8N_USER_FOLDER=/root/.n8n
       - DOCKER_HOST=tcp://socket-proxy:2375
+      - NODES_EXCLUDE=[]
     volumes:
       - ./config:/root/.n8n
       - ./workflows:/files

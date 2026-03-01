@@ -1,0 +1,134 @@
+{
+  "id": "xSdK7nCsCleanup1",
+  "active": true,
+  "name": "Cross-Seed Stuck Torrent Cleanup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "command -v python3 > /dev/null 2>&1 || apk add --no-cache python3 > /dev/null 2>&1; python3 /mnt/e/Docker/n8n/scripts/cleanup_crossseed_stuck.py --json --rpc-url http://transmission:9091/transmission/rpc/ --cross-seed-dir /mnt/e/Docker/cross-seed/config/cross-seeds/"
+      },
+      "name": "Run Cleanup Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout;\nlet result;\n\ntry {\n  result = JSON.parse(stdout);\n} catch (e) {\n  result = { error: 'Failed to parse script output: ' + e.message, removed: [], count: 0 };\n}\n\nif (result.error) {\n  return [{\n    json: {\n      count: 1,\n      error: result.error,\n      discordPayload: {\n        embeds: [{\n          title: '⚠️ Cross-Seed Cleanup Error',\n          description: result.error,\n          color: 15158332,\n          timestamp: new Date().toISOString(),\n          footer: { text: 'Cross-Seed Cleanup Automation' }\n        }]\n      }\n    }\n  }];\n}\n\nconst fields = result.removed.map(t => ({\n  name: t.name,\n  value: `${t.percentDone}% complete | ${t.ageHours}h old`,\n  inline: false\n}));\n\nconst displayFields = fields.slice(0, 25);\n\nconst embed = {\n  title: '🧹 Cross-Seed Cleanup',\n  description: `Removed **${result.count}** stuck torrent(s)` + (result.torrentFilesCleaned ? ` and cleaned **${result.torrentFilesCleaned}** .torrent file(s)` : ''),\n  color: 16744576,\n  fields: displayFields,\n  timestamp: new Date().toISOString(),\n  footer: { text: 'Cross-Seed Cleanup Automation' }\n};\n\nreturn [{\n  json: {\n    count: result.count,\n    removed: result.removed,\n    discordPayload: { embeds: [embed] }\n  }\n}];"
+      },
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "Has Removals",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.discordPayload) }}",
+        "options": {}
+      },
+      "name": "Notify Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Run Cleanup Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Cleanup Script": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Has Removals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Removals": {
+      "main": [
+        [
+          {
+            "node": "Notify Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

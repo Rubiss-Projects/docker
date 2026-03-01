@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "skills": {
+    "docker-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "76bd52d934142cb8f3861cb37f2a39ad93bf3b03dcbc94a02beaa0544f6dd7c2"
+    },
+    "grafana-dashboards": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "0bbc8f7f88dfb799eff73bca43aef5274d009083f6cf54a280a9c16e47e22807"
+    },
+    "n8n-code-javascript": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "e4cd3bc4ae84ed9f2de27061572f3943a327ae0d5f425d5faffe73268d67fb3b"
+    },
+    "n8n-expression-syntax": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "81c8acf7b9e9695f3aa5c57b02daa326a3653fbc2d0731a8a41d86c9747bf9b9"
+    },
+    "n8n-mcp-tools-expert": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "eba19c1fa6bacd0609b99a78d5883cb06a89b4c5442cb24c5482bd0513a0ee33"
+    },
+    "n8n-node-configuration": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "ae9730a7984997d5cb97ea6d797e916fbe6d4321390f6a48eb8076e252ac72ac"
+    },
+    "n8n-validation-expert": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "895f73b258213dcaf2c90ffd49e40df8c3f2d89cde7c6f616efc2506236b9bac"
+    },
+    "n8n-workflow-patterns": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "ca96b2c12c2712365e4e95ae07d7dac464d7810cf9781de542e57ded2a88c927"
+    },
+    "prometheus-configuration": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "cd29329107ab228834f6c08a8a17c5463ece4c0c2a19ac193ba39a8b3d8c734c"
+    }
+  }
+}
