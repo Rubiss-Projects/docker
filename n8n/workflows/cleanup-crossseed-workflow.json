@@ -2,6 +2,7 @@
   "id": "xSdK7nCsCleanup1",
   "active": true,
   "name": "Cross-Seed Stuck Torrent Cleanup",
+  "description": "Scheduled every 6 hours. Runs a Python script to find and remove stuck cross-seed torrents from Transmission that are incomplete and have aged out. Cleans up orphaned .torrent files from the cross-seed directory. Sends a Discord notification with an embed listing all removed torrents and their details. Only notifies if at least one torrent was removed.",
   "nodes": [
     {
       "parameters": {

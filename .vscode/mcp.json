@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"n8n-mcp": {
+			"url": "https://n8n.benlawson.dev/mcp-server/http",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}

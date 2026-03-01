@@ -2,6 +2,7 @@
   "id": "tWmK9mxsrVcB6Nzb",
   "active": true,
   "name": "Restart Container on Down",
+  "description": "Receives POST webhook notifications from Uptime Kuma when a monitored Docker container goes down (heartbeat status=0). Automatically restarts the failed container by running 'docker compose up -d --force-recreate' in the matching service directory under /mnt/e/Docker/. The service directory is resolved from the Uptime Kuma monitor name (lowercased). Requires the monitor name in Uptime Kuma to exactly match the Docker service folder name.",
   "nodes": [
     {
       "parameters": {
