@@ -1,14 +1,4 @@
 services:
-  # Disables fs.protected_hardlinks in the Docker VM kernel so cross-seed (uid 1000)
-  # can create hardlinks to media files owned by other UIDs (e.g. 911 from legacy Sonarr/Radarr).
-  # This sysctl is not namespace-aware, so it must be set via a privileged init container.
-  sysctl-init:
-    image: alpine
-    container_name: cross-seed-sysctl
-    privileged: true
-    command: sh -c 'echo 0 > /proc/sys/fs/protected_hardlinks'
-    restart: "no"
-
   cross-seed:
     image: ghcr.io/cross-seed/cross-seed:6
     container_name: cross-seed
@@ -20,9 +10,6 @@ services:
       - ../../Media:/data
     command: daemon
     restart: unless-stopped
-    depends_on:
-      sysctl-init:
-        condition: service_completed_successfully
     labels:
       - homepage.group=Downloads
       - homepage.name=Cross-Seed
