@@ -5,8 +5,7 @@ services:
     image: lscr.io/linuxserver/sonarr
     container_name: sonarr
     volumes:
-      - ../../Media/tv:/tv
-      - ../../Media/downloads:/downloads
+      - ../../Media:/data
       - ./config:/config
     ports:
       - 8989:8989

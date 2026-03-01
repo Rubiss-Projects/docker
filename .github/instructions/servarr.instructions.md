@@ -25,9 +25,7 @@ ports:
   - "6767:6767"  # Bazarr
 volumes:
   - ./config:/config
-  - ../../Media/movies:/movies
-  - ../../Media/tv:/tv
-  - ../transmission/data/completed:/downloads
+  - ../../Media:/data    # Single parent mount for hardlink support
 environment:
   - PUID=1000
   - PGID=1000
@@ -37,10 +35,15 @@ networks:
 restart: unless-stopped
 ```
 
+> **Why a single `/data` mount?** All services (Sonarr, Radarr, Bazarr, Transmission, Unpackerr, Cross-seed) share `../../Media:/data` so files stay on the same filesystem. This enables hardlinks instead of copies — saving disk space and enabling instant imports. See the [TRaSH Guides](https://trash-guides.info/Hardlinks/Hardlinks-and-Instant-Moves/) for details.
+
 ### Critical Directories
 - `config/` - Application settings, database, logs
-- `/movies` or `/tv` - Media library (shared with Plex)
-- `/downloads` - Download client directory (Transmission/qBittorrent)
+- `/data/movies` - Movie library (shared with Plex)
+- `/data/tv` - TV library (shared with Plex)
+- `/data/downloads` - Download client directory (Transmission)
+- `/data/downloads/sonarr` - Sonarr download category
+- `/data/downloads/radarr` - Radarr download category
 
 ### Default Ports
 - Sonarr: 8989
@@ -59,7 +62,7 @@ restart: unless-stopped
    - Add Transmission/qBittorrent
    - Test connection
 4. **Configure Media Management**:
-   - Root folders (/movies, /tv)
+   - Root folders (`/data/movies`, `/data/tv`)
    - File naming conventions
    - Quality profiles
 5. **Connect to Plex**:
@@ -90,7 +93,7 @@ restart: unless-stopped
 1. Series > Add New
 2. Search for show
 3. Configure:
-   - Root Folder: `/tv`
+   - Root Folder: `/data/tv`
    - Quality Profile: HD-1080p (or custom)
    - Monitor: All Episodes / Future Episodes
    - Season Folder: ✓
@@ -101,7 +104,7 @@ restart: unless-stopped
 1. Movies > Add New
 2. Search for movie
 3. Configure:
-   - Root Folder: `/movies`
+   - Root Folder: `/data/movies`
    - Quality Profile: HD-1080p
    - Monitor: Yes
 4. Add Movie
@@ -185,7 +188,7 @@ Bazarr downloads subtitles for Sonarr/Radarr:
 1. Check download client category is correct
 2. Verify file permissions (PUID/PGID)
 3. Settings > Media Management > Completed Download Handling: ✓
-4. Check paths match: `/downloads` in download client = `/downloads` in *arr
+4. Check paths match: `/data/downloads` in download client = `/data/downloads` in *arr
 5. Review Activity > Queue for errors
 
 ### Quality Not Met
@@ -342,9 +345,10 @@ docker compose start
 - Test connection in settings
 
 ### "Import failed: Path does not exist"
-- Verify volume mounts match
-- Check `/downloads` path in both *arr and download client
+- Verify volume mounts match (all services must use `../../Media:/data`)
+- Check `/data/downloads` path in both *arr and download client
 - Ensure PUID/PGID match for permissions
+- Confirm all services share the same single parent mount for hardlink support
 
 ### "Series/Movie already exists"
 - Already added to Sonarr/Radarr
@@ -397,8 +401,7 @@ ports:
   - "8787:8787"
 volumes:
   - ./config:/config
-  - /path/to/books:/books
-  - /path/to/downloads:/downloads
+  - ../../Media:/data    # Single parent mount for hardlink support
 ```
 
 ## Critical Files
@@ -458,12 +461,11 @@ ports:
   - "8788:8787"  # Different external port
 volumes:
   - ./config:/config
-  - /path/to/audiobooks:/audiobooks
-  - /path/to/downloads:/downloads
+  - ../../Media:/data    # Single parent mount for hardlink support
 ```
 
 ## Why Separate Instance?
-- Different root folders (`/books` vs `/audiobooks`)
+- Different root folders (`/data/books` vs `/data/audiobooks`)
 - Different quality profiles (audiobook formats)
 - Separate download queues
 - Integration with Audiobookshelf

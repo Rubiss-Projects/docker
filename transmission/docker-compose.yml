@@ -13,7 +13,7 @@ services:
       - PEERPORT= #optional
       - HOST_WHITELIST= #optional
       - DOCKER_MODS=linuxserver/mods:transmission-env-var-settings
-      - TRANSMISSION_DOWNLOAD_DIR=/downloads
+      - TRANSMISSION_DOWNLOAD_DIR=/data/downloads
       - TRANSMISSION_DHT_ENABLED=false
       - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=false
       - TRANSMISSION_RATIO_LIMIT_ENABLED=false
@@ -25,9 +25,8 @@ services:
       - TRANSMISSION_PEER_LIMIT_PER_TORRENT=25
     volumes:
       - ./data:/config
-      - ../../Media/downloads:/downloads
+      - ../../Media:/data
       - ./watch:/watch
-      - ../../Media/:/library
     ports:
       - 9091:9091
       - 51413:51413

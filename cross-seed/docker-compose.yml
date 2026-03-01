@@ -1,0 +1,28 @@
+services:
+  cross-seed:
+    image: ghcr.io/cross-seed/cross-seed:6
+    container_name: cross-seed
+    user: 1000:1000
+    ports:
+      - "2468:2468"
+    volumes:
+      - ./config:/config
+      - ../../Media:/data
+    command: daemon
+    restart: unless-stopped
+    labels:
+      - homepage.group=Downloads
+      - homepage.name=Cross-Seed
+      - homepage.icon=cross-seed.png
+      - homepage.href=http://cross-seed:2468
+      - homepage.siteMonitor=http://cross-seed:2468/api/ping
+      - homepage.description=Automated cross-seeding
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Downloads
+      - swag.uptime-kuma.monitor.url=http://cross-seed:2468/api/ping
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: proxynet

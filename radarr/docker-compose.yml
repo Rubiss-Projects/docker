@@ -5,8 +5,7 @@ services:
     image: lscr.io/linuxserver/radarr
     container_name: radarr
     volumes:
-      - ../../Media/movies:/movies
-      - ../../Media/downloads:/downloads
+      - ../../Media:/data
       - ./config:/config
     ports:
       - 7878:7878
