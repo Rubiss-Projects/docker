@@ -5,8 +5,7 @@ services:
     image: ghcr.io/pennydreadful/bookshelf:hardcover
     container_name: bookshelf
     volumes:
-      - ../../Media/books:/books
-      - ../../Media/downloads:/downloads
+      - ../../Media:/data
       - ./config:/config
     ports:
       - 8787:8787
@@ -30,4 +29,5 @@ services:
 
 networks:
   proxynet:
+    external: true
     name: proxynet

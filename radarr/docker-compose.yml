@@ -2,7 +2,7 @@ services:
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
   radarr:
-    image: lscr.io/linuxserver/radarr
+    image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     volumes:
       - ../../Media:/data

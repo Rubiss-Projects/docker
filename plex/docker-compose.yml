@@ -36,10 +36,7 @@ services:
               capabilities: [gpu, compute, utility, video]
     volumes:
       - ./config:/config
-      - ../../Media/tv:/tv
-      - ../../Media/movies:/movies
-      - ../../Media/videos:/videos
-      - ../../Media/channels-dvr:/channels-dvr
+      - ../../Media:/data:ro
       # Explicitly mount WSL NVIDIA driver paths
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro

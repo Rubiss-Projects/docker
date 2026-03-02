@@ -29,7 +29,7 @@ volumes:
 environment:
   - PUID=1000
   - PGID=1000
-  - TZ=America/New_York
+  - TZ=America/Chicago
 networks:
   - proxynet
 restart: unless-stopped
@@ -571,3 +571,13 @@ Book support is from a draft PR:
 - May have occasional bugs
 - Regular backups recommended
 - Test updates before applying
+
+## Known Deviations from TRaSH Guides
+
+The following deviations from [TRaSH Guides](https://trash-guides.info/) recommendations are intentional and documented:
+
+### Download Category Naming
+TRaSH recommends naming download categories by content type (`tv/`, `movies/`). This setup uses application names (`sonarr/`, `radarr/`) instead. Hardlinks work correctly with both conventions. Migration would require updating active torrents and all download client path mappings — risk outweighs the cosmetic benefit.
+
+### Transmission Instead of qBittorrent
+TRaSH Guides covers qBittorrent more extensively, but Transmission is functional and well-integrated. The DOCKER_MODS environment variable approach provides equivalent configuration via `TRANSMISSION_*` env vars. No migration planned unless Transmission-specific limitations are encountered.

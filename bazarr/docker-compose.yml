@@ -2,10 +2,11 @@ services:
   # Bazarr is used to download and categorize subtitles
   # https://www.bazarr.media/
   bazarr:
-    image: lscr.io/linuxserver/bazarr
+    image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     volumes:
-      - ../../Media:/data
+      - ../../Media/tv:/data/tv
+      - ../../Media/movies:/data/movies
       - ./config:/config
     ports:
       - 6767:6767

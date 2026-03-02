@@ -1,0 +1,24 @@
+services:
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:latest
+    container_name: recyclarr
+    user: 1000:1000
+    volumes:
+      - ./config:/config
+    environment:
+      - TZ=America/Chicago
+      - CRON_SCHEDULE=@daily
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - homepage.group=Media Management
+      - homepage.name=Recyclarr
+      - homepage.icon=recyclarr.png
+      - homepage.description=TRaSH Guide sync
+      - swag.uptime-kuma.enabled=false
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet

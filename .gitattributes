@@ -8,3 +8,6 @@ db.env filter=git-crypt diff=git-crypt
 openclaw/config/*.json filter=git-crypt diff=git-crypt
 openclaw/config/agents/**/auth-profiles.json filter=git-crypt diff=git-crypt
 openclaw/config/agents/**/models.json filter=git-crypt diff=git-crypt
+
+# Encrypt Recyclarr secrets (API keys)
+**/secrets.yml filter=git-crypt diff=git-crypt
