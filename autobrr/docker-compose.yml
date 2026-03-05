@@ -1,0 +1,37 @@
+services:
+  # autobrr monitors IRC/RSS for new torrents and forwards matches to download clients
+  # https://autobrr.com/
+  autobrr:
+    image: ghcr.io/autobrr/autobrr:latest
+    container_name: autobrr
+    user: 1000:1000
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./config:/config
+    ports:
+      - 7474:7474
+      - 9074:9074
+    restart: unless-stopped
+    env_file:
+      - .env
+    labels:
+      - homepage.group=Downloads
+      - homepage.name=autobrr
+      - homepage.icon=autobrr.png
+      - homepage.href=https://autobrr.benlawson.dev/
+      - homepage.siteMonitor=http://autobrr:7474
+      - homepage.description=Torrent IRC/RSS automation
+      - homepage.widget.type=autobrr
+      - homepage.widget.url=http://autobrr:7474
+      - homepage.widget.key=${AUTOBRR_API_KEY}
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.parent=Downloads
+      - swag.uptime-kuma.monitor.url=https://autobrr.benlawson.dev/
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
