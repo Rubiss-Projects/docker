@@ -16,6 +16,7 @@ Navigate to the appropriate instructions file based on the task:
 | **Calibre** | `calibre.instructions.md` |
 | **n8n workflows** | `n8n.instructions.md` |
 | **OpenClaw AI Gateway** | `openclaw.instructions.md` |
+| **autobrr** | `autobrr.instructions.md` |
 | **Gaming servers** | See individual: `valheim`, `minecraft`, `ark`, `palworld` |
 | **Pi services** | See individual in `/pi/` folder |
 
