@@ -2,7 +2,7 @@
   "id": "xSdK7nCsCleanup1",
   "active": true,
   "name": "Cross-Seed Stuck Torrent Cleanup",
-  "description": "Scheduled every 6 hours. Runs a Python script to find and remove stuck cross-seed torrents from Transmission that are incomplete and have aged out. Cleans up orphaned .torrent files from the cross-seed directory. Sends a Discord notification with an embed listing all removed torrents and their details. Only notifies if at least one torrent was removed.",
+  "description": "Scheduled every 6 hours. Runs a Node.js script to find and remove stuck cross-seed torrents from Transmission that are incomplete and have aged out. Cleans up orphaned .torrent files from the cross-seed directory. Sends a Discord notification with an embed listing all removed torrents and their details. Only notifies if at least one torrent was removed.",
   "nodes": [
     {
       "parameters": {
@@ -25,7 +25,7 @@
     },
     {
       "parameters": {
-        "command": "command -v python3 > /dev/null 2>&1 || apk add --no-cache python3 > /dev/null 2>&1; python3 /mnt/e/Docker/n8n/scripts/cleanup_crossseed_stuck.py --json --rpc-url http://transmission:9091/transmission/rpc/ --cross-seed-dir /mnt/e/Docker/cross-seed/config/cross-seeds/"
+        "command": "node /mnt/e/Docker/n8n/scripts/cleanup_crossseed_stuck.js --json --rpc-url http://transmission:9091/transmission/rpc/ --cross-seed-dir /mnt/e/Docker/cross-seed/config/cross-seeds/"
       },
       "name": "Run Cleanup Script",
       "type": "n8n-nodes-base.executeCommand",
