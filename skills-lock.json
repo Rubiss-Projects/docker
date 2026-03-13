@@ -45,6 +45,10 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "cd29329107ab228834f6c08a8a17c5463ece4c0c2a19ac193ba39a8b3d8c734c"
+    },
+    "new-docker-service": {
+      "source": "local",
+      "sourceType": "local"
     }
   }
 }
