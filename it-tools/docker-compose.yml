@@ -1,0 +1,24 @@
+services:
+  it-tools:
+    image: corentinth/it-tools:latest
+    container_name: it-tools
+    ports:
+      - "8686:80"
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=IT Tools
+      - homepage.icon=it-tools.png
+      - homepage.href=https://it-tools.benlawson.dev/
+      - homepage.siteMonitor=http://it-tools:80
+      - homepage.description=Collection of handy online tools for developers
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.url=http://it-tools:80
+      - swag.uptime-kuma.monitor.parent=Infrastructure
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
