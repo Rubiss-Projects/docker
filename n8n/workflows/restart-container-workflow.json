@@ -2,7 +2,7 @@
   "id": "tWmK9mxsrVcB6Nzb",
   "active": true,
   "name": "Restart Container on Down",
-  "description": "Receives POST webhook notifications from Uptime Kuma when a monitored Docker container goes down (heartbeat status=0). Automatically restarts the failed container by running 'docker compose up -d --force-recreate' in the matching service directory under /mnt/e/Docker/. The service directory is resolved from the Uptime Kuma monitor name (lowercased). Requires the monitor name in Uptime Kuma to exactly match the Docker service folder name.",
+  "description": "Receives POST webhook notifications from Uptime Kuma when a monitored Docker container goes down (heartbeat status=0). Automatically restarts the matching container by calling the Docker Engine API through socket-proxy. Requires the monitor name in Uptime Kuma to match the Docker container name, which in this repo should also match the service folder name.",
   "nodes": [
     {
       "parameters": {
@@ -40,11 +40,13 @@
     },
     {
       "parameters": {
-        "command": "=if ! command -v docker &> /dev/null; then apk add --no-cache docker-cli docker-cli-compose; fi && cd \"/mnt/e/Docker/{{ $json.body.monitor.name.toLowerCase() }}\" && docker compose up -d --force-recreate"
+        "method": "POST",
+        "url": "={{ 'http://socket-proxy:2375/containers/' + encodeURIComponent($json.body.monitor.name.toLowerCase()) + '/restart' }}",
+        "options": {}
       },
       "name": "Restart Container",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         900,
         300
