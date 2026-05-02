@@ -12,6 +12,7 @@ services:
       - CLI_ARGS= # Optional Calibre CLI arguments
     volumes:
       - ./config:/config
+      - ./custom-services.d:/custom-services.d:ro
       - ../../Media/books:/books
     ports:
       - 8090:8080   # Calibre desktop GUI (HTTP)
