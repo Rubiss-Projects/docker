@@ -7,6 +7,8 @@ services:
     environment:
       - DOCKER_MODS=linuxserver/mods:transmission-env-var-settings
       - TRANSMISSION_DOWNLOAD_DIR=/data/downloads
+      - TRANSMISSION_INCOMPLETE_DIR=/data/downloads/incomplete
+      - TRANSMISSION_INCOMPLETE_DIR_ENABLED=true
       - TRANSMISSION_DHT_ENABLED=false
       - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=false
       - TRANSMISSION_RATIO_LIMIT_ENABLED=false
@@ -32,7 +34,7 @@ services:
         reservations:
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/transmission/web/"] 
+      test: ["CMD-SHELL", "[ \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/transmission/rpc)\" = \"409\" ]"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -49,7 +51,8 @@ services:
       - homepage.widget.password=
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Downloads
-      - swag.uptime-kuma.monitor.url=https://transmission.benlawson.dev/transmission/web/
+      - swag.uptime-kuma.monitor.url=http://transmission:9091/transmission/rpc
+      - swag.uptime-kuma.monitor.accepted_statuscodes=409
     networks:
       - proxynet
 
