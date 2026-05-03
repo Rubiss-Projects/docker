@@ -10,6 +10,7 @@ services:
       - WATCHTOWER_SCHEDULE=0 0 11 * * *  # Run at 6 AM EST (11 AM UTC) - 1 hour after Docker restart at 5 AM
       - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN}
       - WATCHTOWER_HTTP_API_METRICS=true
+      - DOCKER_API_VERSION=1.40
       - DOCKER_HOST=tcp://socket-proxy:2375
     ports:
       - 8081:8080
@@ -26,14 +27,13 @@ services:
       - homepage.name=Watchtower
       - homepage.icon=watchtower.png
       - homepage.href=https://watchtower.benlawson.dev/v1/metrics
-      - homepage.siteMonitor=http://watchtower:8080/v1/metrics
       - homepage.description=Service updater
       - homepage.widget.type=watchtower
       - homepage.widget.url=http://watchtower:8080
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Infrastructure
-      - swag.uptime-kuma.monitor.url=https://watchtower.benlawson.dev/v1/metrics
+      - swag.uptime-kuma.monitor.url=http://watchtower:8080/v1/metrics
       - 'swag.uptime-kuma.monitor.headers={"Authorization": "Bearer ${WATCHTOWER_HTTP_API_TOKEN}"}'
     networks:
       - proxynet
