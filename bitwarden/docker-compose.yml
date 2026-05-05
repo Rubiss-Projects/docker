@@ -25,7 +25,7 @@ services:
       - "homepage.icon=bitwarden.png"
       - "homepage.href=https://bitwarden.benlawson.dev"
       - "homepage.description=Password Manager"
-      - "homepage.siteMonitor=http://192.168.50.40:8083"
+      - "homepage.siteMonitor=http://bitwarden:8080/alive"
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Infrastructure
       - swag.uptime-kuma.monitor.url=https://bitwarden.benlawson.dev/
