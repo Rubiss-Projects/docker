@@ -1,9 +1,10 @@
 services:
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     container_name: watchtower
     restart: unless-stopped
     environment:
+      - DOCKER_API_VERSION=${WATCHTOWER_DOCKER_API_VERSION:-1.52}
       - TZ=${TZ}
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_RESTARTING=true

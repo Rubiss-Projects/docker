@@ -27,6 +27,10 @@ check_root() {
     fi
 }
 
+compose() {
+    docker compose "$@"
+}
+
 service_action() {
     local action=$1
     echo "=========================================="
@@ -43,13 +47,13 @@ service_action() {
         
         case $action in
             start)
-                docker-compose up -d
+                compose up -d
                 ;;
             stop)
-                docker-compose down
+                compose down
                 ;;
             restart)
-                docker-compose restart
+                compose restart
                 ;;
             *)
                 echo "Unknown action: $action"
@@ -116,7 +120,7 @@ update_images() {
         echo ""
         echo "➤ Pulling latest image for ${service}..."
         cd "$dir" || continue
-        docker-compose pull
+        compose pull
     done
     
     echo ""
@@ -131,7 +135,7 @@ update_images() {
         echo ""
         echo "➤ Recreating ${service}..."
         cd "$dir" || continue
-        docker-compose up -d --force-recreate
+        compose up -d --force-recreate
     done
     
     echo ""
