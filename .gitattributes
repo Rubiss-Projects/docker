@@ -11,3 +11,6 @@ openclaw/config/agents/**/models.json filter=git-crypt diff=git-crypt
 
 # Encrypt Recyclarr secrets (API keys)
 **/secrets.yml filter=git-crypt diff=git-crypt
+
+# Encrypt SWAG DNS provider credentials
+swag/config/dns-conf/*.ini filter=git-crypt diff=git-crypt

@@ -1,5 +1,4 @@
 # Secrets - NEVER commit these
-config/dns-conf/*.ini
 config/dns-conf/*.json
 config/keys/
 
@@ -25,3 +24,7 @@ config/**/*.crt
 
 # PHP session data
 config/php/
+
+# Track the active Cloudflare credential file via git-crypt
+config/dns-conf/*.ini
+!config/dns-conf/cloudflare.ini
