@@ -7,7 +7,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - HOMEPAGE_ALLOWED_HOSTS=homepage.benlawson.dev
+      - HOMEPAGE_ALLOWED_HOSTS=homepage.benlawson.dev,localhost:3030,127.0.0.1:3030
       - DOCKER_HOST=tcp://socket-proxy:2375
     ports:
       - 3030:3000
