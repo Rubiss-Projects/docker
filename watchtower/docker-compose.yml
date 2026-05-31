@@ -41,6 +41,7 @@ services:
 
 networks:
   proxynet:
+    external: true
     name: proxynet
   socket-proxy-net:
     external: true
