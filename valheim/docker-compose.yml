@@ -21,7 +21,7 @@ services:
       - homepage.description=Valheim Server
       - homepage.widget.type=gamedig
       - homepage.widget.serverType=valheim
-      - homepage.widget.url=udp://valheim:2456
+      - homepage.widget.url=udp://valheim:2457
       - homepage.widget.fields=["status", "currentPlayers", "maxPlayers", "ping"]
     networks:
       - proxynet
