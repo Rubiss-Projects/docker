@@ -4,7 +4,7 @@ services:
       - db
     env_file:
       - .env
-    image: ghcr.io/bitwarden/self-host:beta
+    image: ghcr.io/bitwarden/lite:latest
     container_name: bitwarden
     restart: unless-stopped
     ports:
