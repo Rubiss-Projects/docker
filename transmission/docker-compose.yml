@@ -43,7 +43,6 @@ services:
       - homepage.name=Transmission
       - homepage.icon=transmission.png
       - homepage.href=https://transmission.benlawson.dev/
-      - homepage.siteMonitor=http://transmission:9091/transmission/web
       - homepage.description=Torrent client
       - homepage.widget.type=transmission
       - homepage.widget.url=http://transmission:9091
