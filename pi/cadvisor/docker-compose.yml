@@ -21,7 +21,7 @@ services:
       - homepage.icon=cadvisor.png
       - homepage.href=https://cadvisor-pi.benlawson.dev/
       - homepage.description=Docker container monitoring
-      - homepage.siteMonitor=http://192.168.50.216:8080
+      - homepage.siteMonitor=http://192.168.50.216:8080/containers/
     command:
       - '--housekeeping_interval=30s'
       - '--docker_only=true'
