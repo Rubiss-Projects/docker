@@ -108,5 +108,5 @@ jobs:
           DOCKER_DEPLOY_BRANCH: main
           DOCKER_DEPLOY_SCOPE: pi
           DOCKER_DEPLOY_START_STOPPED: "false"
-          DOCKER_REPO_DIR: /home/rubiss/Docker
-        run: /home/rubiss/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
+          DOCKER_REPO_DIR: /home/rubiss/docker
+        run: /home/rubiss/docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
