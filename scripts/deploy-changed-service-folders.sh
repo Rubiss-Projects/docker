@@ -4,6 +4,7 @@ set -Eeuo pipefail
 REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
 DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
 DEPLOY_PI_SERVICES=${DOCKER_DEPLOY_PI_SERVICES:-false}
+DEPLOY_START_STOPPED=${DOCKER_DEPLOY_START_STOPPED:-false}
 LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
 
 DRY_RUN=false
@@ -116,16 +117,20 @@ verify_config_mounts() {
 
     [[ -d "$host_path" ]] || die "$stack_dir declares /config bind for $service_name, but host path is missing: $host_path"
 
-    printf '%s\n' "$token" > "$host_path/$sentinel"
-
     status=$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null || true)
     if [[ "$status" != "true" ]]; then
-      rm -f "$host_path/$sentinel"
       die "$container_name is not running after deploy"
     fi
 
-    actual=$(docker exec "$container_name" sh -c "cat /config/$sentinel 2>/dev/null" || true)
-    rm -f "$host_path/$sentinel"
+    if [[ -w "$host_path" ]]; then
+      printf '%s\n' "$token" > "$host_path/$sentinel"
+      actual=$(docker exec "$container_name" sh -c "cat /config/$sentinel 2>/dev/null" || true)
+      rm -f "$host_path/$sentinel"
+    else
+      docker exec -e TOKEN="$token" "$container_name" sh -c "printf '%s\n' \"\$TOKEN\" > /config/$sentinel"
+      actual=$(cat "$host_path/$sentinel" 2>/dev/null || true)
+      docker exec "$container_name" rm -f "/config/$sentinel"
+    fi
 
     [[ "$actual" == "$token" ]] || die "$container_name failed /config bind mount verification for host path $host_path"
     log "Verified /config bind mount for $container_name"
@@ -147,6 +152,16 @@ deploy_stack() {
   (
     cd "$stack_path"
     docker compose config --quiet
+
+    if [[ "$DEPLOY_START_STOPPED" != "true" ]]; then
+      local running_services
+      running_services=$(docker compose ps --status running --services 2>/dev/null || true)
+      if [[ -z "$running_services" ]]; then
+        log "Skipping $stack_dir because it has no currently running Compose services"
+        exit 0
+      fi
+    fi
+
     run docker compose pull --ignore-buildable
     run docker compose up -d --build --remove-orphans
 

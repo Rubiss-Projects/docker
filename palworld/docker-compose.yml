@@ -1,6 +1,6 @@
 services:
   palworld:
-    image: jammsen/palworld-dedicated-server:latest
+    image: jammsen/palworld-dedicated-server:0a28e47
     container_name: palworld
     restart: unless-stopped
     network_mode: bridge

@@ -1,7 +1,7 @@
 services:
   pihole:
     container_name: pihole
-    image: pihole/pihole:latest
+    image: pihole/pihole:2026.05.0
     restart: unless-stopped
     # Pi-hole FTL stores query history in /dev/shm; the default 64M is exhausted here.
     shm_size: 256m
