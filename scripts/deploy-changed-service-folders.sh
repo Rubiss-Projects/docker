@@ -202,7 +202,7 @@ main() {
 
   if [[ "$DRY_RUN" != "true" ]]; then
     log "Fast-forwarding $REPO_DIR to origin/$DEPLOY_BRANCH"
-    git -C "$REPO_DIR" pull --ff-only origin "$DEPLOY_BRANCH"
+    git -C "$REPO_DIR" merge --ff-only "origin/$DEPLOY_BRANCH"
   fi
 
   if [[ ${#changed_files[@]} -eq 0 ]]; then
