@@ -1,0 +1,32 @@
+name: Deploy Service Changes
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: docker-ops-deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy changed service folders
+    if: github.repository == 'Rubiss-Projects/docker'
+    runs-on:
+      - self-hosted
+      - wsl
+      - docker-ops
+    timeout-minutes: 90
+
+    steps:
+      - name: Deploy from WSL checkout
+        shell: bash
+        env:
+          DOCKER_DEPLOY_BRANCH: main
+          DOCKER_DEPLOY_PI_SERVICES: "false"
+          DOCKER_REPO_DIR: /mnt/e/Docker
+        run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"

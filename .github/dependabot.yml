@@ -1,0 +1,73 @@
+version: 2
+
+updates:
+  - package-ecosystem: docker-compose
+    directories:
+      - /ark
+      - /ark-ascended
+      - /astroneer
+      - /audiobookshelf
+      - /autobrr
+      - /bazarr
+      - /bitwarden
+      - /bookshelf
+      - /bookshelf-audio
+      - /cadvisor
+      - /calibre
+      - /channels-dvr
+      - /cloudflare-duc
+      - /cloudflare-tunnel
+      - /cross-seed
+      - /grafana
+      - /homepage
+      - /influxdb
+      - /it-tools
+      - /lazywarden
+      - /minecraft
+      - /mod-mc
+      - /n8n
+      - /nvidia-smi-rest
+      - /ollama
+      - /open-webui
+      - /openclaw
+      - /palworld
+      - /pi/cadvisor
+      - /pi/cloudflare-tunnel
+      - /pi/glances
+      - /pi/homebridge
+      - /pi/node-exporter
+      - /pi/pi-hole
+      - /pi/speedtest-tracker
+      - /pi/watchtower
+      - /plex
+      - /portainer
+      - /prometheus
+      - /prowlarr
+      - /radarr
+      - /recyclarr
+      - /seerr
+      - /socket-proxy
+      - /sonarr
+      - /speedtesttracker
+      - /swag
+      - /tautulli
+      - /transmission
+      - /unpackerr
+      - /uptime-kuma
+      - /valheim
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      docker-compose-images:
+        patterns:
+          - "*"
