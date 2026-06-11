@@ -4,7 +4,7 @@ services:
       - db
     env_file:
       - .env
-    image: ghcr.io/bitwarden/lite:latest
+    image: ghcr.io/bitwarden/lite:latest@sha256:570ab989a8ea422758287cce97b0d68c05487f0b8e0a47c58ddf665245c1ecaf
     container_name: bitwarden
     restart: unless-stopped
     ports:

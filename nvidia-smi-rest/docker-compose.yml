@@ -2,7 +2,7 @@
 # https://github.com/Opa-/nvidia-smi-rest
 services:
   nvidia-smi-rest:
-    image: opaopa/nvidia-smi-rest:latest
+    image: opaopa/nvidia-smi-rest:latest@sha256:451d4a3f201837cd0e60e5c284d48934fe6fcc0d06c371682411e2f33958e3bb
     container_name: nvidia-smi-rest
     ports:
       - 7777:7777

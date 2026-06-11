@@ -4,6 +4,7 @@ set -Eeuo pipefail
 REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
 DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
 DEPLOY_PI_SERVICES=${DOCKER_DEPLOY_PI_SERVICES:-false}
+DEPLOY_START_STOPPED=${DOCKER_DEPLOY_START_STOPPED:-false}
 LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
 
 DRY_RUN=false
@@ -147,6 +148,16 @@ deploy_stack() {
   (
     cd "$stack_path"
     docker compose config --quiet
+
+    if [[ "$DEPLOY_START_STOPPED" != "true" ]]; then
+      local running_services
+      running_services=$(docker compose ps --status running --services 2>/dev/null || true)
+      if [[ -z "$running_services" ]]; then
+        log "Skipping $stack_dir because it has no currently running Compose services"
+        exit 0
+      fi
+    fi
+
     run docker compose pull --ignore-buildable
     run docker compose up -d --build --remove-orphans
 

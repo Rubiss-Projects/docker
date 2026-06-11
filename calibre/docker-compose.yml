@@ -1,6 +1,6 @@
 services:
   calibre:
-    image: lscr.io/linuxserver/calibre:latest
+    image: lscr.io/linuxserver/calibre:v9.9.0-ls405
     container_name: calibre
     security_opt:
       - seccomp:unconfined # Required for GUI apps

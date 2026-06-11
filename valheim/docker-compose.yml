@@ -1,6 +1,6 @@
 services:
   valheim:
-    image: lloesche/valheim-server
+    image: lloesche/valheim-server:sha-732221f4d5b5
     container_name: valheim
     cap_add:
       - sys_nice

@@ -1,6 +1,6 @@
 services:
   watchtower:
-    image: nickfedor/watchtower:latest
+    image: nickfedor/watchtower:1.18.0
     container_name: watchtower
     restart: unless-stopped
     environment:

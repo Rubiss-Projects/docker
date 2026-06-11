@@ -28,5 +28,6 @@ jobs:
         env:
           DOCKER_DEPLOY_BRANCH: main
           DOCKER_DEPLOY_PI_SERVICES: "false"
+          DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /mnt/e/Docker
         run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"

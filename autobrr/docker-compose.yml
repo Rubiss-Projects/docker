@@ -2,7 +2,7 @@ services:
   # autobrr monitors IRC/RSS for new torrents and forwards matches to download clients
   # https://autobrr.com/
   autobrr:
-    image: ghcr.io/autobrr/autobrr:latest
+    image: ghcr.io/autobrr/autobrr:v1.80.0
     container_name: autobrr
     user: 1000:1000
     environment:
