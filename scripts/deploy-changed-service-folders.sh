@@ -72,7 +72,7 @@ find_service_dir() {
 
 resolve_changed_files() {
   if [[ -z "$AFTER_SHA" ]]; then
-    AFTER_SHA=$(git -C "$REPO_DIR" rev-parse "origin/$DEPLOY_BRANCH")
+    AFTER_SHA=$(git -C "$REPO_DIR" rev-parse FETCH_HEAD)
   fi
 
   git -C "$REPO_DIR" cat-file -e "${AFTER_SHA}^{commit}" || die "After commit is not available locally: $AFTER_SHA"
@@ -213,7 +213,7 @@ main() {
   [[ "$current_branch" == "$DEPLOY_BRANCH" ]] || die "Expected $REPO_DIR to be on $DEPLOY_BRANCH, found $current_branch"
 
   log "Fetching origin/$DEPLOY_BRANCH"
-  git -C "$REPO_DIR" fetch --prune origin "$DEPLOY_BRANCH"
+  git -C "$REPO_DIR" fetch --prune origin "refs/heads/$DEPLOY_BRANCH"
 
   local tracked_changes
   tracked_changes=$(git -C "$REPO_DIR" status --porcelain --untracked-files=no)
@@ -228,7 +228,7 @@ main() {
 
   if [[ "$DRY_RUN" != "true" ]]; then
     log "Fast-forwarding $REPO_DIR to origin/$DEPLOY_BRANCH"
-    git -C "$REPO_DIR" merge --ff-only "origin/$DEPLOY_BRANCH"
+    git -C "$REPO_DIR" merge --ff-only FETCH_HEAD
   fi
 
   if [[ ${#changed_files[@]} -eq 0 ]]; then
