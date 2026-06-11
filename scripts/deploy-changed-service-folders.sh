@@ -3,7 +3,13 @@ set -Eeuo pipefail
 
 REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
 DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
-DEPLOY_PI_SERVICES=${DOCKER_DEPLOY_PI_SERVICES:-false}
+if [[ -n "${DOCKER_DEPLOY_SCOPE:-}" ]]; then
+  DEPLOY_SCOPE=$DOCKER_DEPLOY_SCOPE
+elif [[ "${DOCKER_DEPLOY_PI_SERVICES:-false}" == "true" ]]; then
+  DEPLOY_SCOPE=all
+else
+  DEPLOY_SCOPE=main
+fi
 DEPLOY_START_STOPPED=${DOCKER_DEPLOY_START_STOPPED:-false}
 LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
 
@@ -141,10 +147,25 @@ deploy_stack() {
   local stack_dir=$1
   local stack_path="$REPO_DIR/$stack_dir"
 
-  if [[ "$stack_dir" == pi/* && "$DEPLOY_PI_SERVICES" != "true" ]]; then
-    log "Skipping $stack_dir because Raspberry Pi stacks are not deployed by this runner"
-    return 0
-  fi
+  case "$DEPLOY_SCOPE" in
+    main)
+      if [[ "$stack_dir" == pi/* ]]; then
+        log "Skipping $stack_dir because deploy scope is main"
+        return 0
+      fi
+      ;;
+    pi)
+      if [[ "$stack_dir" != pi/* ]]; then
+        log "Skipping $stack_dir because deploy scope is pi"
+        return 0
+      fi
+      ;;
+    all)
+      ;;
+    *)
+      die "Invalid DOCKER_DEPLOY_SCOPE: $DEPLOY_SCOPE"
+      ;;
+  esac
 
   [[ -d "$stack_path" ]] || die "Service directory no longer exists: $stack_dir"
 
@@ -181,6 +202,11 @@ main() {
 
   exec 9>"$LOCK_FILE"
   flock -n 9 || die "Another compose deployment is already running"
+  case "$DEPLOY_SCOPE" in
+    main|pi|all) ;;
+    *) die "Invalid DOCKER_DEPLOY_SCOPE: $DEPLOY_SCOPE" ;;
+  esac
+  log "Deploy scope: $DEPLOY_SCOPE"
 
   local current_branch
   current_branch=$(git -C "$REPO_DIR" branch --show-current)

@@ -13,9 +13,69 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Deploy changed service folders
+  detect-changes:
+    name: Detect changed paths
     if: github.repository == 'Rubiss-Projects/docker'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      main_changed: ${{ steps.scope.outputs.main_changed }}
+      pi_changed: ${{ steps.scope.outputs.pi_changed }}
+
+    steps:
+      - name: Check out workflow commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine deploy scopes
+        id: scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+
+          if [[ -z "$before" || "$before" =~ ^0+$ ]] || ! git cat-file -e "${before}^{commit}" 2>/dev/null; then
+            before=
+          fi
+
+          if [[ -n "$before" ]]; then
+            mapfile -t changed_files < <(git diff --name-only "$before" "$after" --)
+          elif git rev-parse --verify "${after}^" >/dev/null 2>&1; then
+            mapfile -t changed_files < <(git diff --name-only "${after}^" "$after" --)
+          else
+            mapfile -t changed_files < <(git show --format= --name-only "$after")
+          fi
+
+          main_changed=false
+          pi_changed=false
+
+          for changed in "${changed_files[@]}"; do
+            case "$changed" in
+              pi/*)
+                pi_changed=true
+                ;;
+              scripts/deploy-changed-service-folders.sh|.github/workflows/deploy-service-changes.yml)
+                main_changed=true
+                pi_changed=true
+                ;;
+              *)
+                main_changed=true
+                ;;
+            esac
+          done
+
+          printf 'Changed paths:\n'
+          printf '%s\n' "${changed_files[@]}"
+          printf 'main_changed=%s\n' "$main_changed" | tee -a "$GITHUB_OUTPUT"
+          printf 'pi_changed=%s\n' "$pi_changed" | tee -a "$GITHUB_OUTPUT"
+
+  deploy-main:
+    name: Deploy main-host service folders
+    needs: detect-changes
+    if: needs.detect-changes.outputs.main_changed == 'true'
     runs-on:
       - self-hosted
       - wsl
@@ -27,7 +87,26 @@ jobs:
         shell: bash
         env:
           DOCKER_DEPLOY_BRANCH: main
-          DOCKER_DEPLOY_PI_SERVICES: "false"
+          DOCKER_DEPLOY_SCOPE: main
           DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /mnt/e/Docker
         run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
+
+  deploy-pi:
+    name: Deploy Raspberry Pi service folders
+    needs: detect-changes
+    if: needs.detect-changes.outputs.pi_changed == 'true'
+    runs-on:
+      - self-hosted
+      - pi-docker-ops
+    timeout-minutes: 90
+
+    steps:
+      - name: Deploy from Pi checkout
+        shell: bash
+        env:
+          DOCKER_DEPLOY_BRANCH: main
+          DOCKER_DEPLOY_SCOPE: pi
+          DOCKER_DEPLOY_START_STOPPED: "false"
+          DOCKER_REPO_DIR: /home/rubiss/Docker
+        run: /home/rubiss/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
