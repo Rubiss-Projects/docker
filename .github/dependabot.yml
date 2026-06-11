@@ -631,24 +631,6 @@ updates:
         patterns:
           - '*'
   - package-ecosystem: docker-compose
-    directory: /pi/watchtower
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "06:00"
-      timezone: America/Chicago
-    open-pull-requests-limit: 1
-    commit-message:
-      prefix: deps
-      include: scope
-    labels:
-      - dependencies
-      - docker-compose
-    groups:
-      pi-watchtower-images:
-        patterns:
-          - '*'
-  - package-ecosystem: docker-compose
     directory: /plex
     schedule:
       interval: weekly

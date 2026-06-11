@@ -5,7 +5,6 @@
 SERVICES=(
     "homebridge"
     "pi-hole"
-    "watchtower"
     "cadvisor"
     "node-exporter"
     "glances"
@@ -14,7 +13,6 @@ SERVICES=(
 SERVICE_DIRS=(
     "/home/rubiss/docker/pi/homebridge"
     "/home/rubiss/docker/pi/pi-hole"
-    "/home/rubiss/docker/pi/watchtower"
     "/home/rubiss/docker/pi/cadvisor"
     "/home/rubiss/docker/pi/node-exporter"
     "/home/rubiss/docker/pi/glances"
@@ -71,13 +69,13 @@ show_status() {
     echo " PI SERVICES STATUS"
     echo "=========================================="
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "homebridge|pihole|watchtower|cadvisor|node-exporter|glances-pi|NAMES"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "homebridge|pihole|cadvisor|node-exporter|glances-pi|NAMES"
     echo ""
     echo "=========================================="
     echo " RESOURCE USAGE"
     echo "=========================================="
     echo ""
-    docker stats --no-stream homebridge pihole watchtower cadvisor node-exporter glances-pi \
+    docker stats --no-stream homebridge pihole cadvisor node-exporter glances-pi \
         --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
     echo ""
     echo "=========================================="
