@@ -1,66 +1,13 @@
 version: 2
-
 updates:
   - package-ecosystem: docker-compose
-    directories:
-      - /ark
-      - /ark-ascended
-      - /astroneer
-      - /audiobookshelf
-      - /autobrr
-      - /bazarr
-      - /bitwarden
-      - /bookshelf
-      - /bookshelf-audio
-      - /cadvisor
-      - /calibre
-      - /channels-dvr
-      - /cloudflare-duc
-      - /cloudflare-tunnel
-      - /cross-seed
-      - /grafana
-      - /homepage
-      - /influxdb
-      - /it-tools
-      - /lazywarden
-      - /minecraft
-      - /mod-mc
-      - /n8n
-      - /nvidia-smi-rest
-      - /ollama
-      - /open-webui
-      - /openclaw
-      - /palworld
-      - /pi/cadvisor
-      - /pi/cloudflare-tunnel
-      - /pi/glances
-      - /pi/homebridge
-      - /pi/node-exporter
-      - /pi/pi-hole
-      - /pi/speedtest-tracker
-      - /pi/watchtower
-      - /plex
-      - /portainer
-      - /prometheus
-      - /prowlarr
-      - /radarr
-      - /recyclarr
-      - /seerr
-      - /socket-proxy
-      - /sonarr
-      - /speedtesttracker
-      - /swag
-      - /tautulli
-      - /transmission
-      - /unpackerr
-      - /uptime-kuma
-      - /valheim
+    directory: /ark
     schedule:
       interval: weekly
       day: saturday
       time: "06:00"
       timezone: America/Chicago
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 1
     commit-message:
       prefix: deps
       include: scope
@@ -68,6 +15,924 @@ updates:
       - dependencies
       - docker-compose
     groups:
-      docker-compose-images:
+      ark-images:
         patterns:
-          - "*"
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /ark-ascended
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      ark-ascended-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /astroneer
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      astroneer-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /audiobookshelf
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      audiobookshelf-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /autobrr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      autobrr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /bazarr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      bazarr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /bitwarden
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      bitwarden-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /bookshelf
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      bookshelf-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /bookshelf-audio
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      bookshelf-audio-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /cadvisor
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      cadvisor-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /calibre
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      calibre-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /channels-dvr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      channels-dvr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /cloudflare-duc
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      cloudflare-duc-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /cloudflare-tunnel
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      cloudflare-tunnel-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /cross-seed
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      cross-seed-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /grafana
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      grafana-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /homepage
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      homepage-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /influxdb
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      influxdb-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /it-tools
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      it-tools-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /lazywarden
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      lazywarden-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /minecraft
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      minecraft-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /mod-mc
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      mod-mc-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /n8n
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      n8n-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /nvidia-smi-rest
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      nvidia-smi-rest-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /ollama
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      ollama-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /open-webui
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      open-webui-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /openclaw
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      openclaw-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /palworld
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      palworld-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/cadvisor
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-cadvisor-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/cloudflare-tunnel
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-cloudflare-tunnel-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/glances
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-glances-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/homebridge
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-homebridge-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/node-exporter
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-node-exporter-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/pi-hole
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-pi-hole-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/speedtest-tracker
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-speedtest-tracker-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /pi/watchtower
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      pi-watchtower-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /plex
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      plex-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /portainer
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      portainer-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /prometheus
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      prometheus-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /prowlarr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      prowlarr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /radarr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      radarr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /recyclarr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      recyclarr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /seerr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      seerr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /socket-proxy
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      socket-proxy-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /sonarr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      sonarr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /speedtesttracker
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      speedtesttracker-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /swag
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      swag-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /tautulli
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      tautulli-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /transmission
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      transmission-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /unpackerr
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      unpackerr-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /uptime-kuma
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      uptime-kuma-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
+    directory: /valheim
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      valheim-images:
+        patterns:
+          - '*'
