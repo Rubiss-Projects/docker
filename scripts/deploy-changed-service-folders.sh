@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
 DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
+DEPLOY_REPOSITORY=${DOCKER_DEPLOY_REPOSITORY:-Rubiss-Projects/docker}
 if [[ -n "${DOCKER_DEPLOY_SCOPE:-}" ]]; then
   DEPLOY_SCOPE=$DOCKER_DEPLOY_SCOPE
 elif [[ "${DOCKER_DEPLOY_PI_SERVICES:-false}" == "true" ]]; then
@@ -135,6 +136,14 @@ is_zero_sha() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+verify_github_actions_context() {
+  [[ "${GITHUB_ACTIONS:-}" == "true" ]] || return 0
+
+  [[ "${GITHUB_EVENT_NAME:-}" == "push" ]] || die "Refusing to deploy from GitHub event: ${GITHUB_EVENT_NAME:-unset}"
+  [[ "${GITHUB_REF:-}" == "refs/heads/$DEPLOY_BRANCH" ]] || die "Refusing to deploy from Git ref: ${GITHUB_REF:-unset}"
+  [[ "${GITHUB_REPOSITORY:-}" == "$DEPLOY_REPOSITORY" ]] || die "Refusing to deploy from GitHub repository: ${GITHUB_REPOSITORY:-unset}"
 }
 
 find_service_dir() {
@@ -460,6 +469,7 @@ main() {
   require_command flock
   require_command git
   require_command jq
+  verify_github_actions_context
 
   [[ -d "$REPO_DIR/.git" ]] || die "Repository directory is not a git checkout: $REPO_DIR"
 

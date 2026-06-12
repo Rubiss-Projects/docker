@@ -25,9 +25,10 @@ jobs:
 
     steps:
       - name: Check out workflow commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Determine deploy scopes
         id: scope
@@ -91,7 +92,8 @@ jobs:
   deploy-main:
     name: Deploy main-host service folders
     needs: detect-changes
-    if: needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.main_changed == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Rubiss-Projects/docker' && needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.main_changed == 'true'
+    permissions: {}
     runs-on:
       - self-hosted
       - wsl
@@ -111,7 +113,8 @@ jobs:
   deploy-pi:
     name: Deploy Raspberry Pi service folders
     needs: detect-changes
-    if: needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.pi_changed == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Rubiss-Projects/docker' && needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.pi_changed == 'true'
+    permissions: {}
     runs-on:
       - self-hosted
       - pi-docker-ops

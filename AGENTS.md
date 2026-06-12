@@ -209,6 +209,21 @@ If the service must start before or after another stack, update the dependency m
 
 For documentation-only or no-op repository hygiene changes, include `[skip deploy]` in the merge commit message to skip the self-hosted deploy jobs.
 
+### Public Repository Actions Hardening
+
+This repository uses self-hosted runners for deployment. Self-hosted deploy jobs must stay restricted to trusted pushes on `main`; do not add `pull_request`, `pull_request_target`, `workflow_run`, or public `workflow_dispatch` paths that can schedule jobs on `self-hosted` runners.
+
+Required repository settings before making the repo public:
+- GitHub Actions permissions: enabled, selected actions only, GitHub-owned actions allowed, third-party actions blocked unless explicitly reviewed, and actions pinned to full-length commit SHAs.
+- Workflow permissions: read-only `GITHUB_TOKEN`; workflows cannot create or approve pull requests.
+- Fork PR workflow approval: require approval for `all_external_contributors` after the repository becomes public.
+
+After changing the repository to public, set the strict fork-PR approval policy:
+
+```bash
+gh api --method PUT repos/Rubiss-Projects/docker/actions/permissions/fork-pr-contributor-approval -f approval_policy=all_external_contributors
+```
+
 ---
 
 ## Step 3: Create Environment Files
