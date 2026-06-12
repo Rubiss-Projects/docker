@@ -1,0 +1,226 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  repository-validation:
+    name: Repository validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck python3-yaml
+
+      - name: Validate GitHub Actions policy
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          import yaml
+
+          REPOSITORY = "Rubiss-Projects/docker"
+          SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "pi-docker-ops"}
+          TRUSTED_SELF_HOSTED_IF_PARTS = (
+              "github.event_name == 'push'",
+              "github.ref == 'refs/heads/main'",
+              f"github.repository == '{REPOSITORY}'",
+          )
+          ALLOWED_REMOTE_ACTION = re.compile(r"^actions/checkout@[0-9a-f]{40}$")
+
+          def fail(message):
+              print(f"ERROR: {message}", file=sys.stderr)
+              sys.exit(1)
+
+          def event_names(on_value):
+              if isinstance(on_value, str):
+                  return {on_value}
+              if isinstance(on_value, list):
+                  return {str(item) for item in on_value}
+              if isinstance(on_value, dict):
+                  return {str(key) for key in on_value.keys()}
+              return set()
+
+          def sequence(value):
+              if value is None:
+                  return []
+              if isinstance(value, list):
+                  return [str(item) for item in value]
+              return [str(value)]
+
+          def push_is_main_only(on_value):
+              if not isinstance(on_value, dict):
+                  return False
+              if set(on_value.keys()) != {"push"}:
+                  return False
+              push = on_value.get("push")
+              if push in (None, ""):
+                  return False
+              if not isinstance(push, dict):
+                  return False
+              branches = sequence(push.get("branches"))
+              return branches == ["main"]
+
+          def labels_for_runs_on(value):
+              if isinstance(value, list):
+                  return {str(item) for item in value}
+              if isinstance(value, str):
+                  return {value}
+              return set()
+
+          def permissions_are_read_only(value):
+              if value in ({}, "read-all"):
+                  return True
+              if value in (None, "write-all"):
+                  return False
+              if not isinstance(value, dict):
+                  return False
+              return all(str(scope) in {"read", "none"} for scope in value.values())
+
+          def iter_uses(value):
+              if isinstance(value, dict):
+                  for key, nested in value.items():
+                      if key == "uses" and isinstance(nested, str):
+                          yield nested
+                      else:
+                          yield from iter_uses(nested)
+              elif isinstance(value, list):
+                  for nested in value:
+                      yield from iter_uses(nested)
+
+          for workflow in sorted(Path(".github/workflows").glob("*.y*ml")):
+              data = yaml.load(workflow.read_text(), Loader=yaml.BaseLoader) or {}
+              if not isinstance(data, dict):
+                  fail(f"{workflow}: workflow must be a mapping")
+
+              on_value = data.get("on")
+              events = event_names(on_value)
+              if "pull_request_target" in events:
+                  fail(f"{workflow}: pull_request_target is not allowed")
+
+              if not permissions_are_read_only(data.get("permissions")):
+                  fail(f"{workflow}: top-level permissions must be explicit and read-only")
+
+              for uses in iter_uses(data):
+                  if uses.startswith("./") or uses.startswith(".github/"):
+                      continue
+                  if not ALLOWED_REMOTE_ACTION.fullmatch(uses):
+                      fail(f"{workflow}: remote action must be pinned and allowlisted, got {uses}")
+
+              jobs = data.get("jobs") or {}
+              if not isinstance(jobs, dict):
+                  fail(f"{workflow}: jobs must be a mapping")
+
+              for job_name, job in jobs.items():
+                  if not isinstance(job, dict):
+                      continue
+                  if not permissions_are_read_only(job.get("permissions", data.get("permissions"))):
+                      fail(f"{workflow}: job {job_name} permissions must be read-only")
+
+                  labels = labels_for_runs_on(job.get("runs-on"))
+                  if labels & SELF_HOSTED_LABELS:
+                      if not push_is_main_only(on_value):
+                          fail(f"{workflow}: self-hosted job {job_name} must only run on push to main")
+                      job_if = str(job.get("if", ""))
+                      missing = [part for part in TRUSTED_SELF_HOSTED_IF_PARTS if part not in job_if]
+                      if missing:
+                          fail(f"{workflow}: self-hosted job {job_name} is missing trusted if guard(s): {missing}")
+                      if job.get("permissions") != {}:
+                          fail(f"{workflow}: self-hosted job {job_name} must set permissions: {{}}")
+
+          print("GitHub Actions policy checks passed")
+          PY
+
+      - name: Validate YAML syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          yaml_files=()
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              .github/*.yml|.github/*.yaml|.github/workflows/*.yml|.github/workflows/*.yaml|docker-compose.yml|compose.yml|compose.yaml|*/docker-compose.yml|*/compose.yml|*/compose.yaml)
+                yaml_files+=("$path")
+                ;;
+            esac
+          done < <(git ls-files -z)
+
+          python3 - "${yaml_files[@]}" <<'PY'
+          import sys
+
+          import yaml
+
+          for path in sys.argv[1:]:
+              with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+                  yaml.load(handle, Loader=yaml.BaseLoader)
+
+          print(f"YAML syntax checks passed for {len(sys.argv) - 1} files")
+          PY
+
+      - name: Validate shell scripts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mapfile -d '' shell_files < <(git ls-files -z -- '*.sh' '*.bash')
+          if (( ${#shell_files[@]} == 0 )); then
+            exit 0
+          fi
+          for script in "${shell_files[@]}"; do
+            bash -n "$script"
+          done
+          shellcheck --shell=bash --severity=error "${shell_files[@]}"
+
+      - name: Validate Python syntax
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Scan for obvious committed secrets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ! git grep -I -n -E '(BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{32,})' -- ':!*.env.secret' ':!*db.env.secret' ':!bitwarden/data/**'
+
+      - name: Validate Compose files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          find . \( -name '.env.secret' -o -name 'db.env.secret' \) -delete
+
+          mapfile -d '' compose_files < <(
+            find . \
+              -path './.git' -prune -o \
+              -path './bitwarden/data' -prune -o \
+              -type f \( -name 'docker-compose.yml' -o -name 'compose.yml' -o -name 'compose.yaml' \) \
+              -print0
+          )
+
+          for compose_file in "${compose_files[@]}"; do
+            service_dir=$(dirname "$compose_file")
+            compose_name=$(basename "$compose_file")
+            printf 'Validating %s\n' "$compose_file"
+            (cd "$service_dir" && docker compose -f "$compose_name" config --quiet)
+          done
