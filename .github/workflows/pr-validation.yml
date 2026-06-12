@@ -91,7 +91,19 @@ jobs:
                   return {str(item) for item in value}
               if isinstance(value, str):
                   return {value}
+              if isinstance(value, dict):
+                  labels = set(sequence(value.get("labels")))
+                  labels.update(sequence(value.get("group")))
+                  return labels
               return set()
+
+          def validate_policy_helpers():
+              mapping_labels = labels_for_runs_on({
+                  "group": "default",
+                  "labels": ["self-hosted", "docker-ops"],
+              })
+              if not {"self-hosted", "docker-ops"}.issubset(mapping_labels):
+                  fail("runs-on mapping labels were not detected")
 
           def permissions_are_read_only(value):
               if value in ({}, "read-all"):
@@ -112,6 +124,8 @@ jobs:
               elif isinstance(value, list):
                   for nested in value:
                       yield from iter_uses(nested)
+
+          validate_policy_helpers()
 
           for workflow in sorted(Path(".github/workflows").glob("*.y*ml")):
               data = yaml.load(workflow.read_text(), Loader=yaml.BaseLoader) or {}
