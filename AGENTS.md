@@ -214,7 +214,7 @@ For documentation-only or no-op repository hygiene changes, include `[skip deplo
 This repository uses self-hosted runners for deployment. Self-hosted deploy jobs must stay restricted to trusted pushes on `main`; do not add `pull_request`, `pull_request_target`, `workflow_run`, or public `workflow_dispatch` paths that can schedule jobs on `self-hosted` runners.
 
 Required repository settings before making the repo public:
-- GitHub Actions permissions: enabled, selected actions only, GitHub-owned actions allowed, third-party actions blocked unless explicitly reviewed, and actions pinned to full-length commit SHAs.
+- GitHub Actions permissions: enabled, selected actions only, only `actions/checkout@*` allowlisted, third-party actions blocked unless explicitly reviewed and allowlisted, and actions pinned to full-length commit SHAs.
 - Workflow permissions: read-only `GITHUB_TOKEN`; workflows cannot create or approve pull requests.
 - Fork PR workflow approval: require approval for `all_external_contributors` after the repository becomes public.
 
