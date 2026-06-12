@@ -35,6 +35,22 @@ vrising/persistentdata/*
 vrising/server/*
 channels-dvr/recordings/*
 
+# Operator-managed configuration that is safe to review/change in GitHub.
+!prometheus/config/prometheus.yml
+!recyclarr/config/recyclarr.yml
+!recyclarr/config/settings.yml
+!valheim/config/adminlist.txt
+!valheim/config/bannedlist.txt
+!valheim/config/permittedlist.txt
+!vrising/persistentdata/Settings/
+vrising/persistentdata/Settings/*
+!vrising/persistentdata/Settings/ServerGameSettings.json
+!minecraft/data/bukkit.yml
+!minecraft/data/spigot.yml
+!minecraft/data/config/
+!minecraft/data/config/paper-global.yml
+!minecraft/data/config/paper-world-defaults.yml
+
 # Backup files
 *.backup
 *.bak

@@ -9,7 +9,9 @@ services:
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
       - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     deploy:
       resources:
         reservations:

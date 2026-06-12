@@ -10,7 +10,9 @@ services:
     ports:
       - 8788:8787
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     restart: unless-stopped
     labels:
       - homepage.group=Media Management

@@ -1,0 +1,2 @@
+// List admin players ID  ONE per line
+76561197972598346

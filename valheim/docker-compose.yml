@@ -11,7 +11,9 @@ services:
       - "2456-2457:2456-2457/udp"
       - "9001:9001/tcp"
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     restart: unless-stopped
     stop_grace_period: 2m
     labels:

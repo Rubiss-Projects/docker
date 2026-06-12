@@ -19,7 +19,9 @@ services:
       - ENABLE_CROSSPLAY=true
       - DISABLE_BATTLEYE=true
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     ports:
       # Port for connections from ARK game client
       - "7779:7777/udp"

@@ -15,7 +15,9 @@ services:
         limits:
           memory: 512M
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     labels:
       - homepage.group=Media Management
       - homepage.name=Radarr

@@ -24,7 +24,9 @@ services:
       # Hardware transcoding flags
       - PLEX_HWACCEL=${PLEX_HWACCEL}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     deploy:
       resources:
         limits:

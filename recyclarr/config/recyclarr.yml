@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://schemas.recyclarr.dev/latest/config-schema.json
+
+# TRaSH Guides sync configuration
+# Runs daily via CRON_SCHEDULE to keep Radarr/Sonarr in sync with TRaSH recommendations
+# Docs: https://recyclarr.dev/reference/configuration/
+
+radarr:
+  movies:
+    base_url: !secret radarr_url
+    api_key: !secret radarr_apikey
+    delete_old_custom_formats: true
+
+    quality_definition:
+      type: movie
+
+    media_naming:
+      folder: default
+      movie:
+        rename: true
+        standard: standard
+
+    quality_profiles:
+      # HD Bluray + WEB — 6-15 GB per movie
+      - trash_id: d1d67249d3890e49bc12e275d989a7e9
+        reset_unmatched_scores:
+          enabled: true
+
+sonarr:
+  tv:
+    base_url: !secret sonarr_url
+    api_key: !secret sonarr_apikey
+    delete_old_custom_formats: true
+
+    quality_definition:
+      type: series
+
+    media_naming:
+      series: default
+      season: default
+      episodes:
+        rename: true
+        standard: default
+        daily: default
+        anime: default
+
+    quality_profiles:
+      # WEB-1080p — preferred for most TV content
+      - trash_id: 72dae194fc92bf828f32cde7744e51a1
+        reset_unmatched_scores:
+          enabled: true

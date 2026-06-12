@@ -3,8 +3,6 @@
 ###########################################################
 FROM cm2network/steamcmd:root
 
-LABEL maintainer="rubiss@gmail.com"
-
 ENV STEAMAPPID 728470
 ENV STEAMAPP astroneer
 ENV STEAMAPPDIR "${HOMEDIR}/${STEAMAPP}-dedicated"
@@ -14,9 +12,7 @@ RUN set -x \
 	&& mkdir -p "${STEAMAPPDIR}" \
 	&& chmod +x "${HOMEDIR}/entry.sh"
 	
-ENV PORT=8777 \
-    PUBLIC_IP=73.205.77.185 \
-    OWNERNAME=Rubiss
+ENV PORT=8777
 
 USER ${USER}
 

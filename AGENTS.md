@@ -34,8 +34,9 @@ Use the nearest applicable `AGENTS.md` for the task:
 - **WSL Execution**: ALL services must be started via WSL to ensure paths are registered correctly (e.g., `/mnt/e/Docker/...`)
 
 ### Environment & Secrets
-- **Per-service .env files**: Each service has its own `.env` file in the service directory
-- **git-crypt**: All `.env` and `db.env` files are encrypted using git-crypt. Never commit secrets in plain text.
+- **Per-service .env files**: Each service has a public `.env` file for non-secret defaults in the service directory
+- **Secret overlays**: Secrets live in encrypted `.env.secret` files (and `db.env.secret` for database services) loaded after `.env`
+- **git-crypt**: All `.env.secret` files are encrypted using git-crypt. Never commit secrets in plain text.
 - **Global variables**: Common variables like PUID, PGID, TZ are repeated across services
 
 ## Network Architecture
@@ -168,7 +169,9 @@ services:
       - "8080:8080"
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     networks:
       - proxynet
     labels:
@@ -200,32 +203,40 @@ This enables:
 - SWAG reverse proxy access
 - Homepage widget connectivity
 
+### Deployment Dependencies
+
+If the service must start before or after another stack, update the dependency maps in `scripts/deploy-changed-service-folders.sh` so GitHub Actions deploys changed services in a safe order. For critical Docker Desktop startup services, keep `../scripts/docker-desktop-common.ps1` in sync with the same order.
+
+For documentation-only or no-op repository hygiene changes, include `[skip deploy]` in the merge commit message to skip the self-hosted deploy jobs.
+
 ---
 
-## Step 3: Create .env File
+## Step 3: Create Environment Files
 
-Create `.env` with secrets and configuration:
+Create `.env` with public, non-secret defaults:
 
 ```bash
 # Standard variables
 PUID=1000
 PGID=1000
 TZ=America/Chicago
+```
 
-# Service-specific secrets
+Create `.env.secret` for service-specific secrets:
+
+```bash
 API_KEY=your-api-key-here
 DATABASE_PASSWORD=secure-password
 ```
 
 ### Security: git-crypt
 
-All `.env` files are encrypted with **git-crypt**. Ensure:
+All `.env.secret` files are encrypted with **git-crypt**. Ensure:
 1. git-crypt is configured in the repository
 2. Never commit secrets in plain text
-3. Add new `.env` files to `.gitattributes` if needed:
+3. Add new secret env patterns to `.gitattributes` if needed:
    ```
-   **/.env filter=git-crypt diff=git-crypt
-   **/db.env filter=git-crypt diff=git-crypt
+   *.env.secret filter=git-crypt diff=git-crypt
    ```
 
 ---
@@ -338,12 +349,45 @@ Use **internal Docker ports**, not host-mapped ports:
 
 ---
 
+## Step 7: Add Dependabot Updates
+
+Add the service to `.github/dependabot.yml` so Docker image pins continue to receive update PRs.
+
+Use the same weekly schedule and labels as the existing service entries:
+
+```yaml
+  - package-ecosystem: docker-compose
+    directory: /myservice
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      myservice-images:
+        patterns:
+          - '*'
+```
+
+Use the service directory as the `directory` value and a unique group name such as `{service}-images`.
+
+---
+
 ## Step 8: Start the Service
 
 ```bash
 cd /mnt/e/Docker/myservice
-docker compose up -d
+docker compose --env-file .env --env-file .env.secret up -d
 ```
+
+If the service does not have a `.env.secret` file, omit the second `--env-file` argument. This is required when secrets are referenced in the Compose YAML itself, such as Homepage widget keys in labels.
 
 **Important**: Always start from WSL for proper path registration.
 
@@ -366,7 +410,8 @@ docker compose up -d
 |------|--------|----------|
 | 1 | Folder name = container_name | Always |
 | 2 | docker-compose.yml with proxynet | Always |
-| 3 | .env file with git-crypt | If secrets |
+| 3 | Public `.env` plus encrypted `.env.secret` | If secrets |
 | 4 | SWAG proxy config | If external access |
 | 5 | Homepage labels/config | Always |
 | 6 | Uptime Kuma monitor | Always |
+| 7 | Dependabot docker-compose entry | Always |

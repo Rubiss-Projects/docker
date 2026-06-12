@@ -10,7 +10,9 @@ services:
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - WEBUI_NAME=${WEBUI_NAME}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     volumes:
       - ./data:/app/backend/data
     ports:

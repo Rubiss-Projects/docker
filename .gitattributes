@@ -1,8 +1,5 @@
-# Encrypt all .env files
-*.env filter=git-crypt diff=git-crypt
-
-# Encrypt db.env files
-db.env filter=git-crypt diff=git-crypt
+# Encrypt per-service secret env overlays
+*.env.secret filter=git-crypt diff=git-crypt
 
 # Encrypt openclaw config JSON files (contain API tokens)
 openclaw/config/*.json filter=git-crypt diff=git-crypt

@@ -9,7 +9,9 @@ services:
     ports:
       - 8211:8211
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     labels:
       - homepage.group=Gaming
       - homepage.name=Palworld

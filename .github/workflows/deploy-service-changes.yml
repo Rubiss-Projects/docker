@@ -21,6 +21,7 @@ jobs:
     outputs:
       main_changed: ${{ steps.scope.outputs.main_changed }}
       pi_changed: ${{ steps.scope.outputs.pi_changed }}
+      deploy_skipped: ${{ steps.scope.outputs.deploy_skipped }}
 
     steps:
       - name: Check out workflow commit
@@ -49,6 +50,20 @@ jobs:
             mapfile -t changed_files < <(git show --format= --name-only "$after")
           fi
 
+          if [[ -n "$before" ]]; then
+            commit_messages=$(git log --format=%B "$before..$after")
+          else
+            commit_messages=$(git log --format=%B -1 "$after")
+          fi
+
+          if grep -Eiq '\[(skip deploy|skip docker deploy|deploy skip)\]' <<<"$commit_messages"; then
+            printf 'Deploy skipped by commit message token.\n'
+            printf 'main_changed=false\n' | tee -a "$GITHUB_OUTPUT"
+            printf 'pi_changed=false\n' | tee -a "$GITHUB_OUTPUT"
+            printf 'deploy_skipped=true\n' | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           main_changed=false
           pi_changed=false
 
@@ -71,11 +86,12 @@ jobs:
           printf '%s\n' "${changed_files[@]}"
           printf 'main_changed=%s\n' "$main_changed" | tee -a "$GITHUB_OUTPUT"
           printf 'pi_changed=%s\n' "$pi_changed" | tee -a "$GITHUB_OUTPUT"
+          printf 'deploy_skipped=false\n' | tee -a "$GITHUB_OUTPUT"
 
   deploy-main:
     name: Deploy main-host service folders
     needs: detect-changes
-    if: needs.detect-changes.outputs.main_changed == 'true'
+    if: needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.main_changed == 'true'
     runs-on:
       - self-hosted
       - wsl
@@ -95,7 +111,7 @@ jobs:
   deploy-pi:
     name: Deploy Raspberry Pi service folders
     needs: detect-changes
-    if: needs.detect-changes.outputs.pi_changed == 'true'
+    if: needs.detect-changes.outputs.deploy_skipped != 'true' && needs.detect-changes.outputs.pi_changed == 'true'
     runs-on:
       - self-hosted
       - pi-docker-ops

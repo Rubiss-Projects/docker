@@ -4,13 +4,15 @@ services:
     hostname: lazywarden
     image: querylab/lazywarden:latest@sha256:ed1829a473cd7ce0e164bdef3f2fffebbd66da3389e467875855bb5313e4002f
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     environment:
       UNLOCK_VAULT: "true"
     volumes:
       - ./config:/root/lazywarden/config
       - ./data:/root/lazywarden/backup-drive/
-      - ./.env:/app/.env
+      - ./.env.secret:/app/.env:ro
     restart: unless-stopped
     deploy:
       resources:

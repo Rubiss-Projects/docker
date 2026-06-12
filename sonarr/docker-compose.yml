@@ -10,7 +10,9 @@ services:
     ports:
       - 8989:8989
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     restart: unless-stopped
     deploy:
       resources:

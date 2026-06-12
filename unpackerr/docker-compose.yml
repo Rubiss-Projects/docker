@@ -22,7 +22,9 @@ services:
       - UN_READARR_0_API_KEY=${UN_READARR_0_API_KEY}
       - UN_READARR_0_PATHS_0=${UN_READARR_0_PATHS_0}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     networks:
       - proxynet
 

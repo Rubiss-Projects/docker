@@ -8,7 +8,9 @@ services:
       - 8181:8181
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     labels:
       - homepage.group=Observability
       - homepage.name=Tautulli

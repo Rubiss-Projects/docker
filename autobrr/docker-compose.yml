@@ -14,7 +14,9 @@ services:
       - 9074:9074
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     labels:
       - homepage.group=Downloads
       - homepage.name=autobrr

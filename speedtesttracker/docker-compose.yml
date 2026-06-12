@@ -17,7 +17,9 @@ services:
       - ASSET_URL=${ASSET_URL}
       - DB_CONNECTION=${DB_CONNECTION}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     volumes:
       - ./data:/config
     labels:

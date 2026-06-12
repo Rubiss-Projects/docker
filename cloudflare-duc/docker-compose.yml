@@ -8,5 +8,7 @@ services:
       - CF_RECORD_NAME=public.benlawson.dev
       - UPDATE_INTERVAL=${UPDATE_INTERVAL:-5}
     env_file:
-      - .env
+      - path: .env
+      - path: .env.secret
+        required: false
     restart: unless-stopped
