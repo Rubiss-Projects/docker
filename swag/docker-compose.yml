@@ -6,6 +6,10 @@ services:
     container_name: swag
     cap_add:
       - NET_ADMIN
+    env_file:
+      - path: .env
+      - path: .env.secret
+        required: false
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -23,8 +27,6 @@ services:
       - DOCKER_MODS=linuxserver/mods:swag-dashboard|linuxserver/mods:swag-ondemand|linuxserver/mods:universal-docker|linuxserver/mods:swag-auto-uptime-kuma
       - DOCKER_HOST=tcp://socket-proxy:2375
       - UPTIME_KUMA_URL=http://uptime-kuma:3001/
-      - UPTIME_KUMA_USERNAME=${UPTIME_KUMA_USERNAME}
-      - UPTIME_KUMA_PASSWORD=${UPTIME_KUMA_PASSWORD}
       - UPTIME_KUMA_API_VERSION=2
     volumes:
       - ./config:/config
