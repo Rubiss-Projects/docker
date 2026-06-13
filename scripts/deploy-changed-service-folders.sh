@@ -341,6 +341,49 @@ start_kuma_maintenance() {
   fi
 }
 
+resolve_kuma_maintenance_targets() {
+  local stack_dir stack_path config_json target
+  declare -A targets=()
+
+  for stack_dir in "$@"; do
+    [[ -n "$stack_dir" ]] || continue
+    targets["$stack_dir"]=1
+
+    stack_path="$REPO_DIR/$stack_dir"
+    [[ -d "$stack_path" ]] || continue
+
+    if ! config_json=$(cd "$stack_path" && compose config --format json 2>/dev/null); then
+      log "Unable to render Compose config for $stack_dir while resolving Kuma maintenance targets; using stack directory name only"
+      continue
+    fi
+
+    while IFS= read -r target; do
+      [[ -n "$target" ]] || continue
+      targets["$target"]=1
+    done < <(
+      jq -r '
+        def kuma_enabled($labels):
+          if ($labels | type) == "object" then
+            (($labels["swag.uptime-kuma.enabled"] // "false") == "true")
+          elif ($labels | type) == "array" then
+            any($labels[]; . == "swag.uptime-kuma.enabled=true")
+          else
+            false
+          end;
+
+        .services
+        | to_entries[]
+        | select(kuma_enabled(.value.labels // {}))
+        | (.value.container_name // .key)
+      ' <<<"$config_json"
+    )
+  done
+
+  for target in "${!targets[@]}"; do
+    printf '%s\n' "$target"
+  done | sort
+}
+
 cleanup_kuma_maintenance() {
   local status=$?
   local helper="$REPO_DIR/scripts/kuma-maintenance.py"
@@ -610,8 +653,12 @@ main() {
   done
   log "Dependency-aware deployment plan: ${plan_parts[*]}"
 
+  local kuma_targets
+  mapfile -t kuma_targets < <(resolve_kuma_maintenance_targets "${service_dirs_sorted[@]}")
+  log "Uptime Kuma maintenance targets: ${kuma_targets[*]}"
+
   trap cleanup_kuma_maintenance EXIT
-  start_kuma_maintenance "deploy ${plan_parts[*]}" "${service_dirs_sorted[@]}"
+  start_kuma_maintenance "deploy ${plan_parts[*]}" "${kuma_targets[@]}"
 
   for service_dir in "${service_dirs_sorted[@]}"; do
     if [[ "${service_dirs[$service_dir]}" == "changed" ]]; then
