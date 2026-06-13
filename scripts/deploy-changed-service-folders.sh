@@ -13,7 +13,10 @@ else
 fi
 DEPLOY_START_STOPPED=${DOCKER_DEPLOY_START_STOPPED:-false}
 LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
+KUMA_MAINTENANCE_ENABLED=${DOCKER_DEPLOY_KUMA_MAINTENANCE:-true}
+KUMA_MAINTENANCE_TTL_MINUTES=${DOCKER_DEPLOY_KUMA_MAINTENANCE_TTL_MINUTES:-120}
 CRITICAL_STACK_ORDER=(socket-proxy uptime-kuma plex swag)
+KUMA_MAINTENANCE_IDS=()
 
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
@@ -290,6 +293,72 @@ verify_stack_readiness() {
   esac
 }
 
+kuma_maintenance_enabled() {
+  case "${KUMA_MAINTENANCE_ENABLED,,}" in
+    0|false|no|off)
+      return 1
+      ;;
+  esac
+
+  return 0
+}
+
+start_kuma_maintenance() {
+  local reason=$1
+  shift
+
+  if ! kuma_maintenance_enabled; then
+    log "Uptime Kuma maintenance is disabled"
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY RUN: would create Uptime Kuma maintenance for: $*"
+    return 0
+  fi
+
+  local helper="$REPO_DIR/scripts/kuma-maintenance.py"
+  if [[ ! -f "$helper" ]]; then
+    log "Uptime Kuma maintenance helper not found at $helper; continuing without maintenance"
+    return 0
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "python3 is not available; continuing without Uptime Kuma maintenance"
+    return 0
+  fi
+
+  local maintenance_id
+  if ! maintenance_id=$(python3 "$helper" start --ttl-minutes "$KUMA_MAINTENANCE_TTL_MINUTES" --reason "$reason" "$@"); then
+    log "Unable to create Uptime Kuma maintenance; continuing deploy"
+    return 0
+  fi
+
+  if [[ -n "$maintenance_id" ]]; then
+    KUMA_MAINTENANCE_IDS+=("$maintenance_id")
+    log "Created Uptime Kuma maintenance $maintenance_id"
+  else
+    log "No Uptime Kuma maintenance was created"
+  fi
+}
+
+cleanup_kuma_maintenance() {
+  local status=$?
+  local helper="$REPO_DIR/scripts/kuma-maintenance.py"
+  local maintenance_id
+
+  if [[ ${#KUMA_MAINTENANCE_IDS[@]} -gt 0 && -f "$helper" && "$DRY_RUN" != "true" ]]; then
+    for maintenance_id in "${KUMA_MAINTENANCE_IDS[@]}"; do
+      if python3 "$helper" stop "$maintenance_id"; then
+        log "Removed Uptime Kuma maintenance $maintenance_id"
+      else
+        log "Unable to remove Uptime Kuma maintenance $maintenance_id; it will expire automatically"
+      fi
+    done
+  fi
+
+  return "$status"
+}
+
 verify_config_mounts() {
   local stack_dir=$1
   local check_rows
@@ -540,6 +609,9 @@ main() {
     plan_parts+=("$service_dir:${service_dirs[$service_dir]}")
   done
   log "Dependency-aware deployment plan: ${plan_parts[*]}"
+
+  trap cleanup_kuma_maintenance EXIT
+  start_kuma_maintenance "deploy ${plan_parts[*]}" "${service_dirs_sorted[@]}"
 
   for service_dir in "${service_dirs_sorted[@]}"; do
     if [[ "${service_dirs[$service_dir]}" == "changed" ]]; then

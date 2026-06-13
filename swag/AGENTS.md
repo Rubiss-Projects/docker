@@ -57,8 +57,8 @@ Located in `/mnt/e/Docker/swag/.env`:
 
 ### Uptime Kuma Sync Variables
 - `UPTIME_KUMA_URL` - Internal URL (e.g., `http://uptime-kuma:3001/`)
-- `UPTIME_KUMA_USER` - Admin username
-- `UPTIME_KUMA_PASS` - Admin password
+- `UPTIME_KUMA_USERNAME` - Admin username
+- `UPTIME_KUMA_PASSWORD` - Admin password
 - `UPTIME_KUMA_API_VERSION=2` - Use v2 API for newer Uptime Kuma versions
 
 ## Adding a New Proxied Service
