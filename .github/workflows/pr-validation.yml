@@ -219,6 +219,8 @@ jobs:
 
       - name: Validate Compose files
         shell: bash
+        env:
+          HOMEPAGE_WIDGET_KEY: compose-validation-placeholder
         run: |
           set -Eeuo pipefail
 
