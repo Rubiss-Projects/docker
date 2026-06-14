@@ -19,6 +19,7 @@ openclaw/config/workspace/*
 !openclaw/config/workspace/TOOLS.md
 !openclaw/config/workspace/USER.md
 
+bitwarden/data/
 **/data/*
 **/logs/*
 **/metadata/*

@@ -54,7 +54,7 @@ services:
       - homepage.description=Plex media server
       - homepage.widget.type=plex
       - homepage.widget.url=http://plex:32400
-      - homepage.widget.key=${HOMEPAGE_WIDGET_KEY}
+      - homepage.widget.key=${HOMEPAGE_WIDGET_KEY:?HOMEPAGE_WIDGET_KEY is required in plex/.env.secret}
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Media Consumption
       - swag.uptime-kuma.monitor.url=https://plex.benlawson.dev/identity
