@@ -46,8 +46,13 @@ jobs:
 
           REPOSITORY = "Rubiss-Projects/docker"
           DEPENDABOT_AUTOMERGE_WORKFLOW = ".github/workflows/dependabot-auto-merge.yml"
+          SECRETS_CONTEXT = "secrets"
+          DEPENDABOT_AUTOMERGE_SECRET = "DEPENDABOT_AUTOMERGE_TOKEN"
+          DEPENDABOT_AUTOMERGE_SECRET_REF = f"{SECRETS_CONTEXT}.{DEPENDABOT_AUTOMERGE_SECRET}"
           DEPENDABOT_AUTOMERGE_IF_PARTS = (
               f"github.repository == '{REPOSITORY}'",
+              "github.actor == 'dependabot[bot]'",
+              "github.event.sender.login == 'dependabot[bot]'",
               "github.event.pull_request.user.login == 'dependabot[bot]'",
               "github.event.pull_request.draft == false",
           )
@@ -134,12 +139,18 @@ jobs:
           validate_policy_helpers()
 
           for workflow in sorted(Path(".github/workflows").glob("*.y*ml")):
-              data = yaml.load(workflow.read_text(), Loader=yaml.BaseLoader) or {}
+              workflow_text = workflow.read_text()
+              data = yaml.load(workflow_text, Loader=yaml.BaseLoader) or {}
               if not isinstance(data, dict):
                   fail(f"{workflow}: workflow must be a mapping")
 
               workflow_path = workflow.as_posix()
               is_dependabot_automerge = workflow_path == DEPENDABOT_AUTOMERGE_WORKFLOW
+              secret_reference_count = workflow_text.count(f"{SECRETS_CONTEXT}.")
+              secrets_context_dumped = (
+                  f"toJSON({SECRETS_CONTEXT}" in workflow_text
+                  or f"${{{{ {SECRETS_CONTEXT} }}}}" in workflow_text
+              )
 
               on_value = data.get("on")
               events = event_names(on_value)
@@ -149,11 +160,19 @@ jobs:
               if is_dependabot_automerge:
                   if events != {"pull_request"}:
                       fail(f"{workflow}: Dependabot auto-merge workflow must only use pull_request")
+                  if secret_reference_count != 1 or DEPENDABOT_AUTOMERGE_SECRET_REF not in workflow_text:
+                      fail(f"{workflow}: Dependabot auto-merge workflow must only reference {DEPENDABOT_AUTOMERGE_SECRET_REF}")
+                  if secrets_context_dumped:
+                      fail(f"{workflow}: Dependabot auto-merge workflow must not dump the secrets context")
+              elif secret_reference_count or secrets_context_dumped:
+                  fail(f"{workflow}: workflow must not reference secrets")
 
               if not permissions_are_read_only(data.get("permissions")):
                   fail(f"{workflow}: top-level permissions must be explicit and read-only")
 
               for uses in iter_uses(data):
+                  if is_dependabot_automerge:
+                      fail(f"{workflow}: Dependabot auto-merge workflow must not use actions, got {uses}")
                   if uses.startswith("./") or uses.startswith(".github/"):
                       continue
                   if not ALLOWED_REMOTE_ACTION.fullmatch(uses):
