@@ -47,6 +47,8 @@ jobs:
           REPOSITORY = "Rubiss-Projects/docker"
           DEPENDABOT_AUTOMERGE_WORKFLOW = ".github/workflows/dependabot-auto-merge.yml"
           SECRETS_CONTEXT = "secrets"
+          EXPRESSION_OPEN = "$" + "{{"
+          EXPRESSION_CLOSE = "}}"
           DEPENDABOT_AUTOMERGE_SECRET = "DEPENDABOT_AUTOMERGE_TOKEN"
           DEPENDABOT_AUTOMERGE_SECRET_REF = f"{SECRETS_CONTEXT}.{DEPENDABOT_AUTOMERGE_SECRET}"
           DEPENDABOT_AUTOMERGE_IF_PARTS = (
@@ -149,7 +151,7 @@ jobs:
               secret_reference_count = workflow_text.count(f"{SECRETS_CONTEXT}.")
               secrets_context_dumped = (
                   f"toJSON({SECRETS_CONTEXT}" in workflow_text
-                  or f"${{{{ {SECRETS_CONTEXT} }}}}" in workflow_text
+                  or f"{EXPRESSION_OPEN} {SECRETS_CONTEXT} {EXPRESSION_CLOSE}" in workflow_text
               )
 
               on_value = data.get("on")
