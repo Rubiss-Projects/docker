@@ -46,6 +46,7 @@ jobs:
 
           REPOSITORY = "Rubiss-Projects/docker"
           DEPENDABOT_AUTOMERGE_WORKFLOW = ".github/workflows/dependabot-auto-merge.yml"
+          DEPENDABOT_REBASE_WORKFLOW = ".github/workflows/dependabot-rebase.yml"
           SECRETS_CONTEXT = "secrets"
           EXPRESSION_OPEN = "$" + "{{"
           EXPRESSION_CLOSE = "}}"
@@ -57,6 +58,11 @@ jobs:
               "github.event.sender.login == 'dependabot[bot]'",
               "github.event.pull_request.user.login == 'dependabot[bot]'",
               "github.event.pull_request.draft == false",
+          )
+          DEPENDABOT_REBASE_IF_PARTS = (
+              f"github.repository == '{REPOSITORY}'",
+              "github.event_name == 'push'",
+              "github.ref == 'refs/heads/main'",
           )
           SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "pi-docker-ops"}
           TRUSTED_SELF_HOSTED_IF_PARTS = (
@@ -148,6 +154,8 @@ jobs:
 
               workflow_path = workflow.as_posix()
               is_dependabot_automerge = workflow_path == DEPENDABOT_AUTOMERGE_WORKFLOW
+              is_dependabot_rebase = workflow_path == DEPENDABOT_REBASE_WORKFLOW
+              is_dependabot_token_workflow = is_dependabot_automerge or is_dependabot_rebase
               secret_reference_count = workflow_text.count(f"{SECRETS_CONTEXT}.")
               secrets_context_dumped = (
                   f"toJSON({SECRETS_CONTEXT}" in workflow_text
@@ -162,10 +170,15 @@ jobs:
               if is_dependabot_automerge:
                   if events != {"pull_request"}:
                       fail(f"{workflow}: Dependabot auto-merge workflow must only use pull_request")
+              if is_dependabot_rebase:
+                  if events != {"push"} or not push_is_main_only(on_value):
+                      fail(f"{workflow}: Dependabot rebase workflow must only use push to main")
+
+              if is_dependabot_token_workflow:
                   if secret_reference_count != 1 or DEPENDABOT_AUTOMERGE_SECRET_REF not in workflow_text:
-                      fail(f"{workflow}: Dependabot auto-merge workflow must only reference {DEPENDABOT_AUTOMERGE_SECRET_REF}")
+                      fail(f"{workflow}: Dependabot token workflow must only reference {DEPENDABOT_AUTOMERGE_SECRET_REF}")
                   if secrets_context_dumped:
-                      fail(f"{workflow}: Dependabot auto-merge workflow must not dump the secrets context")
+                      fail(f"{workflow}: Dependabot token workflow must not dump the secrets context")
               elif secret_reference_count or secrets_context_dumped:
                   fail(f"{workflow}: workflow must not reference secrets")
 
@@ -173,8 +186,8 @@ jobs:
                   fail(f"{workflow}: top-level permissions must be explicit and read-only")
 
               for uses in iter_uses(data):
-                  if is_dependabot_automerge:
-                      fail(f"{workflow}: Dependabot auto-merge workflow must not use actions, got {uses}")
+                  if is_dependabot_token_workflow:
+                      fail(f"{workflow}: Dependabot token workflow must not use actions, got {uses}")
                   if uses.startswith("./") or uses.startswith(".github/"):
                       continue
                   if not ALLOWED_REMOTE_ACTION.fullmatch(uses):
@@ -196,6 +209,11 @@ jobs:
                       missing = [part for part in DEPENDABOT_AUTOMERGE_IF_PARTS if part not in job_if]
                       if missing:
                           fail(f"{workflow}: job {job_name} is missing Dependabot auto-merge if guard(s): {missing}")
+                  if is_dependabot_rebase:
+                      job_if = str(job.get("if", ""))
+                      missing = [part for part in DEPENDABOT_REBASE_IF_PARTS if part not in job_if]
+                      if missing:
+                          fail(f"{workflow}: job {job_name} is missing Dependabot rebase if guard(s): {missing}")
 
                   labels = labels_for_runs_on(job.get("runs-on"))
                   if labels & SELF_HOSTED_LABELS:
