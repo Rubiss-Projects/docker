@@ -2,7 +2,7 @@
   "id": "tWmK9mxsrVcB6Nzb",
   "active": true,
   "name": "Restart Container on Down",
-  "description": "Receives POST webhook notifications from Uptime Kuma when a monitored Docker container goes down (heartbeat status=0). It inspects the matching container through socket-proxy and only restarts it when Docker reports the container is not running or unhealthy. Requires the monitor name in Uptime Kuma to match the Docker container name, which in this repo should also match the service folder name.",
+  "description": "Receives POST webhook notifications from Uptime Kuma when a monitored Docker container goes down (heartbeat status=0). It runs the repo-local self-heal script, which starts stopped containers and restarts unhealthy containers with bounded timeouts plus force-kill/start fallback when Docker restart gets stuck. Requires the monitor name in Uptime Kuma to match the Docker container name, which in this repo should also match the service folder name.",
   "nodes": [
     {
       "parameters": {
@@ -40,48 +40,13 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ 'http://socket-proxy:2375/containers/' + encodeURIComponent($('Webhook').first().json.body.monitor.name.toLowerCase()) + '/json' }}",
-        "options": {}
+        "command": "={{ 'node /mnt/e/Docker/n8n/scripts/self_heal_container.js --container ' + JSON.stringify(($json.body.monitor.docker_container || $json.body.monitor.name || '').toLowerCase()) }}"
       },
-      "name": "Get Container State",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        900,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ $json.State.Status !== 'running' || ($json.State.Health && $json.State.Health.Status === 'unhealthy') }}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "name": "If Restart Needed",
-      "type": "n8n-nodes-base.if",
+      "name": "Self-Heal Container",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        1120,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'http://socket-proxy:2375/containers/' + encodeURIComponent($('Webhook').first().json.body.monitor.name.toLowerCase()) + '/restart' }}",
-        "options": {}
-      },
-      "name": "Restart Container",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1340,
+        900,
         300
       ]
     }
@@ -102,29 +67,7 @@
       "main": [
         [
           {
-            "node": "Get Container State",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Container State": {
-      "main": [
-        [
-          {
-            "node": "If Restart Needed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "If Restart Needed": {
-      "main": [
-        [
-          {
-            "node": "Restart Container",
+            "node": "Self-Heal Container",
             "type": "main",
             "index": 0
           }
