@@ -8,6 +8,7 @@ on:
 concurrency:
   group: docker-ops-deploy-main
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read

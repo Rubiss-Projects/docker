@@ -1,0 +1,96 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-automerge:
+    name: Enable Dependabot auto-merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.repository == 'Rubiss-Projects/docker' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
+
+    steps:
+      - name: Classify dependency update
+        id: classify
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          pr = event["pull_request"]
+          body = pr.get("body") or ""
+          title = pr.get("title") or ""
+
+          update_pairs = re.findall(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)", body)
+          version_pattern = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z._-]+)?$")
+
+          reasons = []
+          update_types = []
+
+          if not update_pairs:
+              reasons.append("no Dependabot update pairs found")
+
+          for old, new in update_pairs:
+              old_match = version_pattern.fullmatch(old)
+              new_match = version_pattern.fullmatch(new)
+              if not old_match or not new_match:
+                  reasons.append(f"{old} -> {new} is not a numeric version triplet")
+                  continue
+
+              old_version = tuple(int(part) for part in old_match.groups())
+              new_version = tuple(int(part) for part in new_match.groups())
+
+              if new_version <= old_version:
+                  reasons.append(f"{old} -> {new} is not an upgrade")
+              elif new_version[0] != old_version[0]:
+                  reasons.append(f"{old} -> {new} is a major update")
+              elif new_version[1] != old_version[1]:
+                  update_types.append("minor")
+              else:
+                  update_types.append("patch")
+
+          eligible = bool(update_pairs) and not reasons and all(
+              update_type in {"minor", "patch"} for update_type in update_types
+          )
+
+          print(f"eligible={'true' if eligible else 'false'}")
+          print(f"summary={'; '.join(update_types) if update_types else title}")
+          if reasons:
+              print(f"reason={'; '.join(reasons)}")
+          PY
+
+      - name: Report skipped update
+        if: steps.classify.outputs.eligible != 'true'
+        shell: bash
+        run: |
+          printf 'Skipping auto-merge: %s\n' "${{ steps.classify.outputs.reason }}"
+
+      - name: Enable GitHub auto-merge
+        if: steps.classify.outputs.eligible == 'true'
+        shell: bash
+        run: gh pr merge --auto --rebase "$PR_URL"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
