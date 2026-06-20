@@ -1,0 +1,94 @@
+name: Dependabot Rebase
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: dependabot-rebase-main
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+
+jobs:
+  request-rebases:
+    name: Request Dependabot rebases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository == 'Rubiss-Projects/docker' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Request stale Dependabot rebases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            printf '::error::DEPENDABOT_AUTOMERGE_TOKEN secret is required to request Dependabot rebases\n'
+            exit 1
+          fi
+
+          sleep 30
+
+          prs_json="$RUNNER_TEMP/dependabot-prs.json"
+          rebase_list="$RUNNER_TEMP/dependabot-rebase-prs.txt"
+          gh pr list \
+            --repo "$REPOSITORY" \
+            --state open \
+            --author app/dependabot \
+            --json number,body,mergeStateStatus,autoMergeRequest \
+            --limit 100 > "$prs_json"
+
+          python3 - "$prs_json" > "$rebase_list" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          prs = json.loads(Path(sys.argv[1]).read_text())
+          update_pattern = re.compile(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)")
+          version_pattern = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z._-]+)?$")
+
+          def eligible(pr):
+              update_pairs = update_pattern.findall(pr.get("body") or "")
+              if not update_pairs:
+                  return False
+
+              for old, new in update_pairs:
+                  old_match = version_pattern.fullmatch(old)
+                  new_match = version_pattern.fullmatch(new)
+                  if not old_match or not new_match:
+                      return False
+
+                  old_version = tuple(int(part) for part in old_match.groups())
+                  new_version = tuple(int(part) for part in new_match.groups())
+                  if new_version <= old_version or new_version[0] != old_version[0]:
+                      return False
+
+              return True
+
+          for pr in prs:
+              if not pr.get("autoMergeRequest"):
+                  continue
+              if pr.get("mergeStateStatus") != "BEHIND":
+                  continue
+              if eligible(pr):
+                  print(pr["number"])
+          PY
+
+          if [[ ! -s "$rebase_list" ]]; then
+            printf 'No stale eligible Dependabot PRs need rebase requests\n'
+            exit 0
+          fi
+
+          while IFS= read -r pr_number; do
+            [[ -n "$pr_number" ]] || continue
+            printf 'Requesting Dependabot rebase for PR #%s\n' "$pr_number"
+            gh pr comment "$pr_number" --repo "$REPOSITORY" --body '@dependabot rebase'
+          done < "$rebase_list"
