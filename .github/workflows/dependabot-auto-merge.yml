@@ -15,8 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   enable-automerge:
@@ -90,7 +89,13 @@ jobs:
       - name: Enable GitHub auto-merge
         if: steps.classify.outputs.eligible == 'true'
         shell: bash
-        run: gh pr merge --auto --rebase "$PR_URL"
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            printf '::error::DEPENDABOT_AUTOMERGE_TOKEN secret is required so auto-merges trigger deploy workflows\n'
+            exit 1
+          fi
+
+          gh pr merge --auto --rebase "$PR_URL"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
