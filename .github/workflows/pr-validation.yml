@@ -45,6 +45,16 @@ jobs:
           import yaml
 
           REPOSITORY = "Rubiss-Projects/docker"
+          DEPENDABOT_AUTOMERGE_WORKFLOW = ".github/workflows/dependabot-auto-merge.yml"
+          DEPENDABOT_AUTOMERGE_PERMISSIONS = {
+              "contents": "write",
+              "pull-requests": "write",
+          }
+          DEPENDABOT_AUTOMERGE_IF_PARTS = (
+              f"github.repository == '{REPOSITORY}'",
+              "github.event.pull_request.user.login == 'dependabot[bot]'",
+              "github.event.pull_request.draft == false",
+          )
           SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "pi-docker-ops"}
           TRUSTED_SELF_HOSTED_IF_PARTS = (
               "github.event_name == 'push'",
@@ -114,6 +124,9 @@ jobs:
                   return False
               return all(str(scope) in {"read", "none"} for scope in value.values())
 
+          def permissions_are_dependabot_automerge(value):
+              return isinstance(value, dict) and value == DEPENDABOT_AUTOMERGE_PERMISSIONS
+
           def iter_uses(value):
               if isinstance(value, dict):
                   for key, nested in value.items():
@@ -132,12 +145,20 @@ jobs:
               if not isinstance(data, dict):
                   fail(f"{workflow}: workflow must be a mapping")
 
+              workflow_path = workflow.as_posix()
+              is_dependabot_automerge = workflow_path == DEPENDABOT_AUTOMERGE_WORKFLOW
+
               on_value = data.get("on")
               events = event_names(on_value)
               if "pull_request_target" in events:
                   fail(f"{workflow}: pull_request_target is not allowed")
 
-              if not permissions_are_read_only(data.get("permissions")):
+              if is_dependabot_automerge:
+                  if events != {"pull_request"}:
+                      fail(f"{workflow}: Dependabot auto-merge workflow must only use pull_request")
+                  if not permissions_are_dependabot_automerge(data.get("permissions")):
+                      fail(f"{workflow}: Dependabot auto-merge workflow has invalid permissions")
+              elif not permissions_are_read_only(data.get("permissions")):
                   fail(f"{workflow}: top-level permissions must be explicit and read-only")
 
               for uses in iter_uses(data):
@@ -153,7 +174,15 @@ jobs:
               for job_name, job in jobs.items():
                   if not isinstance(job, dict):
                       continue
-                  if not permissions_are_read_only(job.get("permissions", data.get("permissions"))):
+                  job_permissions = job.get("permissions", data.get("permissions"))
+                  if is_dependabot_automerge:
+                      if not permissions_are_dependabot_automerge(job_permissions):
+                          fail(f"{workflow}: job {job_name} has invalid Dependabot auto-merge permissions")
+                      job_if = str(job.get("if", ""))
+                      missing = [part for part in DEPENDABOT_AUTOMERGE_IF_PARTS if part not in job_if]
+                      if missing:
+                          fail(f"{workflow}: job {job_name} is missing Dependabot auto-merge if guard(s): {missing}")
+                  elif not permissions_are_read_only(job_permissions):
                       fail(f"{workflow}: job {job_name} permissions must be read-only")
 
                   labels = labels_for_runs_on(job.get("runs-on"))
