@@ -40,13 +40,25 @@
     },
     {
       "parameters": {
-        "command": "={{ 'node /mnt/e/Docker/n8n/scripts/self_heal_container.js --container ' + JSON.stringify(($json.body.monitor.docker_container || $json.body.monitor.name || '').toLowerCase()) }}"
+        "jsCode": "const item = $input.first().json;\nconst monitor = item.body?.monitor ?? {};\nconst rawContainer = monitor.docker_container || monitor.name || '';\nconst container = String(rawContainer).trim().toLowerCase();\n\nif (!/^[a-z0-9][a-z0-9_.-]*$/.test(container)) {\n  throw new Error(`Invalid Docker container name: ${rawContainer}`);\n}\n\nreturn [{ json: { ...item, container } }];"
+      },
+      "name": "Validate Container Name",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "={{ 'node /mnt/e/Docker/n8n/scripts/self_heal_container.js --container ' + $json.container }}"
       },
       "name": "Self-Heal Container",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        900,
+        1120,
         300
       ]
     }
@@ -64,6 +76,17 @@
       ]
     },
     "If Down": {
+      "main": [
+        [
+          {
+            "node": "Validate Container Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Container Name": {
       "main": [
         [
           {

@@ -3,6 +3,7 @@
 
 const http = require('http');
 
+const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
 const container = (args.container || process.env.CONTAINER_NAME || '').trim().toLowerCase();
 const dockerBaseUrl = new URL(process.env.DOCKER_API_URL || 'http://socket-proxy:2375');
@@ -14,6 +15,10 @@ const actions = [];
 
 if (!container) {
   fail('Missing --container argument');
+}
+
+if (!CONTAINER_NAME_PATTERN.test(container)) {
+  fail(`Invalid Docker container name: ${container}`);
 }
 
 main().catch((error) => {
