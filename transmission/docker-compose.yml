@@ -36,7 +36,7 @@ services:
         reservations:
           memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "[ \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/transmission/rpc)\" = \"409\" ]"]
+      test: ["CMD-SHELL", "[ \"$(curl --silent --show-error --connect-timeout 3 --max-time 8 -o /dev/null -w '%{http_code}' http://localhost:9091/transmission/rpc)\" = \"409\" ]"]
       interval: 30s
       timeout: 10s
       retries: 3
