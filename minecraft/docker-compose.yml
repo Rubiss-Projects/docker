@@ -1,6 +1,6 @@
 services:
   minecraft-server:
-    image: itzg/minecraft-server:java25@sha256:45cd83dbf8fef443253f10a8db57240f3f3c2696d090f03a309400e95f88547b
+    image: itzg/minecraft-server:java25@sha256:2515a051e7da13a29e0501eef78dcd42e2d9de1f4cfdde6f360ee977f6557cd5
     container_name: minecraft
     volumes:
       - ./data:/data
