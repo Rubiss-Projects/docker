@@ -22,7 +22,7 @@ jobs:
     name: Enable Dependabot auto-merge
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: github.repository == 'Rubiss-Projects/docker' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
+    if: github.repository == 'Rubiss-Projects/docker' && github.actor == 'dependabot[bot]' && github.event.sender.login == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
 
     steps:
       - name: Classify dependency update
