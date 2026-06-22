@@ -150,14 +150,20 @@ function getStuckReason(torrent, args) {
     return 'stopped-below-threshold';
   }
 
-  const leftMb = (torrent.leftUntilDone || 0) / 1024 / 1024;
+  const leftBytes = torrent.leftUntilDone || 0;
+  const leftMb = leftBytes / 1024 / 1024;
   const hasDownloadRate = (torrent.rateDownload || 0) > 0;
+  const hasError = (torrent.error || 0) !== 0 || Boolean(torrent.errorString);
+  const hasFailureSignal = torrent.isStalled === true || hasError;
   if (
+    torrent.percentDone < 1 &&
+    leftBytes > 0 &&
     percent >= args.nearCompletePercent &&
     leftMb <= args.nearCompleteMaxLeftMb &&
-    !hasDownloadRate
+    !hasDownloadRate &&
+    hasFailureSignal
   ) {
-    return 'near-complete-no-rate';
+    return 'near-complete-stalled';
   }
 
   return null;
@@ -172,6 +178,8 @@ async function findStuckTorrents(rpcUrl, sessionId, args, graceSeconds) {
     'leftUntilDone',
     'rateDownload',
     'isStalled',
+    'error',
+    'errorString',
     'labels',
     'hashString',
     'addedDate',
