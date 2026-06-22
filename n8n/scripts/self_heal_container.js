@@ -11,6 +11,7 @@ const requestTimeoutMs = numberArg(args.requestTimeoutMs, 'REQUEST_TIMEOUT_MS', 
 const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT_SECONDS', 10);
 const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', 90000);
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
+const postKillWaitMs = numberArg(args.postKillWaitMs, 'POST_KILL_WAIT_MS', 30000);
 const actions = [];
 
 if (!container) {
@@ -75,17 +76,23 @@ async function recoverUnhealthy() {
   }
 
   actions.push({ action: 'force_kill', reason: 'container was still running after restart failed' });
-  await docker('POST', `/containers/${encodeURIComponent(container)}/kill?signal=SIGKILL`, {
-    timeoutMs: requestTimeoutMs,
-    ok: [204, 409],
-  });
+  try {
+    await docker('POST', `/containers/${encodeURIComponent(container)}/kill?signal=SIGKILL`, {
+      timeoutMs: requestTimeoutMs,
+      ok: [204, 409],
+    });
+  } catch (error) {
+    actions.push({ action: 'force_kill_failed', message: error.message });
+  }
 
-  await sleep(2000);
-  current = await getContainer();
+  current = await waitForNonRunning(postKillWaitMs);
   if (current.State.Status !== 'running') {
     actions.push({ action: 'start_after_force_kill', reason: `container status is ${current.State.Status}` });
     await startContainer();
+    return;
   }
+
+  throw new Error(`Container still running after failed restart/force kill; status=${current.State.Status}, health=${current.State.Health ? current.State.Health.Status : 'none'}`);
 }
 
 async function startContainer() {
@@ -121,6 +128,21 @@ async function waitForRecovery() {
       return last;
     }
     await sleep(pollIntervalMs);
+  }
+
+  return last;
+}
+
+async function waitForNonRunning(maxMs) {
+  const deadline = Date.now() + maxMs;
+  let last = await getContainer();
+
+  while (Date.now() < deadline) {
+    if (last.State.Status !== 'running') {
+      return last;
+    }
+    await sleep(pollIntervalMs);
+    last = await getContainer();
   }
 
   return last;
