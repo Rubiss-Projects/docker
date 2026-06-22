@@ -1,0 +1,135 @@
+{
+  "id": "xSdK7nTrackerDeleted1",
+  "active": true,
+  "name": "Tracker Deleted Torrent Cleanup",
+  "description": "Scheduled every 6 hours. Removes Transmission torrent entries whose tracker announce or scrape result says the torrent has been deleted. Local data is kept by default. Sends a Discord notification only when torrents are removed or the cleanup script reports an error.",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "node /mnt/e/Docker/n8n/scripts/cleanup_tracker_deleted.js --json --rpc-url http://transmission:9091/transmission/rpc/"
+      },
+      "name": "Run Cleanup Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout;\nlet result;\n\ntry {\n  result = JSON.parse(stdout);\n} catch (e) {\n  result = { error: 'Failed to parse script output: ' + e.message, removed: [], count: 0 };\n}\n\nif (result.error) {\n  return [{\n    json: {\n      count: 1,\n      error: result.error,\n      discordPayload: {\n        embeds: [{\n          title: 'Tracker Deleted Cleanup Error',\n          description: result.error,\n          color: 15158332,\n          timestamp: new Date().toISOString(),\n          footer: { text: 'Tracker Deleted Cleanup Automation' }\n        }]\n      }\n    }\n  }];\n}\n\nconst fields = (result.removed || []).map(t => ({\n  name: String(t.name || 'Unknown').slice(0, 256),\n  value: ('ID ' + t.id + ' | ' + t.percentDone + '% complete | ' + (t.label || 'unlabeled') + '\\n' + (t.match || '')).slice(0, 1024),\n  inline: false\n}));\n\nconst embed = {\n  title: 'Tracker Deleted Cleanup',\n  description: 'Removed **' + result.count + '** torrent(s)' + (result.deleteLocalData ? ' with local data deletion' : ''),\n  color: 16744576,\n  fields: fields.slice(0, 25),\n  timestamp: new Date().toISOString(),\n  footer: { text: 'Tracker Deleted Cleanup Automation' }\n};\n\nreturn [{\n  json: {\n    count: result.count,\n    removed: result.removed,\n    discordPayload: { embeds: [embed] }\n  }\n}];"
+      },
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "Has Removals",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.discordPayload) }}",
+        "options": {}
+      },
+      "name": "Notify Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Run Cleanup Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Cleanup Script": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Has Removals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Removals": {
+      "main": [
+        [
+          {
+            "node": "Notify Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
