@@ -92,7 +92,10 @@ async function recoverUnhealthy() {
     return;
   }
 
-  throw new Error(`Container still running after failed restart/force kill; status=${current.State.Status}, health=${current.State.Health ? current.State.Health.Status : 'none'}`);
+  actions.push({
+    action: 'wait_for_restarted_container',
+    reason: `container is ${current.State.Status} with health ${current.State.Health ? current.State.Health.Status : 'none'}`,
+  });
 }
 
 async function startContainer() {
