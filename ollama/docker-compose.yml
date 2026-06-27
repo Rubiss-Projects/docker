@@ -1,6 +1,6 @@
 services:
   ollama:
-    image: ollama/ollama:0.30.10
+    image: ollama/ollama:0.30.11
     container_name: ollama
     environment:
       - PUID=${PUID}
