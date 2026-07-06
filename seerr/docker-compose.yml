@@ -1,6 +1,6 @@
 services:
   seerr:
-    image: ghcr.io/jabloink/jellyseerr:preview-books
+    image: ghcr.io/rubiss/seerr:book-support
     container_name: seerr
     environment:
       - PUID=${PUID}
