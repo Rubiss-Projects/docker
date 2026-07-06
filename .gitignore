@@ -25,6 +25,7 @@ bitwarden/data/
 **/metadata/*
 
 # Service-specific directories
+seerr/maintenance/
 nginx-proxy-manager/letsencrypt/*
 palworld/win/*
 pi-hole/etc-*/*
