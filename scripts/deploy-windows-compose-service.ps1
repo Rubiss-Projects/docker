@@ -47,7 +47,7 @@ if (-not $isDryRun -and -not $shouldStartStopped) {
         throw "Unable to determine running Compose services in $ServiceDirectory"
     }
     if ([string]::IsNullOrWhiteSpace(($runningServices -join "`n"))) {
-        Write-Host "Skipping $ServiceDirectory because it has no currently running Compose services"
+        Write-Host "WINDOWS_COMPOSE_DEPLOY_SKIPPED: $ServiceDirectory has no currently running Compose services"
         exit 0
     }
 }
