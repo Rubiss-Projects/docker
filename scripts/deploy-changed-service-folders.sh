@@ -70,7 +70,7 @@ is_windows_compose_stack() {
 
 deploy_windows_stack() {
   local stack_dir=$1
-  local windows_repo_dir windows_service_dir helper
+  local windows_repo_dir windows_service_dir helper output
 
   [[ -x "$WINDOWS_POWERSHELL" ]] || die "Windows PowerShell is not executable at $WINDOWS_POWERSHELL"
   windows_repo_dir=$(wslpath -w "$REPO_DIR")
@@ -78,7 +78,14 @@ deploy_windows_stack() {
   helper="$windows_repo_dir\\scripts\\deploy-windows-compose-service.ps1"
 
   log "Deploying $stack_dir with Windows Docker Compose"
-  "$WINDOWS_POWERSHELL" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$helper" -ServiceDirectory "$windows_service_dir" -StartStopped "${DEPLOY_START_STOPPED,,}" -DryRun "$DRY_RUN"
+  if ! output=$("$WINDOWS_POWERSHELL" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$helper" -ServiceDirectory "$windows_service_dir" -StartStopped "${DEPLOY_START_STOPPED,,}" -DryRun "$DRY_RUN" 2>&1); then
+    die "Windows Compose deployment failed for $stack_dir: $output"
+  fi
+  [[ -n "$output" ]] && printf '%s\n' "$output"
+
+  if [[ "$output" == *"WINDOWS_COMPOSE_DEPLOY_SKIPPED:"* ]]; then
+    return 10
+  fi
 }
 
 stack_dependencies() {
@@ -555,7 +562,13 @@ deploy_stack() {
   [[ -d "$stack_path" ]] || die "Service directory no longer exists: $stack_dir"
 
   if is_windows_compose_stack "$stack_dir"; then
-    deploy_windows_stack "$stack_dir"
+    local windows_deploy_status=0
+    deploy_windows_stack "$stack_dir" || windows_deploy_status=$?
+    if [[ "$windows_deploy_status" -eq 10 ]]; then
+      log "Skipping $stack_dir readiness checks because its Windows Compose deployment was skipped"
+      return 0
+    fi
+    [[ "$windows_deploy_status" -eq 0 ]] || return "$windows_deploy_status"
     if [[ "$DRY_RUN" != "true" ]]; then
       wait_container_ready cadvisor 180
     fi
