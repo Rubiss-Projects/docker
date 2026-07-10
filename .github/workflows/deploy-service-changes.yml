@@ -102,13 +102,15 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Deploy from WSL checkout
+      - name: Deploy main-host services from their required host context
         shell: bash
         env:
           DOCKER_DEPLOY_BRANCH: main
           DOCKER_DEPLOY_SCOPE: main
           DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /mnt/e/Docker
+        # Most stacks use WSL Compose. The deploy script explicitly delegates
+        # main-host cAdvisor to Windows Compose so its host mounts resolve there.
         run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
 
   deploy-pi:

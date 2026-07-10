@@ -9,6 +9,10 @@ cAdvisor (Container Advisor) collects, processes, and exports metrics for runnin
 - **Raspberry Pi 3**: Optimized for limited resources (1GB RAM) with disabled metrics and longer intervals
 - **Windows Host**: Standard configuration with full metrics collection for comprehensive monitoring
 
+### Windows Compose Requirement
+
+The main-host `cadvisor` stack must be created and recreated by the Windows Docker CLI, not by `docker compose` inside WSL. Its host-level mounts need the Windows/Docker Desktop execution context. Use `E:\Docker\cadvisor` as the Compose project directory. This exception does not apply to `pi/cadvisor`, which is deployed directly on the Raspberry Pi.
+
 ## Technical Configuration
 
 ### Docker Compose Patterns
