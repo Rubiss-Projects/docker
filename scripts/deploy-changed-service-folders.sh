@@ -16,6 +16,8 @@ LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
 KUMA_MAINTENANCE_ENABLED=${DOCKER_DEPLOY_KUMA_MAINTENANCE:-true}
 KUMA_MAINTENANCE_TTL_MINUTES=${DOCKER_DEPLOY_KUMA_MAINTENANCE_TTL_MINUTES:-120}
 CRITICAL_STACK_ORDER=(socket-proxy uptime-kuma plex swag)
+WINDOWS_COMPOSE_STACKS=(cadvisor)
+WINDOWS_POWERSHELL=${DOCKER_DEPLOY_WINDOWS_POWERSHELL:-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}
 KUMA_MAINTENANCE_IDS=()
 
 DRY_RUN=false
@@ -53,6 +55,30 @@ compose() {
   [[ -f .env.secret ]] && env_args+=(--env-file .env.secret)
 
   docker compose "${env_args[@]}" "$@"
+}
+
+is_windows_compose_stack() {
+  local candidate=$1
+  local stack
+
+  for stack in "${WINDOWS_COMPOSE_STACKS[@]}"; do
+    [[ "$candidate" == "$stack" ]] && return 0
+  done
+
+  return 1
+}
+
+deploy_windows_stack() {
+  local stack_dir=$1
+  local windows_repo_dir windows_service_dir helper
+
+  [[ -x "$WINDOWS_POWERSHELL" ]] || die "Windows PowerShell is not executable at $WINDOWS_POWERSHELL"
+  windows_repo_dir=$(wslpath -w "$REPO_DIR")
+  windows_service_dir=$(wslpath -w "$REPO_DIR/$stack_dir")
+  helper="$windows_repo_dir\\scripts\\deploy-windows-compose-service.ps1"
+
+  log "Deploying $stack_dir with Windows Docker Compose"
+  "$WINDOWS_POWERSHELL" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$helper" -ServiceDirectory "$windows_service_dir" -StartStopped "${DEPLOY_START_STOPPED,,}" -DryRun "$DRY_RUN"
 }
 
 stack_dependencies() {
@@ -527,6 +553,14 @@ deploy_stack() {
   fi
 
   [[ -d "$stack_path" ]] || die "Service directory no longer exists: $stack_dir"
+
+  if is_windows_compose_stack "$stack_dir"; then
+    deploy_windows_stack "$stack_dir"
+    if [[ "$DRY_RUN" != "true" ]]; then
+      wait_container_ready cadvisor 180
+    fi
+    return 0
+  fi
 
   log "Deploying $stack_dir"
   (

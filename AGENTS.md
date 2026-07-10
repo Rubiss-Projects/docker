@@ -31,7 +31,7 @@ Use the nearest applicable `AGENTS.md` for the task:
 ### Volume Mounting Conventions
 - **Relative paths**: All service volumes use relative paths (e.g., `./config:/config`) for portability and WSL compatibility
 - **Media paths**: Shared media volumes use `../../Media/{type}` relative pattern (e.g., `../../Media/movies:/movies`)
-- **WSL Execution**: ALL services must be started via WSL to ensure paths are registered correctly (e.g., `/mnt/e/Docker/...`)
+- **Host execution**: Services are started via WSL to preserve path registration, except main-host `cadvisor`, which must be started with Windows Docker Compose so its host mounts resolve in the Windows context. Raspberry Pi `pi/cadvisor` remains a native Pi deployment.
 
 ### Environment & Secrets
 - **Per-service .env files**: Each service has a public `.env` file for non-secret defaults in the service directory
@@ -404,7 +404,7 @@ docker compose --env-file .env --env-file .env.secret up -d
 
 If the service does not have a `.env.secret` file, omit the second `--env-file` argument. This is required when secrets are referenced in the Compose YAML itself, such as Homepage widget keys in labels.
 
-**Important**: Always start from WSL for proper path registration.
+**Important**: Start services from WSL for proper path registration, except main-host `cadvisor`, which must be started from Windows. The deployment automation enforces this exception.
 
 ---
 
