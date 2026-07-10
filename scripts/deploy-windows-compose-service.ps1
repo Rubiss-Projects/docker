@@ -53,4 +53,4 @@ if (-not $isDryRun -and -not $shouldStartStopped) {
 }
 
 Invoke-Compose -Arguments ($composeArgs + @("pull", "--ignore-buildable"))
-Invoke-Compose -Arguments ($composeArgs + @("up", "-d", "--build", "--remove-orphans"))
+Invoke-Compose -Arguments ($composeArgs + @("up", "-d", "--build", "--force-recreate", "--remove-orphans"))
