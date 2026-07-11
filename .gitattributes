@@ -1,6 +1,10 @@
 # Encrypt per-service secret env overlays
 *.env.secret filter=git-crypt diff=git-crypt
 
+# IRC provider names, nicks, auth modes, and secret-key mappings are private.
+n8n/irc-recovery-policies.json filter=git-crypt diff=git-crypt
+n8n/irc-recovery-secrets.json filter=git-crypt diff=git-crypt
+
 # Encrypt openclaw config JSON files (contain API tokens)
 openclaw/config/*.json filter=git-crypt diff=git-crypt
 openclaw/config/agents/**/auth-profiles.json filter=git-crypt diff=git-crypt

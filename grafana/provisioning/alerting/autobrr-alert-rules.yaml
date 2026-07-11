@@ -1,0 +1,45 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: autobrr-irc
+    folder: Infrastructure
+    interval: 1m
+    rules:
+      - uid: autobrr_irc_channel_unmonitored
+        title: Autobrr IRC Channel Unmonitored
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: autobrr_irc_channel_enabled_total - autobrr_irc_channel_monitored_total
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+        for: 3m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "autobrr IRC channel is not monitored for {{ $labels.network }}"
+          description: "The enabled IRC channel for {{ $labels.network }} has remained unmonitored for at least three minutes. Deterministic recovery will verify current state before acting."
+        labels:
+          severity: critical
+          automation: autobrr-irc-recovery

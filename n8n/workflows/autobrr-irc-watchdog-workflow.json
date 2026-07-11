@@ -1,0 +1,73 @@
+{
+  "id": "autobrrIrcWatchdog1",
+  "active": true,
+  "name": "autobrr IRC Watchdog",
+  "description": "Every 5 minutes, runs a deterministic autobrr IRC health check. After three consecutive failures it restarts only the affected network, with a 30-minute per-network cooldown. It never performs NickServ registration, grouping, recovery, or credential changes.",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "node /mnt/e/Docker/n8n/scripts/autobrr_irc_watchdog.js --failure-threshold 3 --cooldown-minutes 30"
+      },
+      "name": "Run IRC Watchdog",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = JSON.parse($input.first().json.stdout);\nreturn [{ json: { ...result, eventCount: result.events?.length || 0 } }];"
+      },
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.eventCount }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "Has IRC Event",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [[{"node": "Run IRC Watchdog", "type": "main", "index": 0}]]
+    },
+    "Run IRC Watchdog": {
+      "main": [[{"node": "Parse Result", "type": "main", "index": 0}]]
+    },
+    "Parse Result": {
+      "main": [[{"node": "Has IRC Event", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

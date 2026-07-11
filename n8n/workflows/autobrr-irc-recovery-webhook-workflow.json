@@ -1,0 +1,49 @@
+{
+  "id": "autobrrIrcRecoveryWebhook1",
+  "active": true,
+  "name": "autobrr IRC Recovery Webhook",
+  "description": "Receives authenticated Grafana firing alerts for unmonitored autobrr IRC channels, extracts the network label, and invokes the deterministic provider-specific recovery engine. Resolved alerts are accepted but do not run recovery.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobrr-irc-recovery",
+        "options": {}
+      },
+      "name": "Grafana Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "autobrr-irc-recovery"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst password = String($env.AUTOBRR_IRC_WEBHOOK_PASSWORD || '');\nif (!password) throw new Error('AUTOBRR_IRC_WEBHOOK_PASSWORD is not configured');\nconst auth = Buffer.from(String(item.headers?.authorization || ''));\nconst expected = Buffer.from('Basic ' + Buffer.from('grafana:' + password).toString('base64'));\nlet difference = auth.length ^ expected.length;\nfor (let i = 0; i < Math.max(auth.length, expected.length); i++) difference |= (auth[i] || 0) ^ (expected[i] || 0);\nif (difference !== 0) throw new Error('Unauthorized Grafana webhook');\nif (item.body?.status !== 'firing') return [];\nconst validName = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;\nconst networks = [...new Set((item.body?.alerts || []).filter(a => a.status === 'firing').map(a => String(a.labels?.network || '')).filter(n => validName.test(n)))];\nif (!networks.length) throw new Error('Firing alert did not contain a valid network label');\nreturn networks.map(network => ({ json: { network } }));"
+      },
+      "name": "Authenticate and Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "command": "={{ 'node /mnt/e/Docker/n8n/scripts/autobrr_irc_recovery.js --network ' + $json.network }}"
+      },
+      "name": "Recover IRC Network",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Grafana Webhook": {
+      "main": [[{"node": "Authenticate and Route", "type": "main", "index": 0}]]
+    },
+    "Authenticate and Route": {
+      "main": [[{"node": "Recover IRC Network", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

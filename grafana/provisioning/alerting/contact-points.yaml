@@ -12,3 +12,24 @@ contactPoints:
           title: '{{ template "discord.title" . }}'
           message: '{{ template "discord.message" . }}'
         disableResolveMessage: false
+
+  - orgId: 1
+    name: Autobrr IRC Recovery
+    receivers:
+      - uid: autobrr-irc-recovery-webhook
+        type: webhook
+        settings:
+          url: http://n8n:5678/webhook/autobrr-irc-recovery
+          httpMethod: POST
+          username: grafana
+        secureSettings:
+          password: $AUTOBRR_IRC_WEBHOOK_PASSWORD
+        disableResolveMessage: false
+      - uid: autobrr-irc-recovery-discord
+        type: discord
+        settings:
+          url: $DISCORD_LAWSON_WEBHOOK_URL
+          use_discord_username: false
+          title: '{{ template "discord.title" . }}'
+          message: '{{ template "discord.message" . }}'
+        disableResolveMessage: false

@@ -23,6 +23,8 @@ services:
       - N8N_USER_FOLDER=/root/.n8n
       - DOCKER_HOST=tcp://socket-proxy:2375
       - NODES_EXCLUDE=[]
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - AUTOBRR_IRC_WEBHOOK_PASSWORD=${AUTOBRR_IRC_WEBHOOK_PASSWORD}
     volumes:
       - ./config:/root/.n8n
       - ./workflows:/files
