@@ -270,7 +270,6 @@ async function verifyAndRepairNickServ(network, policy, account, password, botNi
     if (currentNick.toLowerCase() !== botNick.toLowerCase()) {
       session.send(`NICK ${botNick}`);
       await session.waitFor((line) => / NICK /.test(line) && line.toLowerCase().includes(botNick.toLowerCase()), 10_000, 'bot nick change');
-      currentNick = botNick;
     }
     const shouldGroup = status.bot === 'unregistered';
     if (shouldGroup && !policy.allowGroup) throw new Error('Bot nick is unregistered and grouping is disabled by policy');
