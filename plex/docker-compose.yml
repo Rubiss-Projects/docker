@@ -1,6 +1,6 @@
 services:
   plex:
-    image: ghcr.io/linuxserver/plex:1.43.2.10687-563d026ea-ls308
+    image: lscr.io/linuxserver/plex:version-1.43.2.10687-563d026ea@sha256:12008668bf8b79c6ffeb0c0a7878a0354aaaa032368da71a0ea5e84717453b11
     container_name: plex
     ports:
       - 32400:32400
