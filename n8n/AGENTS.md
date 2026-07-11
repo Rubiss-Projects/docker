@@ -80,6 +80,13 @@ n8n can connect to all services in this infrastructure:
 - **Bitwarden**: Password management automation
 - **Actual Budget**: Financial workflow automation
 
+## autobrr IRC Recovery
+
+- `irc-recovery-policies.json` is git-crypt protected because provider names, nicks, auth modes, and secret-key mappings are private.
+- `scripts/autobrr_irc_recovery.js` performs provider-specific recovery from Grafana alerts.
+- `scripts/autobrr_irc_watchdog.js` is the scheduled missed-alert fallback.
+- Recovery credentials and the recovery API key live only in git-crypt protected `irc-recovery-secrets.json`. This file is intentionally separate from Compose dotenv files so `$` and other password characters are never interpolated by Compose.
+
 ## Security Notes
 - Credentials are encrypted in the database
 - Use environment variables for sensitive data
