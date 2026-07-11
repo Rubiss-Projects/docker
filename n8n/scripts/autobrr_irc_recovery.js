@@ -39,6 +39,36 @@ function requireSecret(secrets, key) {
   return secrets[key];
 }
 
+function looksRedacted(value) {
+  return typeof value === 'string' && (/^\*+$/.test(value) || /^<?redacted>?$/i.test(value));
+}
+
+function assertIrcCredential(value, description) {
+  if (typeof value !== 'string' || !value || /[\r\n\0]/.test(value)) throw new Error(`${description} is missing or contains an invalid IRC control character`);
+  return value;
+}
+
+function hydrateNetworkCredentials(network, policy, secrets) {
+  let serverPassword = network.pass || '';
+  if (policy.serverPasswordSecret) serverPassword = assertIrcCredential(requireSecret(secrets, policy.serverPasswordSecret), 'IRC server password');
+  else if (looksRedacted(serverPassword)) throw new Error('IRC server password is redacted but has no encrypted policy mapping');
+
+  const channels = (network.channels || []).map((channel) => {
+    let password = channel.password || '';
+    const secretKey = policy.channelPasswordSecrets?.[channel.name];
+    if (secretKey) password = assertIrcCredential(requireSecret(secrets, secretKey), `IRC channel password for ${channel.name}`);
+    else if (looksRedacted(password)) throw new Error(`IRC channel password for ${channel.name} is redacted but has no encrypted policy mapping`);
+    return { ...channel, password };
+  });
+  return { ...network, pass: serverPassword, channels };
+}
+
+function sendJoin(session, network, channelName) {
+  const channel = network.channels.find((item) => item.name === channelName);
+  if (!channel) throw new Error(`IRC channel ${channelName} is missing from network configuration`);
+  session.send(`JOIN ${channelName}${channel.password ? ` ${channel.password}` : ''}`);
+}
+
 async function apiRequest(url, apiKey, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -138,6 +168,7 @@ class IrcSession {
       this.socket.once('connect', () => { if (!this.network.tls) { clearTimeout(timer); resolve(); } });
       this.socket.once('error', (error) => { clearTimeout(timer); reject(error); });
     });
+    if (this.network.pass) this.send(`PASS ${this.network.pass}`);
   }
 
   async connect() {
@@ -226,7 +257,7 @@ async function verifySasl(network, account, password, nick, channel) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-    session.send(`JOIN ${channel}`);
+    sendJoin(session, network, channel);
     await session.waitFor((line) => (line.includes(` ${nick} `) && (line.includes(` JOIN :${channel}`) || line.includes(` JOIN ${channel}`))) || (/ (353|366) /.test(line) && line.includes(channel)), 15_000, `join confirmation for ${channel}`);
   } finally { session.close(); }
 }
@@ -284,7 +315,7 @@ async function verifyAndRepairNickServ(network, policy, account, password, botNi
     if (!new RegExp(`STATUS\\s+${escapedNick}\\s+3(?:\\s|$)`, 'i').test(text)) {
       throw new Error('NickServ did not confirm ownership of the configured bot nick');
     }
-    session.send(`JOIN ${channel}`);
+    sendJoin(session, network, channel);
     await session.waitFor((line) => line.includes(` ${botNick} `) && (line.includes(` JOIN :${channel}`) || line.includes(` JOIN ${channel}`)) || / (353|366) /.test(line) && line.includes(channel), 15_000, `join confirmation for ${channel}`);
     actions.push(shouldGroup ? 'grouped-and-validated-bot-nick' : 'validated-bot-nick');
   } finally { session.close(); }
@@ -350,7 +381,7 @@ async function repairNoAuth(network, policy, secrets, apiKey, actions) {
       const session = new IrcSession(network, nick);
       try {
         await session.connect();
-        session.send(`JOIN ${channel}`);
+        sendJoin(session, network, channel);
         await session.waitFor((line) => (line.includes(` ${nick} `) && (line.includes(` JOIN :${channel}`) || line.includes(` JOIN ${channel}`))) || (/ (353|366) /.test(line) && line.includes(channel)), 15_000, `join confirmation for ${channel}`);
       } finally { session.close(); }
     }
@@ -395,6 +426,7 @@ async function main() {
     throw new Error('Credentialed recovery with skipped TLS verification requires a pinned certificate fingerprint');
   }
   network = { ...network, tlsFingerprint256: policy.tlsFingerprint256 };
+  network = hydrateNetworkCredentials(network, policy, secrets);
   if (!network.enabled && !config.force) throw new Error(`${config.networkName} is administratively disabled`);
   const expectedNick = policy.expectedNickSecret ? requireSecret(secrets, policy.expectedNickSecret) : policy.expectedNick;
   if (network.nick !== expectedNick && !policy.automaticAccountRepair) {
