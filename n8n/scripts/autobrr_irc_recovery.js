@@ -422,7 +422,8 @@ async function main() {
   const networks = await apiRequest(`${config.apiBase}/irc`, apiKey);
   let network = networks.find((item) => item.name === config.networkName);
   if (!network) throw new Error(`autobrr network ${config.networkName} was not found`);
-  if (network.tls && network.tls_skip_verify && policy.mode !== 'no-auth' && !policy.tlsFingerprint256) {
+  const recoveryUsesCredentials = policy.mode !== 'no-auth' || Boolean(policy.serverPasswordSecret) || Object.keys(policy.channelPasswordSecrets || {}).length > 0;
+  if (network.tls && network.tls_skip_verify && recoveryUsesCredentials && !policy.tlsFingerprint256) {
     throw new Error('Credentialed recovery with skipped TLS verification requires a pinned certificate fingerprint');
   }
   network = { ...network, tlsFingerprint256: policy.tlsFingerprint256 };
