@@ -1,6 +1,6 @@
 services:
   tautulli:
-    image: lscr.io/linuxserver/tautulli:v2.17.1-ls232
+    image: lscr.io/linuxserver/tautulli:version-v2.17.2@sha256:2d31250c00737c3cd471b73d8e57c9a19ca37a53faf111b79ce1ee61cc027dc6
     container_name: tautulli
     volumes:
       - ./config:/config
