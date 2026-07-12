@@ -1,6 +1,6 @@
 services:
   cloudflare-duc:
-    image: morl0ck/cloudflare-duc-go:b1a8ececf408419552ef9ee5b7d71614e23a39aa
+    image: morl0ck/cloudflare-duc-go:latest@sha256:a0a2b0b2f80509c295195f7c59ce9f01d12ed851aae833c255ab5b009656c7cc
     container_name: cloudflare-duc
     environment:
       - CF_API_TOKEN=${CF_API_TOKEN}

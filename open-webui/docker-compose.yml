@@ -1,6 +1,6 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:v0.10.2@sha256:9fcea9c6e32ab60b0498f3986c6cdf651ddbe61db48d2213a3d28048ddd673d4
     container_name: open-webui
     environment:
       - PUID=${PUID}
@@ -37,4 +37,3 @@ networks:
   proxynet:
     external: true
     name: proxynet
-

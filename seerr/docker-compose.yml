@@ -1,6 +1,6 @@
 services:
   seerr:
-    image: ghcr.io/rubiss/seerr:book-support
+    image: ghcr.io/rubiss/seerr:book-support@sha256:17ec5156c1a8a0da0a0c312b74d6e0aadff2f89372e8cc3d42d4b944852473f1
     container_name: seerr
     environment:
       - PUID=${PUID}

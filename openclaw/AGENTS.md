@@ -169,7 +169,6 @@ DISCORD_BOT_TOKEN=<discord-bot-token>
 
 ### Optional
 ```bash
-OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:main
 OPENCLAW_GATEWAY_PORT=18789
 OPENCLAW_GATEWAY_BIND=lan
 OLLAMA_API_KEY=ollama-local

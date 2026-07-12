@@ -1,6 +1,6 @@
 services:
   cross-seed:
-    image: ghcr.io/cross-seed/cross-seed:6
+    image: ghcr.io/cross-seed/cross-seed:6.13.5@sha256:5582e38109145faf6203c844d61d2187368329bde7019a310d3922fef82d8fbf
     container_name: cross-seed
     user: 1000:1000
     ports:
