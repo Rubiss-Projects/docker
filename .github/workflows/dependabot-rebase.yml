@@ -53,7 +53,7 @@ jobs:
 
           prs = json.loads(Path(sys.argv[1]).read_text())
           update_pattern = re.compile(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)")
-          version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z._-]+)?$")
+          version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:[-+][0-9A-Za-z._-]+)?$")
           date_pattern = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
           latest_pattern = re.compile(r"^latest-(\d+)$")
 
@@ -69,8 +69,8 @@ jobs:
                   old_match = version_pattern.fullmatch(old)
                   new_match = version_pattern.fullmatch(new)
                   if old_match and new_match:
-                      old_version = tuple(int(part) for part in old_match.groups())
-                      new_version = tuple(int(part) for part in new_match.groups())
+                      old_version = tuple(int(part or 0) for part in old_match.groups())
+                      new_version = tuple(int(part or 0) for part in new_match.groups())
                       if new_version <= old_version or new_version[0] != old_version[0]:
                           return False
                       continue
