@@ -43,7 +43,9 @@ jobs:
           title = pr.get("title") or ""
 
           update_pairs = re.findall(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)", body)
-          version_pattern = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z._-]+)?$")
+          version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z._-]+)?$")
+          date_pattern = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+          latest_pattern = re.compile(r"^latest-(\d+)$")
 
           reasons = []
           update_types = []
@@ -52,26 +54,50 @@ jobs:
               reasons.append("no Dependabot update pairs found")
 
           for old, new in update_pairs:
-              old_match = version_pattern.fullmatch(old)
-              new_match = version_pattern.fullmatch(new)
-              if not old_match or not new_match:
-                  reasons.append(f"{old} -> {new} is not a numeric version triplet")
+              if old == new:
+                  update_types.append("digest")
                   continue
 
-              old_version = tuple(int(part) for part in old_match.groups())
-              new_version = tuple(int(part) for part in new_match.groups())
+              old_match = version_pattern.fullmatch(old)
+              new_match = version_pattern.fullmatch(new)
+              if old_match and new_match:
+                  old_version = tuple(int(part) for part in old_match.groups())
+                  new_version = tuple(int(part) for part in new_match.groups())
 
-              if new_version <= old_version:
-                  reasons.append(f"{old} -> {new} is not an upgrade")
-              elif new_version[0] != old_version[0]:
-                  reasons.append(f"{old} -> {new} is a major update")
-              elif new_version[1] != old_version[1]:
-                  update_types.append("minor")
-              else:
-                  update_types.append("patch")
+                  if new_version <= old_version:
+                      reasons.append(f"{old} -> {new} is not an upgrade")
+                  elif new_version[0] != old_version[0]:
+                      reasons.append(f"{old} -> {new} is a major update")
+                  elif new_version[1] != old_version[1]:
+                      update_types.append("minor")
+                  else:
+                      update_types.append("patch")
+                  continue
+
+              old_date = date_pattern.fullmatch(old)
+              new_date = date_pattern.fullmatch(new)
+              if old_date and new_date:
+                  old_version = tuple(int(part) for part in old_date.groups())
+                  new_version = tuple(int(part) for part in new_date.groups())
+                  if new_version > old_version:
+                      update_types.append("calendar")
+                  else:
+                      reasons.append(f"{old} -> {new} is not a forward calendar update")
+                  continue
+
+              old_latest = latest_pattern.fullmatch(old)
+              new_latest = latest_pattern.fullmatch(new)
+              if old_latest and new_latest:
+                  if int(new_latest.group(1)) > int(old_latest.group(1)):
+                      update_types.append("build")
+                  else:
+                      reasons.append(f"{old} -> {new} is not a forward build update")
+                  continue
+
+              reasons.append(f"{old} -> {new} is not a supported version format")
 
           eligible = bool(update_pairs) and not reasons and all(
-              update_type in {"minor", "patch"} for update_type in update_types
+              update_type in {"minor", "patch", "digest", "calendar", "build"} for update_type in update_types
           )
 
           print(f"eligible={'true' if eligible else 'false'}")
