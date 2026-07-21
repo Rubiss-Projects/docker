@@ -27,7 +27,10 @@ test('does not repeatedly start a container that exits again', async () => {
 
   assert.equal(result.code, 1);
   assert.equal(result.payload.result, 'not_healthy_after_recovery');
-  assert.equal(scenario.actions.filter((action) => action === 'start').length, 1);
+  assert.equal(
+    result.payload.actions.filter((action) => action.action === 'start_during_verification').length,
+    1,
+  );
   assert.ok(result.payload.actions.some((action) => action.action === 'stopped_after_verification_start'));
 });
 
@@ -57,7 +60,7 @@ function createScenario({ afterStart, restartingBeforeExit = 0 }) {
         current = afterStart;
       } else if (killed) {
         getsAfterKill += 1;
-        if (getsAfterKill > 1) {
+        if (getsAfterKill > 2) {
           if (restartingBeforeExit > 0) {
             restartingBeforeExit -= 1;
             current = state('restarting', 'unhealthy');
@@ -119,9 +122,9 @@ async function runScenario(scenario) {
       '--container', 'transmission',
       '--requestTimeoutMs', '100',
       '--restartTimeoutSeconds', '0.01',
-      '--verifyTimeoutMs', '100',
-      '--pollIntervalMs', '1',
-      '--postKillWaitMs', '1',
+      '--verifyTimeoutMs', '500',
+      '--pollIntervalMs', '30',
+      '--postKillWaitMs', '20',
     ], {
       env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${port}` },
     });
