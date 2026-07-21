@@ -27,6 +27,7 @@ test('does not repeatedly start a container that exits again', async () => {
 
   assert.equal(result.code, 1);
   assert.equal(result.payload.result, 'not_healthy_after_recovery');
+  assert.equal(scenario.actions.filter((action) => action === 'start').length, 1);
   assert.equal(
     result.payload.actions.filter((action) => action.action === 'start_during_verification').length,
     1,
