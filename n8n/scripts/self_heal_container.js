@@ -122,11 +122,41 @@ async function getContainer() {
 }
 
 async function waitForRecovery() {
-  const deadline = Date.now() + verifyTimeoutMs;
+  let deadline = Date.now() + verifyTimeoutMs;
   let last = await getContainer();
+  let startedDuringVerification = false;
 
   while (Date.now() < deadline) {
     last = await getContainer();
+    if (last.State.Status !== 'running') {
+      if (last.State.Status === 'restarting') {
+        await sleep(pollIntervalMs);
+        continue;
+      }
+      if (!['created', 'exited'].includes(last.State.Status)) {
+        actions.push({
+          action: 'not_startable_during_verification',
+          reason: `container entered non-startable status ${last.State.Status}`,
+        });
+        return last;
+      }
+      if (startedDuringVerification) {
+        actions.push({
+          action: 'stopped_after_verification_start',
+          reason: `container became ${last.State.Status} after being started during verification`,
+        });
+        return last;
+      }
+      actions.push({
+        action: 'start_during_verification',
+        reason: `container became ${last.State.Status} during recovery verification`,
+      });
+      await startContainer();
+      startedDuringVerification = true;
+      deadline = Date.now() + verifyTimeoutMs;
+      await sleep(pollIntervalMs);
+      continue;
+    }
     if (last.State.Status === 'running' && (!last.State.Health || last.State.Health.Status === 'healthy')) {
       return last;
     }
