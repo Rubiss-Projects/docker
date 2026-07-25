@@ -1,6 +1,6 @@
 services:
   socket-proxy:
-    image: lscr.io/linuxserver/socket-proxy:version-3.4.2-r0@sha256:a9de14c1c9697de5384a63c2a8e1fdbb823d74f03c94cde77c59e149169c0326
+    image: lscr.io/linuxserver/socket-proxy:version-3.4.2-r0@sha256:b3c91258489c6d6ef26f20e9681177e3e861798466a2b85a3572ee0464c5e088
     container_name: socket-proxy
     environment:
       - CONTAINERS=1 # Allow access to viewing containers (all services)
