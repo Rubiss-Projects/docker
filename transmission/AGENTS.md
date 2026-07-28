@@ -271,7 +271,7 @@ Located in `data/settings.json`:
   "rpc-password": "{hashed-password}",
   "rpc-whitelist-enabled": false,
   "script-torrent-done-enabled": true,
-  "script-torrent-done-filename": "/scripts/torrent-done.sh"
+  "script-torrent-done-filename": "/scripts/cross-seed-complete.sh"
 }
 ```
 
@@ -302,10 +302,8 @@ Auto-add torrents from folder:
 Execute script on completion:
 ```bash
 #!/bin/bash
-# /scripts/torrent-done.sh
-TR_TORRENT_NAME="$1"
-TR_TORRENT_DIR="$2"
-# Custom logic here
+# The repository-managed /scripts/cross-seed-complete.sh uses
+# TR_TORRENT_HASH to trigger cross-seed's authenticated completion webhook.
 ```
 
 ## Performance Tuning

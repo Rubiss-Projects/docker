@@ -20,9 +20,12 @@ services:
       - TRANSMISSION_CACHE_SIZE_MB=48
       - TRANSMISSION_PEER_LIMIT_GLOBAL=100
       - TRANSMISSION_PEER_LIMIT_PER_TORRENT=25
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/scripts/cross-seed-complete.sh
     volumes:
       - ./data:/config
       - ../../Media:/data
+      - ./scripts:/scripts:ro
       - ./watch:/watch
     ports:
       - 9091:9091
