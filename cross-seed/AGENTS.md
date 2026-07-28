@@ -86,7 +86,7 @@ The config file uses JavaScript module syntax. **NEVER remove options from the c
 | Option | Default | Current | Notes |
 |---|---|---|---|
 | `dataDirs` | `[]` | `[]` | Directories to scan for data-based matching (disabled; using `useClientTorrents: true` instead) |
-| `maxDataDepth` | `2` | `2` | How deep into dataDirs to search. See docs for structure-specific values |
+| `maxDataDepth` | `2` | `3` | Inactive while `dataDirs` is empty; retained for future data-based searches |
 | `outputDir` | `null` | `null` | Retry/save directory. Keep `null` for best experience (maps to config dir). Only set a path if using `action: "save"` |
 | `torrentDir` | `null` | `null` | Not needed when `useClientTorrents: true` |
 
@@ -96,7 +96,7 @@ The config file uses JavaScript module syntax. **NEVER remove options from the c
 |---|---|---|---|
 | `delay` | `30` | `30` | Seconds between searches. Higher = friendlier to trackers |
 | `rssCadence` | `30 minutes` | `15 minutes` | How often to scan RSS feeds. Min 10 minutes |
-| `searchCadence` | `1 day` | `1 day` | How often to run bulk searches. Official docs warn against setting above 1 day |
+| `searchCadence` | `1 day` | `null` | Periodic bulk history searches are disabled; new downloads use the completion webhook |
 | `excludeOlder` | `2 weeks` | `365 days` | Skip torrents first seen longer ago than this |
 | `excludeRecentSearch` | `3 days` | `73 days` | Skip torrents searched more recently than this |
 | `searchLimit` | `400` | `400` | Max searches per batch per indexer |
