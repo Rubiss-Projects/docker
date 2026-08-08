@@ -1,6 +1,6 @@
 services:
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:8.3.2
+    image: ghcr.io/recyclarr/recyclarr:8.7.0
     container_name: recyclarr
     user: 1000:1000
     volumes:
