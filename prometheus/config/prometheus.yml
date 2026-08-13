@@ -52,3 +52,19 @@ scrape_configs:
         labels:
           instance: 'raspberry-pi'
           host: 'pi3'
+
+  # Sunday Edge DFS compute pool on ben-server.
+  - job_name: sunday-edge-dfs-workers
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    static_configs:
+      - targets:
+          - host.docker.internal:9461
+          - host.docker.internal:9462
+          - host.docker.internal:9463
+          - host.docker.internal:9464
+          - host.docker.internal:9465
+          - host.docker.internal:9466
+        labels:
+          service: sunday-edge-dfs-simulator
+          host: ben-server

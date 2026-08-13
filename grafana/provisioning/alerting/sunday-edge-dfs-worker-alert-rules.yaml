@@ -1,0 +1,63 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: sunday-edge-dfs-workers
+    folder: Sunday Edge
+    interval: 1m
+    rules:
+      - uid: sunday_edge_dfs_worker_pool_degraded
+        title: Sunday Edge DFS worker pool degraded
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(up{job="sunday-edge-dfs-workers"})
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [6], type: lt }
+                  operator: { type: and }
+        for: 5m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          summary: "Only {{ $values.B.Value }} of 6 DFS workers are reachable"
+          description: "Check the Windows WSL startup task and sunday-edge-dfs-simulator@1..6 systemd units. Vercel fallback remains available."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_worker_failures
+        title: Sunday Edge DFS worker jobs failing
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(increase(sunday_edge_dfs_worker_jobs_completed_total{status="failed"}[15m]))
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "DFS compute reported {{ $values.B.Value }} failed jobs in 15 minutes"
+          description: "Inspect the Sunday Edge DFS Compute dashboard and journalctl logs before increasing capacity."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator }
