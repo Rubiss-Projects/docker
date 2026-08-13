@@ -30,6 +30,8 @@ groups:
         noDataState: Alerting
         execErrState: Error
         annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "1"
           summary: "Only {{ $values.B.Value }} of 6 DFS workers are reachable"
           description: "Check the Windows WSL startup task and sunday-edge-dfs-simulator@1..6 systemd units. Vercel fallback remains available."
         labels: { severity: critical, service: sunday-edge-dfs-simulator }
@@ -58,6 +60,128 @@ groups:
         noDataState: OK
         execErrState: Error
         annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "5"
           summary: "DFS compute reported {{ $values.B.Value }} failed jobs in 15 minutes"
           description: "Inspect the Sunday Edge DFS Compute dashboard and journalctl logs before increasing capacity."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_worker_poll_errors
+        title: Sunday Edge DFS workers cannot poll the application
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(increase(sunday_edge_dfs_worker_errors_total{stage="poll"}[15m]))
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "11"
+          summary: "DFS workers reported {{ $values.B.Value }} application polling errors in 15 minutes"
+          description: "Check the production URL, shared compute secret, network path, and worker journal. Job failures are alerted separately."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_worker_restarts
+        title: Sunday Edge DFS worker restarted unexpectedly
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1800, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(resets(sunday_edge_dfs_worker_uptime_seconds[30m]))
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "12"
+          summary: "{{ $values.B.Value }} DFS worker restarts detected in 30 minutes"
+          description: "Confirm whether this was planned maintenance; otherwise inspect systemd status, memory pressure, and the worker journal."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_worker_stalled
+        title: Sunday Edge DFS worker appears stalled
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 2700, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(max_over_time(sunday_edge_dfs_worker_idle[45m]) == 0) or vector(0)
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "13"
+          summary: "{{ $values.B.Value }} DFS workers have remained busy for at least 45 minutes"
+          description: "Inspect the active generation or simulation, its heartbeat/progress, and the corresponding worker journal before restarting anything."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_worker_memory_pressure
+        title: Sunday Edge DFS worker memory pressure
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: max(sunday_edge_dfs_worker_resident_memory_bytes)
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [440401920], type: gt }
+                  operator: { type: and }
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "9"
+          summary: "A DFS worker is using {{ $values.B.Value }} bytes of resident memory"
+          description: "The worker has crossed 420 MiB and is approaching its 448 MiB MemoryHigh / 512 MiB MemoryMax systemd limits."
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
