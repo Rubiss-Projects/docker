@@ -134,7 +134,7 @@ groups:
             relativeTimeRange: { from: 2700, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: sum(max_over_time(sunday_edge_dfs_worker_idle[45m]) == 0) or vector(0)
+              expr: 1 - sunday_edge_dfs_worker_idle
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -146,13 +146,16 @@ groups:
               conditions:
                 - evaluator: { params: [0], type: gt }
                   operator: { type: and }
-        for: 0m
+        # Keep each worker's labeled series pending for the full duration. A
+        # range-vector query can only prove that all available samples are busy,
+        # not that 45 minutes of samples actually exist after a scrape outage.
+        for: 45m
         noDataState: OK
         execErrState: Error
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "13"
-          summary: "{{ $values.B.Value }} DFS workers have remained busy for at least 45 minutes"
+          summary: "DFS worker {{ $labels.instance }} slot {{ $labels.slot }} has remained busy for at least 45 minutes"
           description: "Inspect the active generation or simulation, its heartbeat/progress, and the corresponding worker journal before restarting anything."
         labels: { severity: critical, service: sunday-edge-dfs-simulator }
 
