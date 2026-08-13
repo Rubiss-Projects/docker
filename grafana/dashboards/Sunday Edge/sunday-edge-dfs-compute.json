@@ -1,0 +1,28 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    { "id": 1, "type": "stat", "title": "Workers online", "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 }, "targets": [{ "refId": "A", "expr": "sum(up{job=\"sunday-edge-dfs-workers\"})" }], "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 5 }, { "color": "green", "value": 6 }] } }, "overrides": [] }, "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" } },
+    { "id": 2, "type": "stat", "title": "Jobs active", "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 }, "targets": [{ "refId": "A", "expr": "sum(1 - sunday_edge_dfs_worker_idle)" }], "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" } },
+    { "id": 3, "type": "stat", "title": "Trials processed (24h)", "gridPos": { "h": 4, "w": 5, "x": 8, "y": 0 }, "targets": [{ "refId": "A", "expr": "sum(increase(sunday_edge_dfs_worker_trials_total[24h]))" }], "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" } },
+    { "id": 4, "type": "stat", "title": "Successful jobs (24h)", "gridPos": { "h": 4, "w": 5, "x": 13, "y": 0 }, "targets": [{ "refId": "A", "expr": "sum(increase(sunday_edge_dfs_worker_jobs_completed_total{status=\"success\"}[24h]))" }], "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" } },
+    { "id": 5, "type": "stat", "title": "Failed jobs (24h)", "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }, "targets": [{ "refId": "A", "expr": "sum(increase(sunday_edge_dfs_worker_jobs_completed_total{status=\"failed\"}[24h]))" }], "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] }, "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" } },
+    { "id": 6, "type": "timeseries", "title": "Jobs completed by type", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }, "targets": [{ "refId": "A", "expr": "sum by (type, status) (rate(sunday_edge_dfs_worker_jobs_completed_total[5m])) * 60", "legendFormat": "{{type}} {{status}} / min" }], "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] } },
+    { "id": 7, "type": "timeseries", "title": "Trial throughput", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }, "targets": [{ "refId": "A", "expr": "sum by (type) (rate(sunday_edge_dfs_worker_trials_total[5m]))", "legendFormat": "{{type}} trials / sec" }], "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] } },
+    { "id": 8, "type": "timeseries", "title": "Average job wall time", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 }, "targets": [{ "refId": "A", "expr": "sum by (type) (rate(sunday_edge_dfs_worker_job_wall_seconds_sum[15m])) / sum by (type) (rate(sunday_edge_dfs_worker_job_wall_seconds_count[15m]))", "legendFormat": "{{type}}" }], "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] } },
+    { "id": 9, "type": "timeseries", "title": "Worker memory", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }, "targets": [{ "refId": "A", "expr": "sunday_edge_dfs_worker_resident_memory_bytes", "legendFormat": "slot {{slot}}" }], "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] } },
+    { "id": 10, "type": "table", "title": "Current worker state", "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 }, "targets": [{ "refId": "A", "expr": "sunday_edge_dfs_worker_stage", "format": "table", "instant": true }, { "refId": "B", "expr": "sunday_edge_dfs_worker_uptime_seconds", "format": "table", "instant": true }] }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["sunday-edge", "dfs", "compute"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "browser",
+  "title": "Sunday Edge DFS Compute",
+  "uid": "sunday-edge-dfs-compute",
+  "version": 1
+}
