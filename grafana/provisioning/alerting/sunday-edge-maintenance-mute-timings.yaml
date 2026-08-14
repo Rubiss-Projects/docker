@@ -1,0 +1,22 @@
+apiVersion: 1
+
+muteTimes:
+  # The nightly Windows task restarts WSL shortly after 05:00 Eastern. Alert
+  # rules continue evaluating during these windows; only notifications pause.
+  - orgId: 1
+    name: sunday-edge-wsl-nightly-availability
+    time_intervals:
+      - times:
+          - start_time: "04:55"
+            end_time: "05:15"
+        location: America/New_York
+
+  # The restart alert uses a 30-minute Prometheus reset lookback, so cover that
+  # complete observation window for the expected nightly process reset.
+  - orgId: 1
+    name: sunday-edge-wsl-nightly-restart
+    time_intervals:
+      - times:
+          - start_time: "04:55"
+            end_time: "05:35"
+        location: America/New_York

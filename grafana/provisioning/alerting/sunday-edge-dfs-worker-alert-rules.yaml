@@ -34,7 +34,7 @@ groups:
           __panelId__: "1"
           summary: "Only {{ $values.B.Value }} of 6 DFS workers are reachable"
           description: "Check the Windows WSL startup task and sunday-edge-dfs-simulator@1..6 systemd units. Vercel fallback remains available."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_worker_failures
         title: Sunday Edge DFS worker jobs failing
@@ -124,7 +124,7 @@ groups:
           __panelId__: "12"
           summary: "{{ $values.B.Value }} DFS worker restarts detected in 30 minutes"
           description: "Confirm whether this was planned maintenance; otherwise inspect systemd status, memory pressure, and the worker journal."
-        labels: { severity: warning, service: sunday-edge-dfs-simulator }
+        labels: { severity: warning, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-restart }
 
       - uid: sunday_edge_dfs_worker_stalled
         title: Sunday Edge DFS worker appears stalled
