@@ -10,6 +10,37 @@ policies:
     group_interval: 5m
     repeat_interval: 4h
     routes:
+      # The WSL host is intentionally restarted each night near 05:00 ET.
+      # Suppress only the expected availability gap. If the pool has not
+      # recovered by 05:15, the already-evaluating alert is delivered.
+      - receiver: Discord - Sunday Edge Admin
+        object_matchers:
+          - [service, =, sunday-edge-dfs-simulator]
+          - [maintenance_window, =, wsl-nightly-availability]
+        mute_time_intervals:
+          - sunday-edge-wsl-nightly-availability
+        group_by:
+          - alertname
+          - instance
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+
+      # The restart detector looks back 30 minutes, so its maintenance mute
+      # extends beyond the restart itself to avoid reporting the planned reset.
+      - receiver: Discord - Sunday Edge Admin
+        object_matchers:
+          - [service, =, sunday-edge-dfs-simulator]
+          - [maintenance_window, =, wsl-nightly-restart]
+        mute_time_intervals:
+          - sunday-edge-wsl-nightly-restart
+        group_by:
+          - alertname
+          - instance
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+
       - receiver: Discord - Sunday Edge Admin
         object_matchers:
           - [service, =, sunday-edge-dfs-simulator]
