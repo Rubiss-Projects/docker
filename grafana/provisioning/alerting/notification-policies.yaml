@@ -10,6 +10,16 @@ policies:
     group_interval: 5m
     repeat_interval: 4h
     routes:
+      - receiver: Discord - Sunday Edge Admin
+        object_matchers:
+          - [service, =, sunday-edge-dfs-simulator]
+        group_by:
+          - alertname
+          - instance
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+
       - receiver: Autobrr IRC Recovery
         object_matchers:
           - [automation, =, autobrr-irc-recovery]
