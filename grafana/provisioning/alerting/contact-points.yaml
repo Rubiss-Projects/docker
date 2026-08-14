@@ -14,6 +14,18 @@ contactPoints:
         disableResolveMessage: false
 
   - orgId: 1
+    name: Discord - Sunday Edge Admin
+    receivers:
+      - uid: sunday-edge-admin-discord
+        type: discord
+        settings:
+          url: $DISCORD_SUNDAY_EDGE_ADMIN_WEBHOOK_URL
+          use_discord_username: false
+          title: '{{ template "discord.title" . }}'
+          message: '{{ template "discord.message" . }}'
+        disableResolveMessage: false
+
+  - orgId: 1
     name: Autobrr IRC Recovery
     receivers:
       - uid: autobrr-irc-recovery-webhook
