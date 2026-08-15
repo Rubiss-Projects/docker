@@ -1,6 +1,6 @@
 services:
   homebridge:
-    image: homebridge/homebridge:2026-08-05
+    image: homebridge/homebridge:2026-08-11
     container_name: homebridge
     restart: unless-stopped
     deploy:
