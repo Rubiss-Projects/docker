@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana:13.1
+    image: grafana/grafana:13.2
     container_name: grafana
     environment:
       - PUID=1000
