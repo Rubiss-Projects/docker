@@ -15,6 +15,7 @@ const config = {
   networkName: option('network', ''),
   apiBase: option('api-base', process.env.AUTOBRR_API_BASE || 'http://autobrr:7474/api'),
   secretsFile: option('secrets-file', process.env.AUTOBRR_IRC_SECRETS_FILE || '/mnt/e/Docker/n8n/irc-recovery-secrets.json'),
+  autobrrSecretsFile: option('autobrr-secrets-file', process.env.AUTOBRR_SECRETS_FILE || '/mnt/e/Docker/autobrr/.env.secret'),
   policyFile: option('policy-file', process.env.AUTOBRR_IRC_POLICY_FILE || '/mnt/e/Docker/n8n/irc-recovery-policies.json'),
   lockDir: option('lock-dir', process.env.AUTOBRR_IRC_LOCK_DIR || '/mnt/e/Docker/autobrr/config'),
   cooldownMinutes: Number(option('cooldown-minutes', process.env.AUTOBRR_IRC_COOLDOWN_MINUTES || 30)),
@@ -39,6 +40,14 @@ function requireSecret(secrets, key) {
   return secrets[key];
 }
 
+function readDotenvSecret(file, key) {
+  const line = fs.readFileSync(file, 'utf8').split(/\r?\n/).find((value) => value.startsWith(`${key}=`));
+  if (!line) throw new Error(`Required secret ${key} is missing from ${file}`);
+  let value = line.slice(key.length + 1).trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+  return assertIrcCredential(value, key);
+}
+
 function looksRedacted(value) {
   return typeof value === 'string' && (/^\*+$/.test(value) || /^<?redacted>?$/i.test(value));
 }
@@ -60,13 +69,37 @@ function hydrateNetworkCredentials(network, policy, secrets) {
     else if (looksRedacted(password)) throw new Error(`IRC channel password for ${channel.name} is redacted but has no encrypted policy mapping`);
     return { ...channel, password };
   });
-  return { ...network, pass: serverPassword, channels };
+  let inviteCommand = network.invite_command || '';
+  if (policy.inviteCommand && policy.inviteTokenDotenvKey) {
+    const account = requireSecret(secrets, policy.accountSecret);
+    const nick = policy.expectedNickSecret ? requireSecret(secrets, policy.expectedNickSecret) : policy.expectedNick;
+    const token = readDotenvSecret(config.autobrrSecretsFile, policy.inviteTokenDotenvKey);
+    inviteCommand = policy.inviteCommand.replaceAll('{account}', account).replaceAll('{nick}', nick).replaceAll('{token}', token);
+  }
+  return { ...network, pass: serverPassword, channels, invite_command: inviteCommand };
 }
 
 function sendJoin(session, network, channelName) {
   const channel = network.channels.find((item) => item.name === channelName);
   if (!channel) throw new Error(`IRC channel ${channelName} is missing from network configuration`);
   session.send(`JOIN ${channelName}${channel.password ? ` ${channel.password}` : ''}`);
+}
+
+async function executeInviteCommands(session, network) {
+  if (!network.invite_command) return;
+  const commands = network.invite_command.replaceAll('/msg', '').split(',').map((value) => value.trim()).filter(Boolean);
+  for (const command of commands) {
+    if (command.startsWith('/sleep ')) {
+      const seconds = Number(command.slice(7).trim());
+      if (!Number.isInteger(seconds) || seconds < 0 || seconds > 30) throw new Error('Invalid invite-command sleep duration');
+      await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+      continue;
+    }
+    const separator = command.indexOf(' ');
+    if (separator < 1) throw new Error('Invalid provider invite command');
+    session.send(`PRIVMSG ${command.slice(0, separator)} :${command.slice(separator + 1)}`);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }
 
 async function apiRequest(url, apiKey, options = {}) {
@@ -242,21 +275,7 @@ async function verifySasl(network, account, password, nick, channel) {
     }
     session.send('CAP END');
     await session.waitFor((line) => / (001|376|422) /.test(line), 20_000, 'IRC welcome after SASL');
-    if (network.invite_command) {
-      const commands = network.invite_command.replaceAll('/msg', '').split(',').map((value) => value.trim()).filter(Boolean);
-      for (const command of commands) {
-        if (command.startsWith('/sleep ')) {
-          const seconds = Number(command.slice(7).trim());
-          if (!Number.isInteger(seconds) || seconds < 0 || seconds > 30) throw new Error('Invalid invite-command sleep duration');
-          await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-          continue;
-        }
-        const separator = command.indexOf(' ');
-        if (separator < 1) throw new Error('Invalid provider invite command');
-        session.send(`PRIVMSG ${command.slice(0, separator)} :${command.slice(separator + 1)}`);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-    }
+    await executeInviteCommands(session, network);
     sendJoin(session, network, channel);
     await session.waitFor((line) => (line.includes(` ${nick} `) && (line.includes(` JOIN :${channel}`) || line.includes(` JOIN ${channel}`))) || (/ (353|366) /.test(line) && line.includes(channel)), 15_000, `join confirmation for ${channel}`);
   } finally { session.close(); }
@@ -287,10 +306,13 @@ async function verifyAndRepairNickServ(network, policy, account, password, botNi
       currentNick = account;
       const registration = await session.noticesAfter(`PRIVMSG NickServ :REGISTER ${password} ${email}`, 4000);
       const registrationText = registration.join('\n').toLowerCase();
-      if (!/registered|confirmation|verification|email/.test(registrationText) || /cannot|failed|error|already registered/.test(registrationText)) {
+      if (/already registered/.test(registrationText)) {
+        actions.push('account-already-registered-after-stale-info');
+      } else if (!/registered|confirmation|verification|email/.test(registrationText) || /cannot|failed|error/.test(registrationText)) {
         throw new Error('NickServ did not confirm account registration');
+      } else {
+        actions.push('registered-account');
       }
-      actions.push('registered-account');
     }
 
     let lines = await session.noticesAfter(`PRIVMSG NickServ :IDENTIFY ${account} ${password}`, 3000);
@@ -315,6 +337,7 @@ async function verifyAndRepairNickServ(network, policy, account, password, botNi
     if (!new RegExp(`STATUS\\s+${escapedNick}\\s+3(?:\\s|$)`, 'i').test(text)) {
       throw new Error('NickServ did not confirm ownership of the configured bot nick');
     }
+    await executeInviteCommands(session, network);
     sendJoin(session, network, channel);
     await session.waitFor((line) => line.includes(` ${botNick} `) && (line.includes(` JOIN :${channel}`) || line.includes(` JOIN ${channel}`)) || / (353|366) /.test(line) && line.includes(channel), 15_000, `join confirmation for ${channel}`);
     actions.push(shouldGroup ? 'grouped-and-validated-bot-nick' : 'validated-bot-nick');
