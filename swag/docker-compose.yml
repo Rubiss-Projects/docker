@@ -48,7 +48,7 @@ services:
       - homepage.widget.url=https://dashboard.benlawson.dev
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Infrastructure
-      - swag.uptime-kuma.monitor.url=https://dashboard.benlawson.dev
+      - swag.uptime-kuma.monitor.url=https://dashboard.benlawson.dev/icon.svg
     networks:
       - socket-proxy-net  # For Docker socket access via proxy
       - proxynet          # For routing to backend services
