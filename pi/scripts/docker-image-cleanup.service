@@ -1,0 +1,8 @@
+[Unit]
+Description=Remove old unused Docker images from the Raspberry Pi
+Documentation=file:///home/rubiss/docker/pi/scripts/README.md
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/rubiss/docker/pi/scripts/docker-image-cleanup.sh
