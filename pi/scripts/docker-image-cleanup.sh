@@ -5,9 +5,22 @@ set -Eeuo pipefail
 readonly RETENTION_HOURS="${DOCKER_UNUSED_IMAGE_RETENTION_HOURS:-168}"
 readonly STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/docker-image-cleanup"
 readonly STATE_FILE="$STATE_DIR/unused-images.tsv"
+readonly DEPLOY_LOCK_FILE="${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}"
+readonly LOCK_WAIT_SECONDS="${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}"
 
 if [[ ! "$RETENTION_HOURS" =~ ^[0-9]+$ ]]; then
     echo "DOCKER_UNUSED_IMAGE_RETENTION_HOURS must be a non-negative integer" >&2
+    exit 1
+fi
+
+if [[ ! "$LOCK_WAIT_SECONDS" =~ ^[0-9]+$ ]]; then
+    echo "DOCKER_DEPLOY_LOCK_WAIT_SECONDS must be a non-negative integer" >&2
+    exit 1
+fi
+
+exec 9>"$DEPLOY_LOCK_FILE"
+if ! flock --wait "$LOCK_WAIT_SECONDS" 9; then
+    echo "Timed out waiting for Docker deployment lock: $DEPLOY_LOCK_FILE" >&2
     exit 1
 fi
 
