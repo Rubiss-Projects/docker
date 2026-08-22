@@ -7,6 +7,8 @@ random delay. It records when each image is first observed without a container
 reference and removes it after it remains unused for seven days. Images
 referenced by running or stopped containers are never cleanup candidates. The
 cleanup does not prune containers, volumes, networks, or application data.
+The installer enables and verifies systemd user lingering so the timer remains
+active when `rubiss` is not logged in.
 
 Install or refresh the user timer:
 
