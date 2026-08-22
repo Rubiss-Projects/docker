@@ -47,7 +47,7 @@ jobs:
             --repo "$REPOSITORY" \
             --state open \
             --author app/dependabot \
-            --json number,body,mergeStateStatus,autoMergeRequest \
+            --json number,body,mergeStateStatus \
             --limit 100 > "$prs_json"
 
           python3 - "$prs_json" > "$rebase_list" <<'PY'
@@ -101,8 +101,6 @@ jobs:
               return True
 
           for pr in prs:
-              if not pr.get("autoMergeRequest"):
-                  continue
               if pr.get("mergeStateStatus") != "BEHIND":
                   continue
               if eligible(pr):
