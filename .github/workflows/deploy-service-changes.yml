@@ -132,3 +132,7 @@ jobs:
           DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /home/rubiss/docker
         run: /home/rubiss/docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
+
+      - name: Install Raspberry Pi maintenance timers
+        shell: bash
+        run: /home/rubiss/docker/pi/scripts/install-docker-image-cleanup.sh
