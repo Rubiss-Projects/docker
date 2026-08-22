@@ -63,6 +63,8 @@ jobs:
               f"github.repository == '{REPOSITORY}'",
               "github.event_name == 'push'",
               "github.ref == 'refs/heads/main'",
+              "github.event_name == 'schedule'",
+              "github.event_name == 'workflow_dispatch'",
           )
           SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "pi-docker-ops"}
           TRUSTED_SELF_HOSTED_IF_PARTS = (
@@ -104,6 +106,19 @@ jobs:
                   return False
               branches = sequence(push.get("branches"))
               return branches == ["main"]
+
+          def dependabot_rebase_events_are_safe(on_value):
+              if not isinstance(on_value, dict):
+                  return False
+              if set(on_value.keys()) != {"push", "schedule", "workflow_dispatch"}:
+                  return False
+              push = on_value.get("push")
+              if not isinstance(push, dict) or sequence(push.get("branches")) != ["main"]:
+                  return False
+              schedule = on_value.get("schedule")
+              if not isinstance(schedule, list) or not schedule:
+                  return False
+              return all(isinstance(item, dict) and sequence(item.get("cron")) for item in schedule)
 
           def labels_for_runs_on(value):
               if isinstance(value, list):
@@ -171,8 +186,8 @@ jobs:
                   if events != {"pull_request"}:
                       fail(f"{workflow}: Dependabot auto-merge workflow must only use pull_request")
               if is_dependabot_rebase:
-                  if events != {"push"} or not push_is_main_only(on_value):
-                      fail(f"{workflow}: Dependabot rebase workflow must only use push to main")
+                  if events != {"push", "schedule", "workflow_dispatch"} or not dependabot_rebase_events_are_safe(on_value):
+                      fail(f"{workflow}: Dependabot rebase workflow must only use push to main, schedule, and workflow_dispatch")
 
               if is_dependabot_token_workflow:
                   if secret_reference_count != 1 or DEPENDABOT_AUTOMERGE_SECRET_REF not in workflow_text:

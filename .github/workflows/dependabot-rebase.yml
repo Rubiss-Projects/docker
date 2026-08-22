@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Dependabot runs Saturday at 06:00 America/Chicago (11:00 UTC in CDT,
+    # 12:00 UTC in CST). Keep retrying through the sequential merge window.
+    - cron: '17 11-17 * * 6'
+  workflow_dispatch:
 
 concurrency:
   group: dependabot-rebase-main
@@ -18,7 +23,7 @@ jobs:
     name: Request Dependabot rebases
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.repository == 'Rubiss-Projects/docker' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.repository == 'Rubiss-Projects/docker' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Request stale Dependabot rebases
@@ -53,7 +58,7 @@ jobs:
 
           prs = json.loads(Path(sys.argv[1]).read_text())
           update_pattern = re.compile(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)")
-          version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:[-+][0-9A-Za-z._-]+)?$")
+          version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[-+][0-9A-Za-z._-]+)?$")
           date_pattern = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
           latest_pattern = re.compile(r"^latest-(\d+)$")
 
