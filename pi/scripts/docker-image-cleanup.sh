@@ -22,14 +22,24 @@ while read -r image_id first_seen; do
     first_seen_unused["$image_id"]=$first_seen
 done < "$STATE_FILE"
 
-mapfile -t container_ids < <(docker container ls --all --quiet)
+container_ids_output=$(docker container ls --all --quiet)
+container_ids=()
+while read -r container_id; do
+    [[ -n "$container_id" ]] && container_ids+=("$container_id")
+done <<< "$container_ids_output"
+
 if (( ${#container_ids[@]} > 0 )); then
+    used_images_output=$(docker container inspect --format '{{.Image}}' "${container_ids[@]}")
     while read -r image_id; do
         [[ -n "$image_id" ]] && used_images["$image_id"]=1
-    done < <(docker container inspect --format '{{.Image}}' "${container_ids[@]}")
+    done <<< "$used_images_output"
 fi
 
-mapfile -t all_images < <(docker image ls --all --quiet --no-trunc | sort -u)
+all_images_output=$(docker image ls --all --quiet --no-trunc)
+all_images=()
+while read -r image_id; do
+    [[ -n "$image_id" ]] && all_images+=("$image_id")
+done < <(sort -u <<< "$all_images_output")
 readonly now=$(date +%s)
 readonly retention_seconds=$((RETENTION_HOURS * 60 * 60))
 state_tmp=$(mktemp "$STATE_DIR/unused-images.tsv.XXXXXX")
