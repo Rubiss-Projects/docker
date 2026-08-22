@@ -2,13 +2,65 @@
 
 set -Eeuo pipefail
 
-readonly IMAGE_MAX_AGE="${DOCKER_IMAGE_MAX_AGE:-168h}"
+readonly RETENTION_HOURS="${DOCKER_UNUSED_IMAGE_RETENTION_HOURS:-168}"
+readonly STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/docker-image-cleanup"
+readonly STATE_FILE="$STATE_DIR/unused-images.tsv"
+
+if [[ ! "$RETENTION_HOURS" =~ ^[0-9]+$ ]]; then
+    echo "DOCKER_UNUSED_IMAGE_RETENTION_HOURS must be a non-negative integer" >&2
+    exit 1
+fi
+
+mkdir -p "$STATE_DIR"
+touch "$STATE_FILE"
+
+declare -A first_seen_unused=()
+declare -A used_images=()
+
+while read -r image_id first_seen; do
+    [[ -n "${image_id:-}" && "${first_seen:-}" =~ ^[0-9]+$ ]] || continue
+    first_seen_unused["$image_id"]=$first_seen
+done < "$STATE_FILE"
+
+mapfile -t container_ids < <(docker container ls --all --quiet)
+if (( ${#container_ids[@]} > 0 )); then
+    while read -r image_id; do
+        [[ -n "$image_id" ]] && used_images["$image_id"]=1
+    done < <(docker container inspect --format '{{.Image}}' "${container_ids[@]}")
+fi
+
+mapfile -t all_images < <(docker image ls --all --quiet --no-trunc | sort -u)
+readonly now=$(date +%s)
+readonly retention_seconds=$((RETENTION_HOURS * 60 * 60))
+state_tmp=$(mktemp "$STATE_DIR/unused-images.tsv.XXXXXX")
+trap 'rm -f "$state_tmp"' EXIT
 
 before=$(df --output=pcent,avail / | awk 'NR == 2 {gsub(/%/, "", $1); print $1, $2}')
 read -r used_before available_before <<<"$before"
 
-echo "Docker image cleanup started: root=${used_before}% used, available=${available_before}K, max_age=${IMAGE_MAX_AGE}"
-docker image prune --all --force --filter "until=${IMAGE_MAX_AGE}"
+echo "Docker image cleanup started: root=${used_before}% used, available=${available_before}K, unused_retention=${RETENTION_HOURS}h"
+
+for image_id in "${all_images[@]}"; do
+    if [[ -n "${used_images[$image_id]:-}" ]]; then
+        continue
+    fi
+
+    first_seen=${first_seen_unused[$image_id]:-$now}
+    unused_seconds=$((now - first_seen))
+    if (( unused_seconds >= retention_seconds )); then
+        if docker image rm "$image_id"; then
+            echo "Removed image $image_id after $((unused_seconds / 3600)) hours unused"
+            continue
+        fi
+
+        echo "Image $image_id could not be removed; retaining its unused timestamp" >&2
+    fi
+
+    printf '%s\t%s\n' "$image_id" "$first_seen" >> "$state_tmp"
+done
+
+sort -o "$state_tmp" "$state_tmp"
+mv "$state_tmp" "$STATE_FILE"
 
 after=$(df --output=pcent,avail / | awk 'NR == 2 {gsub(/%/, "", $1); print $1, $2}')
 read -r used_after available_after <<<"$after"
