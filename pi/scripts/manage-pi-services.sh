@@ -10,6 +10,9 @@ SERVICES=(
     "glances"
 )
 
+LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
+LOCK_WAIT_SECONDS=${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}
+
 SERVICE_DIRS=(
     "/home/rubiss/docker/pi/homebridge"
     "/home/rubiss/docker/pi/pi-hole"
@@ -23,6 +26,19 @@ check_root() {
         echo "Please run as root or with sudo"
         exit 1
     fi
+}
+
+acquire_docker_operation_lock() {
+    if [[ ! "$LOCK_WAIT_SECONDS" =~ ^[0-9]+$ ]]; then
+        echo "DOCKER_DEPLOY_LOCK_WAIT_SECONDS must be a non-negative integer" >&2
+        exit 1
+    fi
+
+    exec 9>"$LOCK_FILE"
+    flock --wait "$LOCK_WAIT_SECONDS" 9 || {
+        echo "Timed out waiting for another Docker operation" >&2
+        exit 1
+    }
 }
 
 compose() {
@@ -107,6 +123,7 @@ show_logs() {
 
 update_images() {
     check_root
+    acquire_docker_operation_lock
     echo "=========================================="
     echo " UPDATING ALL DOCKER IMAGES"
     echo "=========================================="
@@ -144,6 +161,7 @@ update_images() {
 case "$1" in
     start|stop|restart)
         check_root
+        acquire_docker_operation_lock
         service_action "$1"
         ;;
     status)
