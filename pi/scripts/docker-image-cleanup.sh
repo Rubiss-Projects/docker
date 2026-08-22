@@ -17,6 +17,26 @@ touch "$STATE_FILE"
 declare -A first_seen_unused=()
 declare -A used_images=()
 
+remove_image() {
+    local image_id=$1
+    local references_output
+    local -a references=()
+
+    if ! references_output=$(docker image inspect --format '{{range .RepoTags}}{{println .}}{{end}}' "$image_id"); then
+        return 1
+    fi
+
+    while read -r reference; do
+        [[ -n "$reference" ]] && references+=("$reference")
+    done < <(sort -u <<< "$references_output")
+
+    if (( ${#references[@]} > 0 )); then
+        docker image rm "${references[@]}"
+    else
+        docker image rm "$image_id"
+    fi
+}
+
 while read -r image_id first_seen; do
     [[ -n "${image_id:-}" && "${first_seen:-}" =~ ^[0-9]+$ ]] || continue
     first_seen_unused["$image_id"]=$first_seen
@@ -58,7 +78,7 @@ for image_id in "${all_images[@]}"; do
     first_seen=${first_seen_unused[$image_id]:-$now}
     unused_seconds=$((now - first_seen))
     if (( unused_seconds >= retention_seconds )); then
-        if docker image rm "$image_id"; then
+        if remove_image "$image_id"; then
             echo "Removed image $image_id after $((unused_seconds / 3600)) hours unused"
             continue
         fi
