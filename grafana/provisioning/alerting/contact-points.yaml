@@ -34,7 +34,6 @@ contactPoints:
           url: http://n8n:5678/webhook/autobrr-irc-recovery
           httpMethod: POST
           username: grafana
-        secureSettings:
           password: $AUTOBRR_IRC_WEBHOOK_PASSWORD
         disableResolveMessage: false
       - uid: autobrr-irc-recovery-discord
