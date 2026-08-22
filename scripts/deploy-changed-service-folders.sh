@@ -12,7 +12,7 @@ else
   DEPLOY_SCOPE=main
 fi
 DEPLOY_START_STOPPED=${DOCKER_DEPLOY_START_STOPPED:-false}
-LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
+LOCK_DIR=${DOCKER_DEPLOY_LOCK_DIR:-/tmp/docker-compose-ops-deploy.lock.d}
 LOCK_WAIT_SECONDS=${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}
 KUMA_MAINTENANCE_ENABLED=${DOCKER_DEPLOY_KUMA_MAINTENANCE:-true}
 KUMA_MAINTENANCE_TTL_MINUTES=${DOCKER_DEPLOY_KUMA_MAINTENANCE_TTL_MINUTES:-120}
@@ -633,7 +633,8 @@ main() {
 
   [[ -d "$REPO_DIR/.git" ]] || die "Repository directory is not a git checkout: $REPO_DIR"
 
-  exec 9>"$LOCK_FILE"
+  mkdir -p "$LOCK_DIR"
+  exec 9<"$LOCK_DIR"
   flock --wait "$LOCK_WAIT_SECONDS" 9 || die "Timed out waiting for another Docker operation"
   case "$DEPLOY_SCOPE" in
     main|pi|all) ;;

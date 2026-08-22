@@ -10,7 +10,7 @@ SERVICES=(
     "glances"
 )
 
-LOCK_FILE=${DOCKER_DEPLOY_LOCK_FILE:-/tmp/docker-compose-ops-deploy.lock}
+LOCK_DIR=${DOCKER_DEPLOY_LOCK_DIR:-/tmp/docker-compose-ops-deploy.lock.d}
 LOCK_WAIT_SECONDS=${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}
 
 SERVICE_DIRS=(
@@ -34,7 +34,8 @@ acquire_docker_operation_lock() {
         exit 1
     fi
 
-    exec 9>"$LOCK_FILE"
+    mkdir -p "$LOCK_DIR"
+    exec 9<"$LOCK_DIR"
     flock --wait "$LOCK_WAIT_SECONDS" 9 || {
         echo "Timed out waiting for another Docker operation" >&2
         exit 1
