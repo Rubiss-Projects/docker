@@ -22,6 +22,18 @@ SWAG is a LinuxServer.io container that bundles Nginx, Let's Encrypt SSL certifi
   - `swag-auto-uptime-kuma` - Automated Uptime Kuma monitor sync
   - `universal-docker` - Required for auto-uptime-kuma to access Docker socket
 
+### Plex Exception
+
+Plex intentionally bypasses SWAG. There must be no active
+`proxy-confs/plex.subdomain.conf` and Plex must not advertise
+`plex.benlawson.dev` as a custom server URL. Plex apps use direct, secure
+`plex.direct` connections on port `32400`; routing playback through SWAG causes
+Docker Desktop to hide the client address and can incorrectly apply WAN bitrate
+limits to local 4K playback.
+
+Homepage should link Plex to `https://app.plex.tv/desktop/`, while Homepage and
+Uptime Kuma health checks use `http://plex:32400` internally.
+
 ### Key Features
 1. **Automatic SSL**: Wildcard certificate for *.benlawson.dev, auto-renewed
 2. **Reverse Proxy**: Routes external HTTPS to internal Docker services
@@ -350,10 +362,11 @@ docker exec swag grep -r "set \$upstream_app" /config/nginx/proxy-confs/*.conf
 
 ## Common Proxy Configurations
 
-### Media Services (Plex, Sonarr, Radarr)
+### Media Services (Sonarr, Radarr)
 - Usually have excellent sample configs
-- Enable websockets
+- Enable websockets where required
 - Set appropriate `client_max_body_size`
+- Plex is the documented exception and is not proxied through SWAG.
 
 ### Authentication Required (Portainer, Homepage)
 - Add auth middleware or use service's built-in auth

@@ -49,7 +49,7 @@ services:
       - homepage.group=Media Consumption
       - homepage.name=Plex
       - homepage.icon=plex.png
-      - homepage.href=https://plex.benlawson.dev/
+      - homepage.href=https://app.plex.tv/desktop/
       - homepage.siteMonitor=http://plex:32400/identity
       - homepage.description=Plex media server
       - homepage.widget.type=plex
@@ -57,7 +57,7 @@ services:
       - homepage.widget.key=${HOMEPAGE_WIDGET_KEY:?HOMEPAGE_WIDGET_KEY is required in plex/.env.secret}
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Media Consumption
-      - swag.uptime-kuma.monitor.url=https://plex.benlawson.dev/identity
+      - swag.uptime-kuma.monitor.url=http://plex:32400/identity
     networks:
       - proxynet
 

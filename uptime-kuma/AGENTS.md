@@ -479,10 +479,20 @@ labels:
 - `swag.uptime-kuma.monitor.headers={"Authorization": "Bearer $${TOKEN}"}`
 
 ### Manual Sync
-The sync runs automatically on SWAG container start and periodically. To force a sync:
+The sync runs during SWAG container startup. Recreating a labeled application
+container does not guarantee an immediate monitor update. To force a sync without
+restarting SWAG or interrupting every proxied service:
 ```bash
-docker exec swag python3 /app/auto_uptime_kuma/sync.py
+docker exec swag python3 /app/auto-uptime-kuma.py
 ```
+
+The sync may transiently time out while Uptime Kuma is starting; verify
+`http://uptime-kuma:3001/` from the SWAG container and retry once before restarting
+SWAG. A changed monitor is replaced (delete/add), so a stale alert from the old URL
+may arrive before the new monitor begins polling.
+
+For Plex specifically, monitor `http://plex:32400/identity`; do not monitor the
+removed `https://plex.benlawson.dev/identity` route.
 
 ### Troubleshooting
 - **Monitor Deleted?** Ensure the container is running or the mod is patched to include stopped containers (`all=True`).
