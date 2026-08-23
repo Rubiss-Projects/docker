@@ -54,6 +54,25 @@ Requires:
 ### Default Port
 - 32400 - Main web UI and streaming
 
+## Direct Client Networking
+
+Plex clients must connect directly to port `32400`; do not advertise or restore a
+`plex.benlawson.dev` SWAG URL. Reverse-proxied playback hides the client behind the
+Docker gateway and makes high-bitrate LAN sessions subject to WAN bandwidth limits.
+
+Persistent Plex settings under **Settings > Network > Show Advanced**:
+
+- **LAN Networks:** `192.168.50.0/24,172.30.0.0/16`
+  - `192.168.50.0/24` is the physical LAN.
+  - `172.30.0.0/16` is `proxynet`; Docker Desktop presents direct LAN clients to Plex as gateway `172.30.0.1`.
+- **Custom server access URLs:** `http://192.168.50.40:32400`
+  - Plex publishes this as a certificate-backed `plex.direct` LAN connection.
+  - Plex separately publishes its automatic public `plex.direct:32400` endpoint for remote clients.
+
+Expected Apple TV behavior for UHD MKV files with TrueHD is **video copy/direct
+stream plus audio conversion**. Audio-only conversion is valid and must not be
+treated as a 4K video transcode.
+
 ## Common Tasks
 
 ### First-Time Setup
@@ -117,7 +136,7 @@ docker logs plex -f
 ```yaml
 - Plex:
     icon: plex.png
-    href: https://plex.benlawson.dev
+      href: https://app.plex.tv/desktop/
     description: Media streaming server
     widget:
       type: plex
@@ -132,17 +151,8 @@ Get Plex token:
 4. Find `X-Plex-Token=XXXXX` in URL
 
 ### SWAG reverse proxy
-```
-Domain: plex.benlawson.dev
-Forward: http://plex:32400
-Websockets: No
-SSL: Let's Encrypt
-Custom Config:
-  client_max_body_size 0;
-  proxy_set_header X-Plex-Client-Identifier $http_x_plex_client_identifier;
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "upgrade";
-```
+Plex intentionally has no active SWAG route. Use Plex's direct `plex.direct:32400`
+connections for apps and `https://app.plex.tv/desktop/` for browser access.
 
 ### Tautulli (Stats & Monitoring)
 Tautulli tracks Plex usage:
@@ -179,7 +189,7 @@ Automatically updates Plex when new media added:
 2. Ensure port 32400 is forwarded in router
 3. Check "Manually specify public port" if behind NAT
 4. Verify external access at https://app.plex.tv
-5. Use SWAG reverse proxy with subdomain if port forwarding fails
+5. Do not add a SWAG custom server URL; diagnose the direct `plex.direct` route.
 
 ### Playback Buffering/Stuttering
 1. Check transcoding settings (reduce quality if needed)
@@ -326,7 +336,7 @@ Install Plex exporter for Prometheus:
 ### "Indirect connection"
 - Port forwarding not working
 - Enable Settings > Network > Enable Relay
-- Or use SWAG reverse proxy for external access
+- Verify the direct public `plex.direct:32400` connection and router port forward.
 
 ### "Not authorized"
 - Token expired or invalid
@@ -336,7 +346,7 @@ Install Plex exporter for Prometheus:
 ### "Unable to connect securely"
 - SSL certificate issue
 - Settings > Network > Secure connections: Preferred (not Required)
-- Or fix SSL via SWAG reverse proxy
+- Verify that the advertised `plex.direct` hostname resolves and its certificate is valid.
 
 ### "Transcoder crashed"
 - GPU out of memory
@@ -406,10 +416,8 @@ docker compose start plex
 - Settings > Remote Access > Enable
 - Fast, but requires router configuration
 
-### Option 3: SWAG reverse proxy (Recommended)
-- Use subdomain (plex.benlawson.dev)
-- SSL via Let's Encrypt
-- No port forwarding required (just 80/443 for NPM)
-- Can add authentication if needed
+### SWAG reverse proxy
+- Not used for Plex.
+- Do not recreate `swag/config/nginx/proxy-confs/plex.subdomain.conf` unless the direct-client design is intentionally being replaced.
 
 This configuration provides a robust, GPU-accelerated media server with optimal performance for transcoding multiple streams.

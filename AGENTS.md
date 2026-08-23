@@ -121,6 +121,24 @@ For complex operations, create a script file first, then execute it.
 - Network connectivity: All services should reach each other via container names
 - Volume permissions: Ensure PUID/PGID match host filesystem permissions
 
+## Docker Desktop Recovery
+
+Windows Scheduled Task `Start Docker Desktop if not running` runs
+`E:\Scripts\start-docker-desktop.ps1` every minute and should remain enabled. It
+uses `E:\Scripts\docker-desktop-common.ps1`, the shared health-monitor lock, and
+the ordered critical startup chain:
+
+```text
+socket-proxy -> uptime-kuma -> plex -> swag
+```
+
+The watchdog can recreate all running WSL Compose stacks to repair Docker Desktop
+bind mounts. That operation produces a burst of Uptime Kuma alerts unless a
+maintenance window is active. Before manual Docker Desktop recovery, check the
+task state and either let it own recovery or temporarily disable it; always
+re-enable it afterward. The nightly maintenance task uses the same shared startup
+logic and a maintenance lock, so never run a competing manual restart.
+
 # New Service Setup
 
 This guide covers all steps required when adding a new Docker service to the infrastructure.
