@@ -61,6 +61,18 @@ test('does not duplicate remediation while another actor holds the container lea
   } finally { fs.rmSync(leaseDirectory, { recursive: true, force: true }); }
 });
 
+test('only one process can take over a stale lease', async () => {
+  const leaseDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'self-heal-stale-')); const lease = path.join(leaseDirectory, 'transmission'); fs.mkdirSync(lease);
+  const old = new Date(Date.now() - 60_000); fs.utimesSync(lease, old, old);
+  const server = http.createServer((_request, response) => setTimeout(() => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify({ State: state('running', 'healthy') })); }, 150));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)); const { port } = server.address();
+  try {
+    const children = [1, 2].map(() => spawn(process.execPath, [script, '--container', 'transmission', '--leaseStaleMs', '1000'], { env: { ...process.env, SELF_HEAL_LEASE_DIR: leaseDirectory, DOCKER_API_URL: `http://127.0.0.1:${port}` } }));
+    const results = await Promise.all(children.map(async (child) => { let output = ''; child.stdout.on('data', (chunk) => { output += chunk; }); child.stderr.on('data', (chunk) => { output += chunk; }); const code = await new Promise((resolve) => child.on('close', resolve)); return { code, payload: JSON.parse(output) }; }));
+    assert.equal(results.filter((result) => result.payload.result === 'automation_already_in_progress').length, 1);
+  } finally { fs.rmSync(leaseDirectory, { recursive: true, force: true }); await new Promise((resolve) => server.close(resolve)); }
+});
+
 function createScenario({ afterStart, restartingBeforeExit = 0 }) {
   const actions = [];
   let killed = false;
