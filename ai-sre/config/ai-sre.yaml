@@ -1,0 +1,38 @@
+version: 1
+server: { host: 0.0.0.0, port: 8080 }
+database: { path: /data/ai-sre.db }
+agent:
+  enabled: ${AI_SRE_AGENT_ENABLED:-false}
+  provider: codex
+  model: gpt-5.6-sol
+  reasoningEffort: medium
+  apiKey: ${OPENAI_API_KEY:-not-configured}
+registry:
+  docker:
+    enabled: true
+    host: http://ai-sre-socket-proxy:2375
+    discoveryMode: all
+    resyncIntervalSeconds: 300
+  manualFiles: [/config/services.yaml]
+connectors:
+  grafana:
+    enabled: true
+    webhookSecret: ${GRAFANA_WEBHOOK_SECRET:-not-configured}
+  prometheus: { enabled: true, url: http://prometheus:9090 }
+  discord:
+    enabled: ${AI_SRE_DISCORD_ENABLED:-false}
+    token: ${DISCORD_TOKEN:-not-configured}
+    incidentChannelId: ${DISCORD_INCIDENT_CHANNEL_ID:-not-configured}
+    approvalUserIds: []
+policy: { mode: recommend }
+playbooks:
+  paths: [/config/playbooks]
+actions:
+  docker:
+    # Registers read-only inspect/log actions so recommend-mode playbooks can
+    # propose them. The proxy still rejects every Docker POST operation.
+    enabled: true
+    host: http://ai-sre-socket-proxy:2375
+    allowRestart: false
+approvals:
+  apiSecret: ${AI_SRE_APPROVAL_SECRET:-not-configured}
