@@ -12,6 +12,14 @@ contactPoints:
           title: '{{ template "discord.title" . }}'
           message: '{{ template "discord.message" . }}'
         disableResolveMessage: false
+      - uid: ai-sre-grafana-webhook
+        type: webhook
+        settings:
+          url: http://host.docker.internal:18080/webhooks/grafana
+          httpMethod: POST
+          authorization_scheme: Bearer
+          authorization_credentials: $AI_SRE_GRAFANA_WEBHOOK_SECRET
+        disableResolveMessage: false
 
   - orgId: 1
     name: Discord - Sunday Edge Admin
