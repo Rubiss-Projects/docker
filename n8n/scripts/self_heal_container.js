@@ -4,6 +4,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
@@ -19,6 +20,7 @@ const leaseStaleMs = numberArg(args.leaseStaleMs, 'SELF_HEAL_LEASE_STALE_MS', 30
 const leasePath = path.join(leaseDirectory, container);
 const actions = [];
 let ownsLease = false;
+const leaseOwner = crypto.randomUUID();
 
 if (!container) {
   fail('Missing --container argument');
@@ -37,23 +39,31 @@ if (!acquireLease()) {
 
 function acquireLease() {
   fs.mkdirSync(leaseDirectory, { recursive: true });
-  try {
-    fs.mkdirSync(leasePath);
-  } catch (error) {
-    if (error.code !== 'EEXIST') throw error;
-    const ageMs = Date.now() - fs.statSync(leasePath).mtimeMs;
-    if (ageMs < leaseStaleMs) return false;
-    fs.rmSync(leasePath, { recursive: true, force: true });
-    fs.mkdirSync(leasePath);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      fs.mkdirSync(leasePath);
+      ownsLease = true;
+      fs.writeFileSync(path.join(leasePath, 'lease.json'), JSON.stringify({ actor: 'n8n', operation: 'container-self-heal', container, owner: leaseOwner, pid: process.pid, startedAt: new Date().toISOString() }));
+      return true;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      let ageMs;
+      try { ageMs = Date.now() - fs.statSync(leasePath).mtimeMs; } catch (statError) { if (statError.code === 'ENOENT') continue; throw statError; }
+      if (ageMs < leaseStaleMs) return false;
+      const quarantine = `${leasePath}.stale-${process.pid}-${crypto.randomUUID()}`;
+      try { fs.renameSync(leasePath, quarantine); } catch (renameError) { if (renameError.code === 'ENOENT') continue; throw renameError; }
+      fs.rmSync(quarantine, { recursive: true, force: true });
+    }
   }
-  ownsLease = true;
-  fs.writeFileSync(path.join(leasePath, 'lease.json'), JSON.stringify({ actor: 'n8n', operation: 'container-self-heal', container, pid: process.pid, startedAt: new Date().toISOString() }));
-  return true;
+  return false;
 }
 
 function releaseLease() {
   if (!ownsLease) return;
-  fs.rmSync(leasePath, { recursive: true, force: true });
+  try {
+    const lease = JSON.parse(fs.readFileSync(path.join(leasePath, 'lease.json'), 'utf8'));
+    if (lease.owner === leaseOwner) fs.rmSync(leasePath, { recursive: true, force: true });
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
   ownsLease = false;
 }
 
