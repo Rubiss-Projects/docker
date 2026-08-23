@@ -93,6 +93,10 @@ n8n can connect to all services in this infrastructure:
 - Configure webhook authentication for external triggers
 - Enable 2FA for production deployments
 
+## Remediation coordination
+
+`self_heal_container.js` acquires an atomic per-container lease under `config/self-heal-locks/<container>/lease.json` before it starts or restarts anything. Other automation, including AI SRE, must treat a fresh lease as authoritative and must not perform a simultaneous remediation for that container. Leases are removed on process exit and may be reclaimed after five minutes if a process is interrupted.
+
 ## Troubleshooting
 
 ### Workflows Not Saving

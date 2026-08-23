@@ -2,6 +2,8 @@
 'use strict';
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
@@ -12,7 +14,11 @@ const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT
 const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', 90000);
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
 const postKillWaitMs = numberArg(args.postKillWaitMs, 'POST_KILL_WAIT_MS', 30000);
+const leaseDirectory = process.env.SELF_HEAL_LEASE_DIR || '/mnt/e/Docker/n8n/config/self-heal-locks';
+const leaseStaleMs = numberArg(args.leaseStaleMs, 'SELF_HEAL_LEASE_STALE_MS', 300000);
+const leasePath = path.join(leaseDirectory, container);
 const actions = [];
+let ownsLease = false;
 
 if (!container) {
   fail('Missing --container argument');
@@ -22,9 +28,34 @@ if (!CONTAINER_NAME_PATTERN.test(container)) {
   fail(`Invalid Docker container name: ${container}`);
 }
 
-main().catch((error) => {
-  fail(error.message, { actions });
-});
+if (!acquireLease()) {
+  finish({ ok: true, container, actions, result: 'automation_already_in_progress' });
+} else {
+  process.on('exit', releaseLease);
+  main().catch((error) => fail(error.message, { actions }));
+}
+
+function acquireLease() {
+  fs.mkdirSync(leaseDirectory, { recursive: true });
+  try {
+    fs.mkdirSync(leasePath);
+  } catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    const ageMs = Date.now() - fs.statSync(leasePath).mtimeMs;
+    if (ageMs < leaseStaleMs) return false;
+    fs.rmSync(leasePath, { recursive: true, force: true });
+    fs.mkdirSync(leasePath);
+  }
+  ownsLease = true;
+  fs.writeFileSync(path.join(leasePath, 'lease.json'), JSON.stringify({ actor: 'n8n', operation: 'container-self-heal', container, pid: process.pid, startedAt: new Date().toISOString() }));
+  return true;
+}
+
+function releaseLease() {
+  if (!ownsLease) return;
+  fs.rmSync(leasePath, { recursive: true, force: true });
+  ownsLease = false;
+}
 
 async function main() {
   const before = await getContainer();
