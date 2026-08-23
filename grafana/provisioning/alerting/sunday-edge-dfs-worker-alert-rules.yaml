@@ -67,14 +67,14 @@ groups:
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_worker_poll_errors
-        title: Sunday Edge DFS workers cannot poll the application
+        title: Sunday Edge DFS worker polling errors detected
         condition: C
         data:
           - refId: A
             relativeTimeRange: { from: 900, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: sum(increase(sunday_edge_dfs_worker_errors_total{stage="poll"}[15m]))
+              expr: round(sum(increase(sunday_edge_dfs_worker_errors_total{stage="poll"}[15m])))
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -84,17 +84,17 @@ groups:
               expression: B
               type: threshold
               conditions:
-                - evaluator: { params: [0], type: gt }
+                - evaluator: { params: [2], type: gt }
                   operator: { type: and }
-        for: 0m
+        for: 3m
         noDataState: OK
         execErrState: Error
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "11"
           summary: "DFS workers reported {{ $values.B.Value }} application polling errors in 15 minutes"
-          description: "Check the production URL, shared compute secret, network path, and worker journal. Job failures are alerted separately."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+          description: "At least 3 polling errors persisted during the evaluation window. Check the production URL, shared compute secret, network path, and worker journal. Job failures are alerted separately."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_worker_restarts
         title: Sunday Edge DFS worker restarted unexpectedly
