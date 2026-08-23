@@ -1,0 +1,13 @@
+apiVersion: ai-sre.dev/v1alpha1
+kind: Playbook
+metadata: { name: container-restart-loop, version: 1.0.0 }
+match:
+  source: grafana
+  labels: { condition: container-restart-loop }
+steps:
+  - id: inspect
+    uses: docker.container.inspect
+    with: { container: "${{ service.selectors.docker.containerName }}" }
+  - id: logs
+    uses: docker.container.logs
+    with: { container: "${{ service.selectors.docker.containerName }}", tail: 200 }
