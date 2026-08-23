@@ -6,8 +6,6 @@
 !homepage/config/
 !homepage/config/*
 !swag/config/**
-!ai-sre/config/
-!ai-sre/config/**
 
 # OpenClaw - only track openclaw.json and specific workspace markdown files
 !openclaw/config/openclaw.json
