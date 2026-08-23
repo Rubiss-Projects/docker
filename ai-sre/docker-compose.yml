@@ -1,0 +1,73 @@
+services:
+  ai-sre:
+    image: ghcr.io/rubiss-projects/ai-sre:main
+    container_name: ai-sre
+    depends_on:
+      ai-sre-socket-proxy:
+        condition: service_healthy
+    environment:
+      - AI_SRE_CONFIG=/config/ai-sre.yaml
+    env_file:
+      - path: .env
+      - path: .env.secret
+        required: false
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      - homepage.group=Observability
+      - homepage.name=AI SRE
+      - homepage.icon=mdi-robot-industrial
+      - homepage.description=Alert correlation and guarded incident response
+      - ai-sre.enabled=false
+    networks:
+      - proxynet
+      - ai-sre-docker-api
+
+  ai-sre-socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:version-3.4.2-r0@sha256:b3c91258489c6d6ef26f20e9681177e3e861798466a2b85a3572ee0464c5e088
+    container_name: ai-sre-socket-proxy
+    environment:
+      - CONTAINERS=1
+      - INFO=1
+      - EVENTS=0
+      - POST=0
+      - ALLOW_START=0
+      - ALLOW_STOP=0
+      - ALLOW_RESTARTS=0
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ai-sre-docker-api
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
+  ai-sre-docker-api:
+    internal: true
