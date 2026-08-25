@@ -230,7 +230,7 @@ groups:
               conditions:
                 - evaluator:
                     params:
-                      - 30
+                      - 15
                     type: lt
                   operator:
                     type: and
@@ -258,7 +258,7 @@ groups:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "14"
           summary: "Windows drive C: free space low on {{ $labels.host }}"
-          description: "Free space on C: is below 30% on {{ $labels.host }}. Current value: {{ $values.B | printf \"%.2f\" }}%"
+          description: "Free space on C: is below 15% on {{ $labels.host }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
           monitor: windows
           resource: disk
@@ -343,7 +343,7 @@ groups:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "14"
           summary: "Windows drive C: free space CRITICAL on {{ $labels.host }}"
-          description: "Free space on C: is below 10% on {{ $labels.host }}. Current value: {{ $values.B | printf \"%.2f\" }}%"
+          description: "Free space on C: is below 10% on {{ $labels.host }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
           monitor: windows
           resource: disk
@@ -428,7 +428,7 @@ groups:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "14"
           summary: "Windows drive E: free space low on {{ $labels.host }}"
-          description: "Free space on E: is below 10% on {{ $labels.host }}. Current value: {{ $values.B | printf \"%.2f\" }}%"
+          description: "Free space on E: is below 10% on {{ $labels.host }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
           monitor: windows
           resource: disk
@@ -485,7 +485,7 @@ groups:
               conditions:
                 - evaluator:
                     params:
-                      - 10
+                      - 5
                     type: lt
                   operator:
                     type: and
@@ -513,7 +513,7 @@ groups:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "14"
           summary: "Windows drive E: free space CRITICAL on {{ $labels.host }}"
-          description: "Free space on E: is below 10% on {{ $labels.host }}. Current value: {{ $values.B | printf \"%.2f\" }}%"
+          description: "Free space on E: is below 5% on {{ $labels.host }}. Current value: {{ $values.B.Value | printf \"%.2f\" }}%"
         labels:
           monitor: windows
           resource: disk
