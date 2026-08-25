@@ -45,7 +45,6 @@ groups:
           summary: "Container {{ $labels.name }} is restarting"
           description: "Container {{ $labels.name }} has restarted {{ $values.B.Value }} times in the last 15 minutes."
         labels:
-          condition: container-restart-loop
           severity: warning
 
       - uid: docker_container_memory_high
@@ -169,5 +168,4 @@ groups:
           summary: "Container {{ $labels.name }} OOM killed"
           description: "Container {{ $labels.name }} has been killed by the kernel due to out-of-memory conditions."
         labels:
-          condition: container-oom
           severity: critical

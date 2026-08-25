@@ -2,9 +2,6 @@
 'use strict';
 
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 
 const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
@@ -15,12 +12,7 @@ const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT
 const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', 90000);
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
 const postKillWaitMs = numberArg(args.postKillWaitMs, 'POST_KILL_WAIT_MS', 30000);
-const leaseDirectory = process.env.SELF_HEAL_LEASE_DIR || '/mnt/e/Docker/n8n/config/self-heal-locks';
-const leaseStaleMs = numberArg(args.leaseStaleMs, 'SELF_HEAL_LEASE_STALE_MS', 300000);
-const leasePath = path.join(leaseDirectory, container);
 const actions = [];
-let ownsLease = false;
-const leaseOwner = crypto.randomUUID();
 
 if (!container) {
   fail('Missing --container argument');
@@ -30,42 +22,9 @@ if (!CONTAINER_NAME_PATTERN.test(container)) {
   fail(`Invalid Docker container name: ${container}`);
 }
 
-if (!acquireLease()) {
-  finish({ ok: true, container, actions, result: 'automation_already_in_progress' });
-} else {
-  process.on('exit', releaseLease);
-  main().catch((error) => fail(error.message, { actions }));
-}
-
-function acquireLease() {
-  fs.mkdirSync(leaseDirectory, { recursive: true });
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      fs.mkdirSync(leasePath);
-      ownsLease = true;
-      fs.writeFileSync(path.join(leasePath, 'lease.json'), JSON.stringify({ actor: 'n8n', operation: 'container-self-heal', container, owner: leaseOwner, pid: process.pid, startedAt: new Date().toISOString() }));
-      return true;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
-      let ageMs;
-      try { ageMs = Date.now() - fs.statSync(leasePath).mtimeMs; } catch (statError) { if (statError.code === 'ENOENT') continue; throw statError; }
-      if (ageMs < leaseStaleMs) return false;
-      const quarantine = `${leasePath}.stale-${process.pid}-${crypto.randomUUID()}`;
-      try { fs.renameSync(leasePath, quarantine); } catch (renameError) { if (renameError.code === 'ENOENT') continue; throw renameError; }
-      fs.rmSync(quarantine, { recursive: true, force: true });
-    }
-  }
-  return false;
-}
-
-function releaseLease() {
-  if (!ownsLease) return;
-  try {
-    const lease = JSON.parse(fs.readFileSync(path.join(leasePath, 'lease.json'), 'utf8'));
-    if (lease.owner === leaseOwner) fs.rmSync(leasePath, { recursive: true, force: true });
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  ownsLease = false;
-}
+main().catch((error) => {
+  fail(error.message, { actions });
+});
 
 async function main() {
   const before = await getContainer();

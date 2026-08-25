@@ -2,8 +2,6 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
 const { spawn } = require('node:child_process');
 const http = require('node:http');
 const path = require('node:path');
@@ -48,29 +46,6 @@ test('waits through Docker restarting state before starting an exited container'
   assert.equal(result.code, 0, result.stderr);
   assert.equal(result.payload.result, 'recovered');
   assert.equal(scenario.actions.filter((action) => action === 'start').length, 1);
-});
-
-test('does not duplicate remediation while another actor holds the container lease', async () => {
-  const leaseDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'self-heal-lease-'));
-  fs.mkdirSync(path.join(leaseDirectory, 'transmission'));
-  try {
-    const child = spawn(process.execPath, [script, '--container', 'transmission'], { env: { ...process.env, SELF_HEAL_LEASE_DIR: leaseDirectory } });
-    let stdout = ''; child.stdout.setEncoding('utf8'); child.stdout.on('data', (chunk) => { stdout += chunk; });
-    const code = await new Promise((resolve) => child.on('close', resolve));
-    assert.equal(code, 0); assert.equal(JSON.parse(stdout).result, 'automation_already_in_progress');
-  } finally { fs.rmSync(leaseDirectory, { recursive: true, force: true }); }
-});
-
-test('only one process can take over a stale lease', async () => {
-  const leaseDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'self-heal-stale-')); const lease = path.join(leaseDirectory, 'transmission'); fs.mkdirSync(lease);
-  const old = new Date(Date.now() - 60_000); fs.utimesSync(lease, old, old);
-  const server = http.createServer((_request, response) => setTimeout(() => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify({ State: state('running', 'healthy') })); }, 150));
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)); const { port } = server.address();
-  try {
-    const children = [1, 2].map(() => spawn(process.execPath, [script, '--container', 'transmission', '--leaseStaleMs', '1000'], { env: { ...process.env, SELF_HEAL_LEASE_DIR: leaseDirectory, DOCKER_API_URL: `http://127.0.0.1:${port}` } }));
-    const results = await Promise.all(children.map(async (child) => { let output = ''; child.stdout.on('data', (chunk) => { output += chunk; }); child.stderr.on('data', (chunk) => { output += chunk; }); const code = await new Promise((resolve) => child.on('close', resolve)); return { code, payload: JSON.parse(output) }; }));
-    assert.equal(results.filter((result) => result.payload.result === 'automation_already_in_progress').length, 1);
-  } finally { fs.rmSync(leaseDirectory, { recursive: true, force: true }); await new Promise((resolve) => server.close(resolve)); }
 });
 
 function createScenario({ afterStart, restartingBeforeExit = 0 }) {
@@ -141,7 +116,6 @@ function state(status, health, exitCode = 0) {
 async function runScenario(scenario) {
   await new Promise((resolve) => scenario.server.listen(0, '127.0.0.1', resolve));
   const { port } = scenario.server.address();
-  const leaseDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'self-heal-test-'));
 
   try {
     const child = spawn(process.execPath, [
@@ -153,7 +127,7 @@ async function runScenario(scenario) {
       '--pollIntervalMs', '30',
       '--postKillWaitMs', '20',
     ], {
-      env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${port}`, SELF_HEAL_LEASE_DIR: leaseDirectory },
+      env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${port}` },
     });
 
     let stdout = '';
@@ -167,7 +141,6 @@ async function runScenario(scenario) {
     const output = stdout || stderr;
     return { code, stderr, payload: JSON.parse(output) };
   } finally {
-    fs.rmSync(leaseDirectory, { recursive: true, force: true });
     await new Promise((resolve) => scenario.server.close(resolve));
   }
 }
