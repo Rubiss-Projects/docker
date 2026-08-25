@@ -82,6 +82,8 @@ groups:
         noDataState: OK
         execErrState: Error
         for: 5m
+        # Hold recovery long enough to absorb brief crossings of the 2 GB boundary.
+        keepFiringFor: 15m
         annotations:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "10"
@@ -166,6 +168,8 @@ groups:
         noDataState: OK
         execErrState: Error
         for: 5m
+        # Apply the same recovery hold if memory hovers around the critical boundary.
+        keepFiringFor: 15m
         annotations:
           __dashboardUid__: fdvyllsgg8v7kf
           __panelId__: "10"
