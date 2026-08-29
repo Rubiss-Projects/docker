@@ -68,3 +68,13 @@ scrape_configs:
         labels:
           service: sunday-edge-dfs-simulator
           host: ben-server
+
+  - job_name: sunday-edge-dfs-checkpoint-recovery
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    static_configs:
+      - targets:
+          - host.docker.internal:9467
+        labels:
+          service: sunday-edge-dfs-simulator
+          host: ben-server
