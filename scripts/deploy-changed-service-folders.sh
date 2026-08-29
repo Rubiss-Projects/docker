@@ -285,6 +285,23 @@ wait_tcp_port() {
   die "Timed out waiting for TCP probe $host:$port"
 }
 
+wait_container_tcp_port() {
+  local container_name=$1
+  local port=$2
+  local timeout_seconds=${3:-120}
+  local deadline=$((SECONDS + timeout_seconds))
+
+  while (( SECONDS < deadline )); do
+    if docker exec "$container_name" nc -z -w 3 127.0.0.1 "$port" >/dev/null 2>&1; then
+      log "Container TCP probe succeeded for $container_name:$port"
+      return 0
+    fi
+    sleep 5
+  done
+
+  die "Timed out waiting for container TCP probe $container_name:$port"
+}
+
 verify_swag_dependency_endpoints() {
   local socket_ok=false
   local uptime_ok=false
@@ -322,7 +339,7 @@ verify_stack_readiness() {
       wait_container_ready swag 240
       verify_swag_dependency_endpoints
       wait_tcp_port 127.0.0.1 80 120
-      wait_tcp_port 127.0.0.1 443 120
+      wait_container_tcp_port swag 443 120
       ;;
   esac
 }
