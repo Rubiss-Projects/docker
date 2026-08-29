@@ -44,7 +44,7 @@ groups:
             relativeTimeRange: { from: 900, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: sum(increase(sunday_edge_dfs_worker_jobs_completed_total{status="failed"}[15m]))
+              expr: round(sum(increase(sunday_edge_dfs_worker_jobs_completed_total{status="failed"}[15m])))
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -92,8 +92,8 @@ groups:
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "11"
-          summary: "DFS workers reported {{ $values.B.Value }} application polling errors in 15 minutes"
-          description: "At least 3 polling errors persisted during the evaluation window. Check the production URL, shared compute secret, network path, and worker journal. Job failures are alerted separately."
+          summary: "DFS workers exhausted retries for {{ $values.B.Value }} polls in 15 minutes"
+          description: "At least 3 polling requests still failed after a bounded retry during the evaluation window. Check the production URL, database connectivity, shared compute secret, network path, and worker journal. Recovered first attempts and job failures are tracked separately."
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_worker_restarts
@@ -187,4 +187,64 @@ groups:
           __panelId__: "9"
           summary: "A DFS worker is using {{ $values.B.Value }} bytes of resident memory"
           description: "The worker has crossed 420 MiB and is approaching its 448 MiB MemoryHigh / 512 MiB MemoryMax systemd limits."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator }
+
+      - uid: sunday_edge_dfs_cp_recovery_down
+        title: Sunday Edge DFS checkpoint recovery unavailable
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: sum(up{job="sunday-edge-dfs-checkpoint-recovery"})
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [1], type: lt }
+                  operator: { type: and }
+        for: 5m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "1"
+          summary: "The DFS checkpoint recovery scheduler is not reachable"
+          description: "Check sunday-edge-dfs-checkpoint-recovery.service and port 9467 on ben-server. Queue wakeups remain the primary checkpoint path."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
+
+      - uid: sunday_edge_dfs_cp_recovery_stale
+        title: Sunday Edge DFS checkpoint recovery is stale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1800, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: time() - max(sunday_edge_dfs_checkpoint_recovery_last_success_unixtime_seconds)
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [900], type: gt }
+                  operator: { type: and }
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          __dashboardUid__: sunday-edge-dfs-compute
+          __panelId__: "1"
+          summary: "DFS checkpoint recovery has not succeeded for {{ $values.B.Value }} seconds"
+          description: "Inspect the checkpoint recovery journal, production endpoint, database connectivity, and shared compute secret."
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
