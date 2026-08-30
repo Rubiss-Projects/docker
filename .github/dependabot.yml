@@ -1,6 +1,24 @@
 version: 2
 updates:
   - package-ecosystem: docker-compose
+    directory: /ai-assistant
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - docker-compose
+    groups:
+      ai-assistant-images:
+        patterns:
+          - '*'
+  - package-ecosystem: docker-compose
     directory: /ark
     schedule:
       interval: weekly
