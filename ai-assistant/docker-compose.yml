@@ -22,7 +22,7 @@ services:
       - no-new-privileges:true
     pids_limit: 256
     healthcheck:
-      test: ["CMD", "node", "-e", "const fs=require('fs');const ok=fs.readdirSync('/proc').filter(p=>/^\\d+$/.test(p)).some(p=>{try{return fs.readFileSync('/proc/'+p+'/cmdline','utf8').includes('dist/src/index.js')}catch{return false}});process.exit(ok?0:1)"]
+      test: ["CMD", "node", "-e", "const fs=require('fs');const self=String(process.pid);const ok=fs.readdirSync('/proc').filter(p=>p!==self&&/^\\d+$/.test(p)).some(p=>{try{return fs.readFileSync('/proc/'+p+'/cmdline','utf8').includes('dist/src/index.js')}catch{return false}});process.exit(ok?0:1)"]
       interval: 60s
       timeout: 5s
       retries: 3
