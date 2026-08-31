@@ -21,6 +21,10 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      # Docker's default seccomp profile blocks the user namespaces required by
+      # the Codex shared-mode Bubblewrap sandbox. This profile retains Docker's
+      # defaults while narrowly enabling its namespace and mount syscalls.
+      - seccomp=./seccomp-bwrap.json
     pids_limit: 256
     healthcheck:
       test: ["CMD", "node", "-e", "const fs=require('fs');const self=String(process.pid);const ok=fs.readdirSync('/proc').filter(p=>p!==self&&/^\\d+$/.test(p)).some(p=>{try{return fs.readFileSync('/proc/'+p+'/cmdline','utf8').includes('dist/src/index.js')}catch{return false}});process.exit(ok?0:1)"]
