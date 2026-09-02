@@ -39,6 +39,12 @@ Use the nearest applicable `AGENTS.md` for the task:
 - **git-crypt**: All `.env.secret` files are encrypted using git-crypt. Never commit secrets in plain text.
 - **Global variables**: Common variables like PUID, PGID, TZ are repeated across services
 
+### Torrent Data Preservation
+- **Explicit approval required**: Never remove a torrent, delete its data, or remove partially downloaded files without the user's explicit approval immediately before the destructive action.
+- This applies even when a torrent is stalled, incomplete, duplicated, blocklisted, being replaced, has no seeders, or appears unlikely to finish.
+- Adding or downloading a replacement does not authorize removal of the existing torrent or its data. Keep the original registered in the download client so it can continue downloading or seeding.
+- Before any approved removal, report the exact torrent, completion percentage, current seed/peer availability, data path, and whether the data is recoverable.
+
 ## Network Architecture
 
 ### External Network Pattern
