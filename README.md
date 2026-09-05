@@ -65,3 +65,5 @@ If you do not have the git-crypt key, the public `.env` files are still availabl
 ## GitHub Automation
 
 Pull requests run a GitHub-hosted validation workflow before merge. Deployment runs only after trusted pushes to `main` and is guarded so self-hosted runners are not used for pull request code.
+
+The Ubuntu runner uses a [dedicated Docker CLI configuration](scripts/runner-docker-auth.md) for public-image pulls so deployments do not depend on an interactive Windows credential session. Preserve that service configuration across WSL maintenance and reconcile interrupted deployments after Docker is healthy.
