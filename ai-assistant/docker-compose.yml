@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.6.7
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.6.8
     container_name: ai-assistant
     restart: unless-stopped
     init: true
