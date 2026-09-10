@@ -1,0 +1,10 @@
+{
+  "grants": [
+    {
+      "guildId": "93904174068011008",
+      "roleId": "93904984583704576",
+      "roles": ["server-admin"],
+      "capabilities": ["schedule.ai.create"]
+    }
+  ]
+}
