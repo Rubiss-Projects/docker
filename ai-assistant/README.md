@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.8.0` and runs in shared security mode. Schedules and run
+The service pins `v1.8.1` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 Scheduling is enabled for the shared server `93904174068011008`. Its `@admin`
