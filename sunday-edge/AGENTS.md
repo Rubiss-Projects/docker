@@ -14,6 +14,8 @@ Preserve non-root execution, read-only root filesystems, dropped capabilities,
 no-new-privileges, process limits, CPU quotas, and memory/swap ceilings.
 Each role receives only its own encrypted `*.env.secret` file. No secrets belong
 in `.env`, image layers, labels, the widget response, or build logs.
+`registry.env.secret` belongs only to the deployment host; never load or mount it
+in any worker. The deployment helper sends its token to Docker through stdin.
 
 See [the runbook](../docs/sunday-edge-workers.md) for releases, state migration,
 backup, health checks, Homepage, Prometheus/Grafana, and rollback.
