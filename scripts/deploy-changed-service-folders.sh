@@ -323,6 +323,19 @@ verify_stack_readiness() {
   local stack_dir=$1
 
   case "$stack_dir" in
+    sunday-edge)
+      # Compose-generated replica names cannot be inferred from service keys.
+      # Check the actual containers, and require all configured replicas.
+      local expected actual container
+      local -a containers=()
+      expected=$(compose config --format json | jq '[.services[] | (.scale // .deploy.replicas // 1)] | add')
+      mapfile -t containers < <(compose ps --all --quiet)
+      actual=${#containers[@]}
+      [[ "$actual" -eq "$expected" ]] || die "Sunday Edge has $actual containers; expected $expected"
+      for container in "${containers[@]}"; do
+        wait_container_ready "$container" 180
+      done
+      ;;
     socket-proxy)
       wait_container_ready socket-proxy 180
       ;;
