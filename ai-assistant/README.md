@@ -1,7 +1,12 @@
 # AI Assistant
 
-The service pins `v1.9.0` and runs in shared security mode. Schedules and run
+The service pins `v1.10.0` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
+
+Schedules support optional `start_at` and `end_at` dates on creation and editing.
+Use `YYYY-MM-DD HH:mm` in the schedule timezone or an ISO date-time with an
+explicit offset. The start is inclusive and the end is exclusive; `none` clears
+either date when editing. Command registration runs automatically on startup.
 
 `DISCORD_SUPPRESS_EMBEDS=true` keeps the bot's text replies and scheduled messages
 compact by hiding automatic link previews. Links remain clickable and uploaded
