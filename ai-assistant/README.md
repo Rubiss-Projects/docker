@@ -1,7 +1,13 @@
 # AI Assistant
 
-The service pins `v1.10.0` and runs in shared security mode. Schedules and run
+The service pins `v1.11.0` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
+
+Providers can read public pages through `fetch_webpage` without enabling shell
+network access. The reader validates public addresses and redirects, sends no
+account credentials, and reports HTTP refusals or challenge pages explicitly.
+Schedule inspection separates lookup outcomes from message delivery; previous
+verified values retain their timestamps and are labeled stale after failed checks.
 
 Schedules support optional `start_at` and `end_at` dates on creation and editing.
 Use `YYYY-MM-DD HH:mm` in the schedule timezone or an ISO date-time with an
