@@ -44,6 +44,7 @@ services:
         target: /data
         volume:
           subpath: runtime
+          nocopy: true
     networks:
       proxynet:
         aliases: [sunday-edge-dfs]
