@@ -620,6 +620,9 @@ deploy_stack() {
       fi
     fi
 
+    if [[ "$stack_dir" == "sunday-edge" ]]; then
+      run python3 "$REPO_DIR/scripts/login-sunday-edge-registry.py"
+    fi
     run compose pull --ignore-buildable
     run compose up -d --build --remove-orphans
 

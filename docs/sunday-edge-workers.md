@@ -56,6 +56,16 @@ prompt, never in the command):
 sudo -u rubiss docker --config /home/rubiss/actions-runner-docker-ops/.docker-ci login ghcr.io --username Rubiss
 ```
 
+Keep `GHCR_USERNAME` and `GHCR_TOKEN` in git-crypt-encrypted
+`sunday-edge/registry.env.secret`. This file is used only by the host-side
+`scripts/login-sunday-edge-registry.py`, never by a worker container. Automated
+deployments load it before pulling images; manual deployment can run the helper
+as the runner user with its dedicated Docker configuration:
+
+```sh
+sudo -u rubiss env DOCKER_CONFIG=/home/rubiss/actions-runner-docker-ops/.docker-ci python3 /mnt/e/Docker/scripts/login-sunday-edge-registry.py
+```
+
 Give the `/sunday-edge` Dependabot update job the same read-only registry access
 through the repository's Dependabot secret `SUNDAY_EDGE_GHCR_TOKEN`. Its explicit
 registry entry supports the private images across the application and Docker
