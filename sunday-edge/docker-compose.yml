@@ -81,7 +81,7 @@ services:
 
   analytics:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.1
     container_name: sunday-edge-analytics
     env_file:
       - path: analytics.env.secret
