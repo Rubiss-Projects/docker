@@ -1,7 +1,12 @@
 # AI Assistant
 
-The service pins `v1.11.0` and runs in shared security mode. Schedules and run
+The service pins `v1.11.1` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
+
+eBay item lookups use a fresh Chromium session to establish anonymous site
+cookies and retrieve current auction facts. JavaScript, subresources, downloads,
+and redirects are blocked. Chromium retains its sandbox; the seccomp profile
+permits its user-namespace `chroot` while host capabilities remain dropped.
 
 Providers can read public pages through `fetch_webpage` without enabling shell
 network access. The reader validates public addresses and redirects, sends no
