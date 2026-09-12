@@ -79,6 +79,12 @@ python3 /mnt/e/Docker/scripts/migrate-sunday-edge-workers.py --image ghcr.io/rub
 python3 /mnt/e/Docker/scripts/migrate-sunday-edge-workers.py --image ghcr.io/rubiss/sunday-edge-compute@sha256:<digest> --execute
 ```
 
+The disposable rehearsal is available as `scripts/test-sunday-edge-migration.py
+--image <compute-image>`. It verifies byte-for-byte imports (including binary
+files, symlinks, and empty directories), copied ownership, volume subpaths, and
+eight distinct non-root replica slots without any production credentials/network
+access. It removes only its uniquely named, fixture-labelled test resources.
+
 The script refuses existing destination volumes, records legacy unit states,
 stops timers/services, preserves source directories and private tar backups under
 `/var/backups/sunday-edge-containers/<timestamp>`, imports each volume, and compares
