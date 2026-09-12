@@ -298,7 +298,7 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          find . \( -name '.env.secret' -o -name 'db.env.secret' \) -delete
+          find . -name '*.env.secret' -delete
 
           mapfile -d '' compose_files < <(
             find . \

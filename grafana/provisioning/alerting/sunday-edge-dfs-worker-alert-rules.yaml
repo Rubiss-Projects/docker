@@ -14,7 +14,7 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: sum(up{job="sunday-edge-dfs-workers"})
+              expr: (sum(up{job="sunday-edge-dfs-workers"}) or vector(0)) / max(sunday_edge_dfs_worker_pool_desired_replicas)
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -24,7 +24,7 @@ groups:
               expression: B
               type: threshold
               conditions:
-                - evaluator: { params: [6], type: lt }
+                - evaluator: { params: [1], type: lt }
                   operator: { type: and }
         for: 5m
         noDataState: Alerting
@@ -32,9 +32,9 @@ groups:
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "1"
-          summary: "Only {{ $values.B.Value }} of 6 DFS workers are reachable"
-          description: "Check the Windows WSL startup task and sunday-edge-dfs-simulator@1..6 systemd units. Vercel fallback remains available."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
+          summary: "The DFS pool is below its configured replica count"
+          description: "Check docker compose ps/logs in the sunday-edge stack and DFS_REPLICAS in its .env. Intensive Vercel fallback remains disabled."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_worker_failures
         title: Sunday Edge DFS worker jobs failing
@@ -167,7 +167,7 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: max(sunday_edge_dfs_worker_resident_memory_bytes)
+              expr: max(sunday_edge_dfs_worker_resident_memory_bytes / (sunday_edge_dfs_worker_memory_limit_bytes > 0))
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -177,7 +177,7 @@ groups:
               expression: B
               type: threshold
               conditions:
-                - evaluator: { params: [440401920], type: gt }
+                - evaluator: { params: [0.85], type: gt }
                   operator: { type: and }
         for: 5m
         noDataState: OK
@@ -185,8 +185,8 @@ groups:
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "9"
-          summary: "A DFS worker is using {{ $values.B.Value }} bytes of resident memory"
-          description: "The worker has crossed 420 MiB and is approaching its 448 MiB MemoryHigh / 512 MiB MemoryMax systemd limits."
+          summary: "A DFS worker is above 85% of its Docker memory limit"
+          description: "The threshold follows the actual container memory limit. Review DFS_MEMORY and docker stats in the sunday-edge stack."
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_cp_recovery_down
@@ -216,8 +216,8 @@ groups:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "1"
           summary: "The DFS checkpoint recovery scheduler is not reachable"
-          description: "Check sunday-edge-dfs-checkpoint-recovery.service and port 9467 on ben-server. Queue wakeups remain the primary checkpoint path."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
+          description: "Check the checkpoint-recovery container in the sunday-edge Compose stack. Queue wakeups remain the primary checkpoint path."
+        labels: { severity: critical, service: sunday-edge-dfs-simulator }
 
       - uid: sunday_edge_dfs_cp_recovery_stale
         title: Sunday Edge DFS checkpoint recovery is stale
@@ -246,5 +246,5 @@ groups:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "1"
           summary: "DFS checkpoint recovery has not succeeded for {{ $values.B.Value }} seconds"
-          description: "Inspect the checkpoint recovery journal, production endpoint, database connectivity, and shared compute secret."
+          description: "Inspect docker compose logs checkpoint-recovery, the production endpoint, database connectivity, and the shared compute secret."
         labels: { severity: warning, service: sunday-edge-dfs-simulator }
