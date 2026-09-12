@@ -40,7 +40,7 @@ def helper(image, volume, command, *, writable=False, stdin=None):
         options += ["--cap-add", "CHOWN", "--cap-add", "FOWNER"]
     if stdin is not None:
         options += ["-i"]
-    options += ["--mount", f"type=volume,source={volume},target=/data" + ("" if writable else ",readonly"), "--entrypoint", command[0], image, *command[1:]]
+    options += ["--mount", f"type=volume,source={volume},target=/data,volume-nocopy" + ("" if writable else ",readonly"), "--entrypoint", command[0], image, *command[1:]]
     return run(options, stdin=stdin, capture_output=True, text=stdin is None).stdout
 
 
