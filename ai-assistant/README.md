@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.11.1` and runs in shared security mode. Schedules and run
+The service pins `v1.11.2` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 eBay item lookups use a fresh Chromium session to establish anonymous site
@@ -41,3 +41,14 @@ channel permissions are checked before scheduled execution and delivery.
 Default limits are a 15-minute minimum interval, 10 tasks per user, 50 per server,
 and two concurrent runs. Use `/schedule` to create or manage tasks; enabling
 the service does not create or send any scheduled messages.
+
+Deployment allows an 11-minute shutdown grace period for active scheduled runs.
+Keep this above `SCHEDULE_AI_TIMEOUT_MS` if that inference limit is increased, and
+avoid short command-line stop timeout overrides during service updates.
+After an unclean restart, the scheduler waits for the previous lease, retries
+interrupted generation under the original occurrence, and resumes saved output
+after its last acknowledged message. Generation starts afresh, so provider tool
+effects can repeat. Ambiguous sends stay recorded for inspection without disabling
+future occurrences. Schedules paused solely by the old restart recovery are
+repaired automatically; explicit pauses, edits, permissions, and date bounds remain
+respected.
