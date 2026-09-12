@@ -34,7 +34,7 @@ groups:
           __panelId__: "1"
           summary: "The DFS pool is below its configured replica count"
           description: "Check docker compose ps/logs in the sunday-edge stack and DFS_REPLICAS in its .env. Intensive Vercel fallback remains disabled."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_worker_failures
         title: Sunday Edge DFS worker jobs failing
@@ -157,7 +157,7 @@ groups:
           __panelId__: "13"
           summary: "DFS worker {{ $labels.instance }} slot {{ $labels.slot }} has remained busy for at least 45 minutes"
           description: "Inspect the active generation or simulation, its heartbeat/progress, and the corresponding worker journal before restarting anything."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_worker_memory_pressure
         title: Sunday Edge DFS worker memory pressure
@@ -217,7 +217,7 @@ groups:
           __panelId__: "1"
           summary: "The DFS checkpoint recovery scheduler is not reachable"
           description: "Check the checkpoint-recovery container in the sunday-edge Compose stack. Queue wakeups remain the primary checkpoint path."
-        labels: { severity: critical, service: sunday-edge-dfs-simulator }
+        labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_cp_recovery_stale
         title: Sunday Edge DFS checkpoint recovery is stale
