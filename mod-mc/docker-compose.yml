@@ -1,6 +1,6 @@
 services:
   minecraft-server:
-    image: itzg/minecraft-server:java17@sha256:f50c8f616d0544c54f0da0bf63026843e366618341beef90dff54d013f3d9b31
+    image: itzg/minecraft-server:java17@sha256:3ed6215fa4eafad0ddb3c9382f0a1bc280488fa9d85d043582459d7fc60d97d9
     volumes:
         - ./data:/data
     ports:
