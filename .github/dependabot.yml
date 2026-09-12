@@ -1,7 +1,14 @@
 version: 2
+registries:
+  sunday-edge-ghcr:
+    type: docker-registry
+    url: https://ghcr.io
+    username: Rubiss
+    password: ${{secrets.SUNDAY_EDGE_GHCR_TOKEN}}
 updates:
   - package-ecosystem: docker-compose
     directory: /sunday-edge
+    registries: [sunday-edge-ghcr]
     schedule:
       interval: weekly
       day: saturday

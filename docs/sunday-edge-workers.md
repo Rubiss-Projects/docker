@@ -48,6 +48,19 @@ must have a Linux-compatible login with `read:packages` and access to the privat
 `Rubiss/fantasy-football` repository. See `scripts/runner-docker-auth.md`. Never put
 registry credentials in an image, command-line argument, label, or public `.env`.
 
+On ben-server in Ubuntu, sign in interactively with a GitHub classic personal
+access token scoped to `read:packages` (enter the token at Docker's password
+prompt, never in the command):
+
+```sh
+sudo -u rubiss docker --config /home/rubiss/actions-runner-docker-ops/.docker-ci login ghcr.io --username Rubiss
+```
+
+Give the `/sunday-edge` Dependabot update job the same read-only registry access
+through the repository's Dependabot secret `SUNDAY_EDGE_GHCR_TOKEN`. Its explicit
+registry entry supports the private images across the application and Docker
+repositories without making the packages public.
+
 After a repository release publishes every image, update the six image references
 in this Compose file to that release and merge a passing infrastructure PR. The
 existing deploy workflow pulls and updates the running stack. It verifies every
