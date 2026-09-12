@@ -1,6 +1,6 @@
 services:
   openclaw-gateway:
-    image: ghcr.io/openclaw/openclaw:2026.9.1@sha256:6afe42854c87471188b9c4f8dce6bbc14005a48d8e1592846548b32508754f84
+    image: ghcr.io/openclaw/openclaw:2026.9.4@sha256:cc596b846506a5f4cfcee111394a2725f375f01cca2ebb492a161fd1b747f101
     container_name: openclaw-gateway
     user: root
     environment:
@@ -42,7 +42,7 @@ services:
       - swag.uptime-kuma.monitor.url=https://openclaw.benlawson.dev/
 
   openclaw-cli:
-    image: ghcr.io/openclaw/openclaw:2026.9.1@sha256:6afe42854c87471188b9c4f8dce6bbc14005a48d8e1592846548b32508754f84
+    image: ghcr.io/openclaw/openclaw:2026.9.4@sha256:cc596b846506a5f4cfcee111394a2725f375f01cca2ebb492a161fd1b747f101
     container_name: openclaw-cli
     user: root
     environment:
