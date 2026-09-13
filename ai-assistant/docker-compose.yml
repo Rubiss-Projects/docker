@@ -14,6 +14,10 @@ services:
       HOME: /data
       AI_ASSISTANT_CONFIG_DIR: /data
       AI_ASSISTANT_WORKSPACE_ROOT: /data/workspaces
+      AI_ASSISTANT_BROWSER_URL: http://browser:3123
+    depends_on:
+      browser:
+        condition: service_healthy
     volumes:
       - ai-assistant-data:/data
       - ./rights.json:/etc/ai-assistant/rights.json:ro
@@ -45,12 +49,41 @@ services:
       - swag.uptime-kuma.enabled=false
     networks:
       - proxynet
+      - browser-control
+
+  browser:
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.12.0
+    container_name: ai-assistant-browser
+    entrypoint: ["node", "/app/dist/src/browserWorker.js"]
+    restart: unless-stopped
+    init: true
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m,uid=10001,gid=10001
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./seccomp-bwrap.json
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3123/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - browser-control
+      - browser-egress
 
 volumes:
   ai-assistant-data:
     name: ai-assistant-data
 
 networks:
+  browser-control:
+    internal: true
+  browser-egress:
   proxynet:
     external: true
     name: proxynet
