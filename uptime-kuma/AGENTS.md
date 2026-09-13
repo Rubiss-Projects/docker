@@ -148,6 +148,17 @@ Settings > Status Pages > Add New:
 4. Check accepted status codes
 5. Review monitor logs
 
+Keep **Settings → General → NSCD disabled** (`nscd: false`, persisted in Kuma's
+database). Docker Compose replacements can change service IPs, and NSCD can keep
+the old address for an hour. On 2026-09-13 this sent Sunday Edge's `/healthz`
+requests to checkpoint-recovery, returning 404 even though the intended service
+was healthy. The cache was flushed and NSCD disabled through Kuma's settings API;
+no service restart or monitor replacement was needed.
+
+If this recurs, compare Docker DNS with the address actually used by the HTTP
+client. `docker exec uptime-kuma nscd -i hosts` clears an existing NSCD cache;
+then disable NSCD through Settings and verify a fresh successful heartbeat.
+
 ### Notifications Not Sending
 1. Test notification in settings
 2. Check webhook URL is correct

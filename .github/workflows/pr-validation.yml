@@ -285,6 +285,9 @@ jobs:
       - name: Validate Python syntax
         run: python3 -m py_compile scripts/*.py
 
+      - name: Test planned Grafana maintenance
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
       - name: Scan for obvious committed secrets
         shell: bash
         run: |

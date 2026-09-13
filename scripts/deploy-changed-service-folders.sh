@@ -20,6 +20,7 @@ CRITICAL_STACK_ORDER=(socket-proxy uptime-kuma plex swag)
 WINDOWS_COMPOSE_STACKS=(cadvisor)
 WINDOWS_POWERSHELL=${DOCKER_DEPLOY_WINDOWS_POWERSHELL:-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}
 KUMA_MAINTENANCE_IDS=()
+GRAFANA_MAINTENANCE_TOKEN=
 
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
@@ -453,6 +454,12 @@ cleanup_kuma_maintenance() {
   local helper="$REPO_DIR/scripts/kuma-maintenance.py"
   local maintenance_id
 
+  if [[ -n "$GRAFANA_MAINTENANCE_TOKEN" ]]; then
+    if ! python3 "$REPO_DIR/scripts/grafana-maintenance.py" stop "$GRAFANA_MAINTENANCE_TOKEN"; then
+      log "Unable to end Grafana maintenance; silences will expire automatically"
+    fi
+  fi
+
   if [[ ${#KUMA_MAINTENANCE_IDS[@]} -gt 0 && -f "$helper" && "$DRY_RUN" != "true" ]]; then
     for maintenance_id in "${KUMA_MAINTENANCE_IDS[@]}"; do
       if python3 "$helper" stop "$maintenance_id"; then
@@ -740,6 +747,13 @@ main() {
   log "Uptime Kuma maintenance targets: ${kuma_targets[*]}"
 
   trap cleanup_kuma_maintenance EXIT
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY RUN: would create Grafana maintenance for affected Sunday Edge services"
+  else
+    GRAFANA_MAINTENANCE_TOKEN=$(python3 "$REPO_DIR/scripts/grafana-maintenance.py" start \
+      --ttl-minutes "$KUMA_MAINTENANCE_TTL_MINUTES" --reason "deploy ${plan_parts[*]}" \
+      "${service_dirs_sorted[@]}") || die "Unable to establish Grafana maintenance before deployment"
+  fi
   start_kuma_maintenance "deploy ${plan_parts[*]}" "${kuma_targets[@]}"
 
   for service_dir in "${service_dirs_sorted[@]}"; do

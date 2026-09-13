@@ -41,7 +41,7 @@ Change `DFS_REPLICAS` in `sunday-edge/.env`, then run from WSL:
 
 ```sh
 cd /mnt/e/Docker/sunday-edge
-docker compose up -d --wait
+python3 ../scripts/grafana-maintenance.py run --reason planned-scaling -- docker compose up -d --wait
 docker compose ps
 docker compose stats
 ```
@@ -141,6 +141,8 @@ and restart it with the same volume. Never restore an old checkpoint over newer
 data, recreate the retired daemon installation alongside Docker, or use
 `down --volumes`.
 
+Wrap the entire rollback (including the stop) in the maintenance command below.
+
 For the later server move, export all four named volumes while writers are stopped,
 verify checksums, restore them as external volumes on the new Docker host, unlock
 the encrypted environment files, and start this same Compose stack. Preserve the
@@ -166,6 +168,49 @@ its regular health checks, and both Docker tasks invoke WSL for Compose recovery
 so the separate Ubuntu startup task was redundant.
 
 ## Monitoring and Homepage
+
+### Planned deployment and restart maintenance
+
+`scripts/grafana-maintenance.py` creates two temporary Grafana silences, scoped
+to Sunday Edge's existing availability and restart labels. Deployment automation
+establishes them before changing this stack and ends availability maintenance on
+exit, including failure. It refuses a Sunday Edge deployment if Grafana maintenance
+cannot be established. Uptime Kuma maintenance remains a separate integration.
+
+The restart alert counts resets over 30 minutes, so its silence remains for
+35 minutes after maintenance ends. Other Sunday Edge alerts are not muted. Each
+operation owns separate silence IDs, so overlapping operations cannot unmute each
+other. If cleanup cannot run, availability expires at the requested TTL and the
+restart silence expires 35 minutes later. Operations must fit within that TTL;
+use a longer `--ttl-minutes` for extended work.
+
+For manual deployment, scaling, image rollback, or restart, run from this directory:
+
+```sh
+python3 ../scripts/grafana-maintenance.py run --reason planned-restart -- docker compose restart
+python3 ../scripts/grafana-maintenance.py run --reason planned-deploy -- docker compose up -d --wait
+```
+
+The `run` command also creates and cleans up Kuma maintenance for all five
+singleton monitors. For a sequence of lifecycle actions, pass a script as the
+command so maintenance covers the whole sequence. Direct `docker restart` or
+`docker compose` lifecycle commands bypass these hooks and can still notify.
+
+The Windows watchdog and nightly restart use `scripts/grafana-maintenance.ps1`
+through the shared Windows helper. After initially installing/updating the hooks,
+run `python3 scripts/install-grafana-maintenance-hooks.py --apply` from the repository
+root. The installer backs up the two affected Windows scripts and leaves task
+definitions, enabled states, and locking intact. It is idempotent. These host
+scripts live outside Git; the installer and the functions they load are versioned.
+
+Windows recovery attempts Grafana maintenance before touching containers. If
+Grafana is already unavailable, recovery continues and the fixed nightly mute
+remains a fallback. On exit, availability notifications resume and the restart
+grace begins. The helper reads the existing Grafana password from the container
+without logging it; the username defaults to `rubiss` (`GRAFANA_MAINTENANCE_USER`
+can override it). Grafana's published local port 3000 must be reachable from WSL.
+
+### Health and metrics
 
 Prometheus discovers all DFS replicas from Docker DNS, rather than scraping a
 load-balanced hostname once. Existing worker metrics, dashboard UID, and alert
