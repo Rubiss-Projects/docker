@@ -18,7 +18,7 @@ x-worker: &worker
 services:
   dfs:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.2
     # No container_name: Compose must generate a name for each replica.
     scale: ${DFS_REPLICAS:-6}
     env_file:
@@ -55,7 +55,7 @@ services:
 
   checkpoint-recovery:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.2
     container_name: sunday-edge-checkpoint-recovery
     hostname: ben-server
     entrypoint: [node, --import, tsx]
@@ -105,7 +105,7 @@ services:
 
   maintenance:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.2
     container_name: sunday-edge-maintenance
     env_file:
       - path: maintenance.env.secret
@@ -129,7 +129,7 @@ services:
 
   research:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-research:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-research:v0.2.2
     container_name: sunday-edge-research
     environment:
       TZ: ${TZ}
@@ -146,7 +146,7 @@ services:
 
   sunday-edge:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.0
+    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.2
     container_name: sunday-edge
     env_file:
       - path: watchdog.env.secret
