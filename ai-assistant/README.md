@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.12.0` and runs in shared security mode. Schedules and run
+The service pins `v1.12.1` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 eBay item lookups use a fresh Chromium session to establish anonymous site
@@ -17,7 +17,9 @@ networks, saved accounts, POST requests, WebSockets and service workers remain
 unavailable. Shared-mode shell networking remains restricted.
 
 Both browser paths run in the `ai-assistant-browser` helper, capped at 1 GiB total
-memory with no additional swap and two concurrent browsers. It has no bot secrets,
+memory with no additional swap. Browser reads run one at a time to stay within
+the 256-process/thread limit; overlapping requests queue within their deadlines.
+It has no bot secrets,
 provider state or data volumes. Its control API is on a private network shared only
 with the assistant; no port is published. A separate egress network permits public
 website access. The helper refuses startup without its hard memory limit, and
