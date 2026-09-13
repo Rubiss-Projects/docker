@@ -129,9 +129,11 @@ The shared helper was verified to discover this project and report all eleven
 containers healthy through its WSL Compose command. The Windows watchdog remains
 enabled. Worker health and availability are monitored by Prometheus, Grafana, and
 Uptime Kuma; the Windows tasks retain the existing checks for Docker's critical
-infrastructure. The older `Start Sunday Edge WSL Services` task only starts Ubuntu
-with `/usr/bin/true`, which also supports the deployment runner. It does not launch
-worker daemons.
+infrastructure. The older `Start Sunday Edge WSL Services` task was removed after
+its definition was archived with the migration backup. Its only action was
+`wsl -d Ubuntu --exec /usr/bin/true`. The Docker watchdog already invokes WSL during
+its regular health checks, and both Docker tasks invoke WSL for Compose recovery,
+so the separate Ubuntu startup task was redundant.
 
 ## Monitoring and Homepage
 
