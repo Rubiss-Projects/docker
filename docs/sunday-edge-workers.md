@@ -77,7 +77,7 @@ existing deploy workflow pulls and updates the running stack. It verifies every
 actual container, including all configured replicas. New stacks are intentionally
 skipped by automatic deployment until their first manual, verified migration.
 
-## Data and first migration
+## Data, backups, and recovery
 
 The production database retains analysis results and durable jobs. Four named,
 external volumes hold local state, preserving Linux permissions on Docker Desktop:
@@ -89,50 +89,49 @@ external volumes hold local state, preserving Linux permissions on Docker Deskto
 | `sunday-edge-research-data` | `/var/lib/sunday-edge-research` | Archive service only: sources and observations |
 | `sunday-edge-dfs-data` | `/var/lib/sunday-edge-dfs-simulator` | Legacy research retained; replicas see only the new `runtime` subdirectory |
 
-The image and Compose changes must pass before migration. Run the app repository's
-Windows E: storage preflight on ben-server. Verify production's web revision,
-drain active compute/maintenance leases, and ensure the analytics collector is
-between runs. Pull and inspect the release images using the runner's Docker login.
+The migration on 2026-09-12 imported all four directories and verified their complete
+file-content manifests, including binary files, symlinks, and empty directories.
+Docker owns the live state now. The former directories in the table are historical
+source locations; the old systemd units, timers, environment files, installations,
+and duplicate data were removed after migration acceptance on 2026-09-13 (UTC).
+The one-time importer and disposable migration rehearsal have been retired from
+the repository; their implementations remain available in Git history.
 
-From root in Ubuntu, inspect then execute the migration using an exact validated
-compute image (replace `<digest>` with that release's real SHA-256 digest):
-
-```sh
-python3 /mnt/e/Docker/scripts/migrate-sunday-edge-workers.py --image ghcr.io/rubiss/sunday-edge-compute@sha256:<digest>
-python3 /mnt/e/Docker/scripts/migrate-sunday-edge-workers.py --image ghcr.io/rubiss/sunday-edge-compute@sha256:<digest> --execute
-```
-
-The disposable rehearsal is available as `scripts/test-sunday-edge-migration.py
---image <compute-image>`. It verifies byte-for-byte imports (including binary
-files, symlinks, and empty directories), copied ownership, volume subpaths, and
-eight distinct non-root replica slots without any production credentials/network
-access. It removes only its uniquely named, fixture-labelled test resources.
-
-The script refuses existing destination volumes, records legacy unit states,
-stops timers/services, preserves source directories and private tar backups under
-`/var/backups/sunday-edge-containers/<timestamp>`, imports each volume, and compares
-the complete file-content manifest. It changes copied ownership to UID/GID 10001,
-clears only the copied analytics process lock, and creates the isolated DFS runtime
-subdirectory. It never starts containers, deletes originals, or alters database
-rows. A failure leaves the source and any copied data intact for investigation;
-do not delete a partially imported volume to blindly rerun the script.
-
-After the manifest verifies all four imports, run `docker compose up -d --wait`.
-Check real leases/heartbeats, recovery calls, analytics ingestion, preserved result
-archives, and the Codex login. Confirm all old Sunday Edge units/timers are disabled
-and inactive. Keep the originals and backups until the migration is accepted.
+The private migration backup remains on ben-server in Ubuntu at
+`/var/backups/sunday-edge-containers/20260912T231938Z`. It contains the four original
+data archives, environment backup, verified manifest, deployment verification,
+and cleanup record. `legacy-installation-config.tar.gz` also preserves the retired
+service configuration, source files, and extra export files; reinstallable
+dependencies are excluded. These are migration-time backups, not current copies
+of the live volumes. Preserve their restricted access because they include
+credentials and analytics history.
 
 For an image rollback, stop the affected role, pin the prior compatible image,
-and restart it with the same volume. For a systemd rollback after containers have
-written new state, stop Docker first and export the latest volumes back to the
-original directories with the original service ownership. Never restart stale
-systemd copies or restore an old checkpoint over newer data. Re-enable only the
-units recorded as enabled in the migration manifest. Never use `down --volumes`.
+and restart it with the same volume. Never restore an old checkpoint over newer
+data, recreate the retired daemon installation alongside Docker, or use
+`down --volumes`.
 
 For the later server move, export all four named volumes while writers are stopped,
 verify checksums, restore them as external volumes on the new Docker host, unlock
 the encrypted environment files, and start this same Compose stack. Preserve the
 database and worker-pool identity. Bind mounts do not need Windows-path rewrites.
+
+## Windows restart and watchdog coverage
+
+Both Windows tasks, `Start Docker Desktop if not running` and
+`Docker Desktop Nightly Restart`, use `E:\Scripts\docker-desktop-common.ps1`.
+Its discovery includes the `sunday-edge` Compose project through the running
+`sunday-edge` container. Recovery runs Compose for the entire project, covering
+all six roles and the configured number of DFS replicas. Individual replica names
+do not need entries in either task. Every container uses `restart: unless-stopped`.
+
+The shared helper was verified to discover this project and report all eleven
+containers healthy through its WSL Compose command. The Windows watchdog remains
+enabled. Worker health and availability are monitored by Prometheus, Grafana, and
+Uptime Kuma; the Windows tasks retain the existing checks for Docker's critical
+infrastructure. The older `Start Sunday Edge WSL Services` task only starts Ubuntu
+with `/usr/bin/true`, which also supports the deployment runner. It does not launch
+worker daemons.
 
 ## Monitoring and Homepage
 
