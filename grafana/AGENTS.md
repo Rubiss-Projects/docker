@@ -249,6 +249,12 @@ Message: Plex container CPU usage is high
 4. Simplify complex queries
 5. Enable query caching
 
+The Windows dashboard repeats three panels for every selected disk. Keep its
+`disk` variable query restricted to drive letters (`^[A-Z]:$`): InfluxDB retains
+historical `HarddiskVolume...` tag values, and selecting All can otherwise create
+thousands of panels and freeze the browser. The filter belongs in the query so
+the variable response stays small as old volume names accumulate.
+
 ## Best Practices
 
 1. **Organize Dashboards**: Use folders (Docker, System, Gaming, etc.)

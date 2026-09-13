@@ -19,7 +19,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
     env_file:
       - path: .env
       - path: .env.secret
