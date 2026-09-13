@@ -2,7 +2,7 @@ services:
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
   sonarr:
-    image: lscr.io/linuxserver/sonarr:version-4.0.19.2979@sha256:c19aa4ecdf03d73e1d5c901da33744cb7eb4d921f89bafed1ca264601d7fa224
+    image: lscr.io/linuxserver/sonarr:version-4.0.19.2979@sha256:82172b363f9eddc02aca544f880a044f2ceb9aaf190bc87e4454e2f705eb91d0
     container_name: sonarr
     volumes:
       - ../../Media:/data
