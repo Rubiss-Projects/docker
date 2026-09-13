@@ -3380,7 +3380,7 @@
         "multi": true,
         "name": "disk",
         "options": [],
-        "query": "SHOW TAG VALUES FROM \"win_disk\" WITH KEY = \"instance\" WHERE host =~ /$hostname/",
+        "query": "SHOW TAG VALUES FROM \"win_disk\" WITH KEY = \"instance\" WHERE host =~ /^$hostname$/ AND \"instance\" =~ /^[A-Z]:$/",
         "refresh": 1,
         "regex": "",
         "type": "query"
