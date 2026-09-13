@@ -27,6 +27,14 @@ analytics, maintenance, checkpoint recovery, monitor scheduling, and archival.
 The app repository publishes five private, release-versioned GHCR images. Recovery
 uses the compute image with its own entrypoint. The web app stays on Vercel.
 
+Analytics uses `gpt-6-astra` with `xhigh` reasoning for both extraction and
+escalation. The four `CODEX_MODEL`, `CODEX_REASONING_EFFORT`,
+`CODEX_ESCALATION_MODEL`, and `CODEX_ESCALATION_REASONING_EFFORT` settings live in
+`analytics.env.secret`. Analytics image `v0.2.2` bundles Codex SDK/CLI `0.154.0`,
+verified with an authenticated Astra request under the container's restrictions.
+The older `v0.2.1` image bundles Codex `0.147.0`, which Astra rejects; rolling back
+to that image also requires compatible model settings.
+
 ## Scaling and limits
 
 Change `DFS_REPLICAS` in `sunday-edge/.env`, then run from WSL:
