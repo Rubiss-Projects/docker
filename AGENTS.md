@@ -56,6 +56,13 @@ networks:
     name: proxynet
 ```
 
+**Narrow exception — AI Assistant browser helper:** `ai-assistant-browser` is an
+internal dependency of the `ai-assistant` stack and MUST remain off `proxynet`.
+Its unauthenticated control API belongs only on the private `browser-control`
+network shared with the assistant; publish no host port. Use `browser-egress` for
+public internet access, retain its memory/swap limit, and mount no bot credentials
+or data volumes. The main `ai-assistant` service remains on `proxynet`.
+
 ### Port Management
 - **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
 - **Internal services**: Use non-standard ports to avoid conflicts
