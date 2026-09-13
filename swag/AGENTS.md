@@ -39,7 +39,7 @@ Uptime Kuma health checks use `http://plex:32400` internally.
 2. **Reverse Proxy**: Routes external HTTPS to internal Docker services
 3. **Security**: fail2ban, ModSecurity, rate limiting
 4. **Dashboard**: Real-time analytics via swag-dashboard mod
-5. **On-Demand Containers**: Services auto-start when accessed (ollama, open-webui)
+5. **On-Demand Containers**: Services with on-demand labels auto-start when accessed
 6. **Automated Monitoring**: Syncs container labels to Uptime Kuma monitors
 
 ## Configuration Files
@@ -372,9 +372,9 @@ docker exec swag grep -r "set \$upstream_app" /config/nginx/proxy-confs/*.conf
 - Add auth middleware or use service's built-in auth
 - Consider IP whitelisting for admin panels
 
-### API Services (n8n, Ollama)
+### API Services (n8n)
 - Enable CORS if needed
-- Set longer timeouts for LLM requests
+- Set longer timeouts for long-running requests
 - Configure appropriate body size limits
 
 ### Gaming Server UIs (Valheim, Minecraft)

@@ -14,10 +14,8 @@ Use the nearest applicable `AGENTS.md` for the task:
 | **Uptime Kuma monitoring** | `uptime-kuma/AGENTS.md` |
 | **Servarr stack** (Sonarr, Radarr, Prowlarr, Bazarr, Bookshelf, Seerr) | `sonarr/AGENTS.md`, `radarr/AGENTS.md`, `prowlarr/AGENTS.md`, `bazarr/AGENTS.md`, `bookshelf/AGENTS.md`, `bookshelf-audio/AGENTS.md`, `seerr/AGENTS.md` |
 | **Calibre** | `calibre/AGENTS.md` |
-| **Actual Budget** | `actual/AGENTS.md`, `actual-ai/AGENTS.md` |
 | **Sunday Edge workers** | `sunday-edge/AGENTS.md` |
 | **n8n workflows** | `n8n/AGENTS.md` |
-| **OpenClaw AI Gateway** | `openclaw/AGENTS.md` |
 | **autobrr** | `autobrr/AGENTS.md` |
 | **Gaming servers** | See individual: `valheim/AGENTS.md`, `minecraft/AGENTS.md`, `ark/AGENTS.md`, `palworld/AGENTS.md` |
 | **Pi services** | See individual in `/pi/` folder |

@@ -530,7 +530,7 @@ Focus: The arr stack and request tools.
 
 ### 🤖 AI & Automation
 Focus: LLMs and workflows.
-- Open WebUI, Ollama, n8n
+- AI Assistant, n8n
 
 ### 🏗️ Infrastructure
 Focus: Core networking and container management.

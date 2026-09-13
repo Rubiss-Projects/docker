@@ -7,18 +7,6 @@
 !homepage/config/*
 !swag/config/**
 
-# OpenClaw - only track openclaw.json and specific workspace markdown files
-!openclaw/config/openclaw.json
-!openclaw/config/workspace/
-openclaw/config/workspace/*
-!openclaw/config/workspace/AGENTS.md
-!openclaw/config/workspace/BOOTSTRAP.md
-!openclaw/config/workspace/HEARTBEAT.md
-!openclaw/config/workspace/IDENTITY.md
-!openclaw/config/workspace/SOUL.md
-!openclaw/config/workspace/TOOLS.md
-!openclaw/config/workspace/USER.md
-
 bitwarden/data/
 **/data/*
 **/logs/*

@@ -75,10 +75,8 @@ docker compose restart
 
 ## Integration with Other Services
 n8n can connect to all services in this infrastructure:
-- **Ollama**: Use HTTP Request nodes to call http://ollama:11434/api endpoints
 - **Plex**: Automate media library management
 - **Bitwarden**: Password management automation
-- **Actual Budget**: Financial workflow automation
 
 ## autobrr IRC Recovery
 

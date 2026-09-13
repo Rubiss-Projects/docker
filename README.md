@@ -43,9 +43,6 @@ These files contain non-secret defaults such as ports, usernames, container sett
 The encrypted file patterns are defined in [.gitattributes](./.gitattributes). Current git-crypt protected patterns are:
 
 - `*.env.secret`
-- `openclaw/config/*.json`
-- `openclaw/config/agents/**/auth-profiles.json`
-- `openclaw/config/agents/**/models.json`
 - `**/secrets.yml`
 - `swag/config/dns-conf/*.ini`
 
