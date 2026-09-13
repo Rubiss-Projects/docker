@@ -5,11 +5,6 @@
 n8n/irc-recovery-policies.json filter=git-crypt diff=git-crypt
 n8n/irc-recovery-secrets.json filter=git-crypt diff=git-crypt
 
-# Encrypt openclaw config JSON files (contain API tokens)
-openclaw/config/*.json filter=git-crypt diff=git-crypt
-openclaw/config/agents/**/auth-profiles.json filter=git-crypt diff=git-crypt
-openclaw/config/agents/**/models.json filter=git-crypt diff=git-crypt
-
 # Encrypt Recyclarr secrets (API keys)
 **/secrets.yml filter=git-crypt diff=git-crypt
 

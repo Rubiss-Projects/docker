@@ -91,7 +91,7 @@ deploy_windows_stack() {
 
 stack_dependencies() {
   case "$1" in
-    homepage|n8n|openclaw)
+    homepage|n8n)
       printf '%s\n' socket-proxy
       ;;
     uptime-kuma)
