@@ -15,6 +15,7 @@ Use the nearest applicable `AGENTS.md` for the task:
 | **Servarr stack** (Sonarr, Radarr, Prowlarr, Bazarr, Bookshelf, Seerr) | `sonarr/AGENTS.md`, `radarr/AGENTS.md`, `prowlarr/AGENTS.md`, `bazarr/AGENTS.md`, `bookshelf/AGENTS.md`, `bookshelf-audio/AGENTS.md`, `seerr/AGENTS.md` |
 | **Calibre** | `calibre/AGENTS.md` |
 | **Actual Budget** | `actual/AGENTS.md`, `actual-ai/AGENTS.md` |
+| **Sunday Edge workers** | `sunday-edge/AGENTS.md` |
 | **n8n workflows** | `n8n/AGENTS.md` |
 | **OpenClaw AI Gateway** | `openclaw/AGENTS.md` |
 | **autobrr** | `autobrr/AGENTS.md` |
