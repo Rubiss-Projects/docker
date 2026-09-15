@@ -115,7 +115,7 @@ external volumes hold local state, preserving Linux permissions on Docker Deskto
 | Volume | Original directory | Runtime access |
 | --- | --- | --- |
 | `sunday-edge-analytics-data` | `/var/lib/fantasy-analytics` | Analytics only: pending batches, evidence, Codex login/history |
-| `sunday-edge-maintenance-data` | `/var/lib/sunday-edge-maintenance` | Maintenance only: preserved result uploads |
+| `sunday-edge-maintenance-data` | `/var/lib/sunday-edge-maintenance` | Maintenance only: preserved result uploads and historical study archives |
 | `sunday-edge-research-data` | `/var/lib/sunday-edge-research` | Archive service only: sources and observations |
 | `sunday-edge-dfs-data` | `/var/lib/sunday-edge-dfs-simulator` | Legacy research retained; replicas see only the new `runtime` subdirectory |
 
@@ -126,6 +126,25 @@ source locations; the old systemd units, timers, environment files, installation
 and duplicate data were removed after migration acceptance on 2026-09-13 (UTC).
 The one-time importer and disposable migration rehearsal have been retired from
 the repository; their implementations remain available in Git history.
+
+Release `v0.2.9` adds candidate research to the maintenance role. Archived source
+receipts and paired-lineup artifacts live at `/data/dfs-research` on its existing
+private volume. Each durable job replays one NFL week, then yields to queued
+imports and calibration; future pre-lock confirmations take priority over history.
+The Research page on Vercel only reads bounded summaries and queues work. It
+enables scheduling after a compatible maintenance worker reports availability.
+Keep the existing 1 CPU / 2 GiB maintenance limits. Resume an interrupted study
+from the app so it retains its frozen plan and completed weeks; preserve rejected
+or data-blocked studies and their archives. A historical pass does not deploy a
+model change: current-season confirmation and a reviewed app release are required.
+
+Historical starts remain disabled until a complete authenticated weekly salary
+archive is available. Configure `DFS_RESEARCH_SALARY_URL_TEMPLATE` only in the
+maintenance role's environment after verifying all required seasons, including
+defenses. The URL needs `{season}` and `{week}` placeholders and HTTPS; redirects
+are rejected. Evidence refresh and the candidate tracker work without this
+archive. Validate a completed evidence-refresh job during this rollout; do not
+claim a historical replay has run while its source dependency is unresolved.
 
 The private migration backup remains on ben-server in Ubuntu at
 `/var/backups/sunday-edge-containers/20260912T231938Z`. It contains the four original
