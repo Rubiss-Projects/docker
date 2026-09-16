@@ -249,3 +249,10 @@ docker exec prometheus kill -HUP 1
 Verify every Prometheus target, provisioned Grafana rule, Homepage widget field,
 and Kuma monitor after deployment. Normal process health does not guarantee every
 upstream source/model request succeeds; review worker logs and failure counters.
+
+Release `v0.2.10` fixes analytics startup failures when ESPN rejects the multi-day
+scoreboard query with HTTP 400. The worker falls back to the same nine inclusive
+dates, requires all daily responses, and deduplicates/sorts the resulting games.
+An upstream failure still makes `/healthz` return 503; do not suppress that alert
+or treat a partial schedule as healthy. For this incident, verify a completed
+analytics task and fresh source collection, not just a newly started supervisor.
