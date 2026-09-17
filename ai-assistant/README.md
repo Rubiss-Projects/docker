@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.12.1` and runs in shared security mode. Schedules and run
+The service pins `v1.12.2` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 eBay item lookups use a fresh Chromium session to establish anonymous site
@@ -44,6 +44,12 @@ role (`93904984583704576`) can create message and AI schedules and manage
 schedules in that server. Other Discord roles receive no scheduling rights.
 The existing explicit bot administrator retains operator access and also holds
 this role. Discord Administrator permission alone does not grant scheduling.
+
+Shared mode ignores incoming DMs from everyone and rejects slash commands in DMs.
+The same `@admin` role is explicitly granted `ask.use`, allowing `/ask` from a
+server channel with the one-shot answer delivered by DM. This adds no workspace,
+MCP, session-configuration, or global bot-management privileges. Other users
+should use `/chat` or mention the bot in a visible server channel.
 
 `rights.json` is mounted read-only outside provider workspaces. Its
 `server-admin` preset grants message scheduling and schedule management; the
