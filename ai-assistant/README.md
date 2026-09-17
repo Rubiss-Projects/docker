@@ -1,13 +1,15 @@
 # AI Assistant
 
-The service pins `v1.13.0` and runs in shared security mode. Schedules and run
+The service pins `v1.13.1` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 Shared `/chat` threads use `CHAT_PARTICIPATION_MODE=smart` and
 `CHAT_PARTICIPATION_EVALUATOR=jev`. The bot chooses whether to reply, react, or
 remain silent during group conversations. Explicit mentions and `/chat` still
 request an answer. Recent, permission-filtered conversation is included when the
-bot does answer, including messages it previously left unanswered.
+bot does answer, including messages it previously left unanswered. The evaluator
+recognizes the bot by its server nickname (Rook here) and account name. Jev uses
+the default 0.7 probability cutoff for participation decisions.
 
 `TYPESAFE_API_KEY` is supplied through the git-crypt encrypted `.env.secret`
 overlay and is not passed to shared provider processes or the browser helper.
