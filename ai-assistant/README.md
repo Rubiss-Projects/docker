@@ -1,7 +1,20 @@
 # AI Assistant
 
-The service pins `v1.12.2` and runs in shared security mode. Schedules and run
+The service pins `v1.13.0` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
+
+Shared `/chat` threads use `CHAT_PARTICIPATION_MODE=smart` and
+`CHAT_PARTICIPATION_EVALUATOR=jev`. The bot chooses whether to reply, react, or
+remain silent during group conversations. Explicit mentions and `/chat` still
+request an answer. Recent, permission-filtered conversation is included when the
+bot does answer, including messages it previously left unanswered.
+
+`TYPESAFE_API_KEY` is supplied through the git-crypt encrypted `.env.secret`
+overlay and is not passed to shared provider processes or the browser helper.
+Only the evaluator uses Jev; responses continue using the configured Codex/Astra
+conversation model. To use the existing provider login for evaluation instead,
+set `CHAT_PARTICIPATION_EVALUATOR=provider` and recreate the service. The
+participation mode can also be changed to `always` or `mentions-only`.
 
 eBay item lookups use a fresh Chromium session to establish anonymous site
 cookies and retrieve current auction facts. JavaScript, subresources, downloads,
