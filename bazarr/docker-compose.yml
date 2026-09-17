@@ -8,8 +8,7 @@ services:
       - ../../Media/tv:/data/tv
       - ../../Media/movies:/data/movies
       - ./config:/config
-    ports:
-      - 6767:6767
+    # Homepage and SWAG connect through proxynet; no host port is needed.
     restart: unless-stopped
     deploy:
       resources:
