@@ -6,7 +6,7 @@ services:
       - path: .env
       - path: .env.secret
         required: false
-    image: ghcr.io/bitwarden/lite:latest@sha256:c30be950f4339c2224a2af2dacc5689271aecd52b54607594d28938188bc60ff
+    image: ghcr.io/bitwarden/lite:latest@sha256:616624bf9a2e1bae68a6a7735732339db41b831e38593846f0c2b4983af34bb9
     container_name: bitwarden
     restart: unless-stopped
     ports:
