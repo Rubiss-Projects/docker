@@ -1,0 +1,94 @@
+services:
+  tracearr:
+    image: ghcr.io/connorgallopo/tracearr:2.4.0@sha256:287d9b75dd2c95075988cdab6a55d586303e0f14a80e1c105c2ed0e02e133b8e
+    container_name: tracearr
+    ports:
+    - 127.0.0.1:3040:3000
+    environment:
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - TZ=${TZ}
+    - DATABASE_URL=postgres://tracearr:${DB_PASSWORD}@tracearr-db:5432/tracearr
+    - REDIS_URL=redis://tracearr-redis:6379
+    - JWT_SECRET=${JWT_SECRET}
+    - COOKIE_SECRET=${COOKIE_SECRET}
+    - CORS_ORIGIN=https://tracearr.benlawson.dev
+    - TRUST_PROXY=true
+    - LOG_LEVEL=info
+    depends_on:
+      timescale:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+    - ./data/backup:/data/backup
+    restart: unless-stopped
+    networks:
+    - proxynet
+    env_file:
+    - path: .env
+    - path: .env.secret
+    labels:
+    - homepage.group=Observability
+    - homepage.name=Tracearr
+    - homepage.icon=tracearr.png
+    - homepage.href=https://tracearr.benlawson.dev/
+    - homepage.siteMonitor=http://tracearr:3000/health
+    - homepage.description=Plex playback analytics
+    - swag.uptime-kuma.enabled=true
+    - swag.uptime-kuma.monitor.url=http://tracearr:3000/health
+    - swag.uptime-kuma.monitor.parent=Observability
+    - homepage.widget.type=tracearr
+    - homepage.widget.url=http://tracearr:3000
+    - homepage.widget.key=${TRACEARR_API_KEY}
+    - homepage.widget.view=summary
+  timescale:
+    image: timescale/timescaledb-ha:pg18.4-ts2.29.1@sha256:26a7598a17939878a388864a8faea56f4b90558163b28cfa0e73600091689c82
+    container_name: tracearr-db
+    shm_size: 512mb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: postgres -c timescaledb.license=timescale -c timescaledb.max_tuples_decompressed_per_dml_transaction=100000
+      -c max_locks_per_transaction=4096 -c timescaledb.telemetry_level=off -c max_connections=150
+    environment:
+    - POSTGRES_USER=tracearr
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+    - POSTGRES_DB=tracearr
+    - TZ=${TZ}
+    volumes:
+    - tracearr_postgres:/home/postgres/pgdata/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U tracearr
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+    - proxynet
+  redis:
+    image: redis:8-alpine@sha256:bd999b5cfee25fb24b8320a31fddbd69f462df44c8138c66e369582937beebc0
+    container_name: tracearr-redis
+    command: redis-server --appendonly yes
+    volumes:
+    - ./data/redis:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+    - proxynet
+networks:
+  proxynet:
+    external: true
+    name: proxynet
+volumes:
+  tracearr_postgres: {}

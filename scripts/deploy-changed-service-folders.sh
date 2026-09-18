@@ -17,6 +17,7 @@ LOCK_WAIT_SECONDS=${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}
 KUMA_MAINTENANCE_ENABLED=${DOCKER_DEPLOY_KUMA_MAINTENANCE:-true}
 KUMA_MAINTENANCE_TTL_MINUTES=${DOCKER_DEPLOY_KUMA_MAINTENANCE_TTL_MINUTES:-120}
 CRITICAL_STACK_ORDER=(socket-proxy uptime-kuma plex swag)
+PRIORITY_STACK_ORDER=(tracearr)
 WINDOWS_COMPOSE_STACKS=(cadvisor)
 WINDOWS_POWERSHELL=${DOCKER_DEPLOY_WINDOWS_POWERSHELL:-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}
 KUMA_MAINTENANCE_IDS=()
@@ -92,6 +93,9 @@ deploy_windows_stack() {
 
 stack_dependencies() {
   case "$1" in
+    tracearr)
+      printf '%s\n' plex
+      ;;
     homepage|n8n)
       printf '%s\n' socket-proxy
       ;;
@@ -156,7 +160,7 @@ order_service_dirs() {
     remaining["$dir"]=1
   done
 
-  for dir in "${CRITICAL_STACK_ORDER[@]}"; do
+  for dir in "${CRITICAL_STACK_ORDER[@]}" "${PRIORITY_STACK_ORDER[@]}"; do
     if [[ -n "${remaining[$dir]:-}" ]]; then
       printf '%s\n' "$dir"
       unset "remaining[$dir]"
