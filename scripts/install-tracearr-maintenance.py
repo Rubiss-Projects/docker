@@ -9,6 +9,25 @@ import argparse
 import datetime as dt
 from pathlib import Path
 import re
+import os
+import tempfile
+
+
+def atomic_write(path, text):
+    """Keep the old helper readable until its complete replacement is ready."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix=path.name + '.',
+                                         suffix='.tmp', delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.chmod(path.stat().st_mode & 0o777)
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def update_order(text):
@@ -46,7 +65,7 @@ def main():
     if args.apply:
         stamp = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         path.with_name(path.name + '.before-tracearr-' + stamp).write_bytes(path.read_bytes())
-        path.write_text(updated)
+        atomic_write(path, updated)
     print(('Updated ' if args.apply else 'Would update ') + str(path))
 
 
