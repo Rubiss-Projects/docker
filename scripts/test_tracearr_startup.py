@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import unittest
+import tempfile
+from unittest.mock import patch
 
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -47,6 +49,23 @@ stack_dependencies tracearr
 order_service_dirs sonarr tracearr swag plex uptime-kuma socket-proxy
 ''', text=True)
         self.assertEqual(result.splitlines(), ['plex', 'socket-proxy', 'uptime-kuma', 'plex', 'swag', 'tracearr', 'sonarr'])
+
+    def test_atomic_replace_preserves_old_file_on_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'helper.ps1'
+            path.write_text('old complete helper')
+            def reject_replace(source, target):
+                self.assertEqual(path.read_text(), 'old complete helper')
+                self.assertEqual(Path(source).read_text(), 'new complete helper')
+                self.assertEqual(Path(source).parent, path.parent)
+                raise PermissionError('concurrent Windows reader')
+            with patch.object(installer.os, 'replace', side_effect=reject_replace):
+                with self.assertRaises(PermissionError):
+                    installer.atomic_write(path, 'new complete helper')
+            self.assertEqual(path.read_text(), 'old complete helper')
+            self.assertEqual(list(path.parent.iterdir()), [path])
+            installer.atomic_write(path, 'new complete helper')
+            self.assertEqual(path.read_text(), 'new complete helper')
 
 
 if __name__ == '__main__':

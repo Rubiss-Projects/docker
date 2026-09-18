@@ -2,6 +2,8 @@ services:
   tracearr:
     image: ghcr.io/connorgallopo/tracearr:2.4.0@sha256:287d9b75dd2c95075988cdab6a55d586303e0f14a80e1c105c2ed0e02e133b8e
     container_name: tracearr
+    # Preserve the image entrypoint; validate/apply the Seerr fork compatibility before Node starts.
+    command: ["/bin/sh", "-c", "node /opt/tracearr/patch-seerr-books.mjs && exec node apps/server/dist/index.js"]
     ports:
     - 127.0.0.1:3040:3000
     environment:
@@ -22,6 +24,7 @@ services:
         condition: service_healthy
     volumes:
     - ./data/backup:/data/backup
+    - ./patch-seerr-books.mjs:/opt/tracearr/patch-seerr-books.mjs:ro
     restart: unless-stopped
     networks:
     - proxynet
