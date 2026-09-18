@@ -154,9 +154,9 @@ Get Plex token:
 Plex intentionally has no active SWAG route. Use Plex's direct `plex.direct:32400`
 connections for apps and `https://app.plex.tv/desktop/` for browser access.
 
-### Tautulli (Stats & Monitoring)
-Tautulli tracks Plex usage:
-- Install Tautulli service
+### Tracearr (Stats & Monitoring)
+Tracearr tracks Plex usage:
+- Use the Tracearr service at https://tracearr.benlawson.dev/
 - Point to Plex URL: `http://plex:32400`
 - Use Plex token for authentication
 
@@ -215,7 +215,7 @@ docker run --rm -v ./config:/config `
 3. **Naming Conventions**: Follow Plex guidelines for media files
 4. **Optimize Database**: Run Optimize Database monthly (Settings > Troubleshooting)
 5. **Update Regularly**: Watchtower keeps Plex updated
-6. **Monitor Activity**: Use Tautulli for usage tracking
+6. **Monitor Activity**: Use Tracearr for usage tracking
 7. **Prune Old Metadata**: Remove deleted media metadata regularly
 8. **Pre-Transcode**: Use Plex Optimizer for frequently watched content
 
@@ -319,7 +319,7 @@ Settings > Transcoder:
 - Bandwidth usage
 - Client information
 
-### Tautulli Integration
+### Tracearr Integration
 - Detailed watch history
 - User statistics
 - Notification system

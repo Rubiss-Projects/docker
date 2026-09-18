@@ -815,24 +815,6 @@ updates:
         patterns:
           - '*'
   - package-ecosystem: docker-compose
-    directory: /tautulli
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "06:00"
-      timezone: America/Chicago
-    open-pull-requests-limit: 1
-    commit-message:
-      prefix: deps
-      include: scope
-    labels:
-      - dependencies
-      - docker-compose
-    groups:
-      tautulli-images:
-        patterns:
-          - '*'
-  - package-ecosystem: docker-compose
     directory: /transmission
     schedule:
       interval: weekly

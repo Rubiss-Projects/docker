@@ -67,6 +67,23 @@ order_service_dirs sonarr tracearr swag plex uptime-kuma socket-proxy
             installer.atomic_write(path, 'new complete helper')
             self.assertEqual(path.read_text(), 'new complete helper')
 
+    def test_retired_service_sentinel_replaced_and_idempotent(self):
+        original = """#!/usr/bin/env bash
+if is_running tautulli; then
+  check tautulli docker exec tautulli sh -lc 'test $(stat -c%s /config/tautulli.db) -gt 1000000 && test -f /config/config.ini'
+fi
+# other checks unchanged
+"""
+        updated = installer.update_sentinel(original)
+        self.assertNotIn('tautulli', updated)
+        self.assertIn('check tracearr-history', updated)
+        self.assertIn('x.mode === "ready" && x.db && x.redis', updated)
+        self.assertTrue(updated.endswith('# other checks unchanged\n'))
+        self.assertEqual(installer.update_sentinel(updated), updated)
+        subprocess.run(['bash', '-n'], input=updated, text=True, check=True)
+        with self.assertRaises(ValueError):
+            installer.update_sentinel(original.replace('1000000', '2000000'))
+
 
 if __name__ == '__main__':
     unittest.main()
