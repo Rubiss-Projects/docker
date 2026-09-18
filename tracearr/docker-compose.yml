@@ -28,6 +28,7 @@ services:
     env_file:
     - path: .env
     - path: .env.secret
+      required: false
     labels:
     - homepage.group=Observability
     - homepage.name=Tracearr
