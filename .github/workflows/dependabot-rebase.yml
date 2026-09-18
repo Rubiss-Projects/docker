@@ -5,9 +5,8 @@ on:
     branches:
       - main
   schedule:
-    # Dependabot runs Saturday at 06:00 America/Chicago (11:00 UTC in CDT,
-    # 12:00 UTC in CST). Keep retrying through the sequential merge window.
-    - cron: '17 11-17 * * 6'
+    # Pick up newly opened updates and retry an interrupted queue every hour.
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -72,7 +71,7 @@ jobs:
             --repo "$REPOSITORY" \
             --state open \
             --author app/dependabot \
-            --json number,body,mergeStateStatus,headRefOid \
+            --json number,body,mergeStateStatus,headRefOid,autoMergeRequest,isDraft \
             --limit 100 > "$prs_json"
 
           python3 - "$prs_json" > "$rebase_list" <<'PY'
@@ -90,6 +89,8 @@ jobs:
           latest_pattern = re.compile(r"^latest-(\d+)$")
 
           def eligible(pr):
+              if pr.get('isDraft'):
+                  return False
               update_pairs = update_pattern.findall(pr.get("body") or "")
               if not update_pairs:
                   return False
@@ -131,17 +132,24 @@ jobs:
           main_sha = subprocess.check_output(['gh', 'api', f'repos/{repo}/branches/main', '--jq', '.commit.sha'], text=True).strip()
           # GitHub can temporarily report UNKNOWN after a merge. Compare commit
           # ancestry instead, and rebase only one PR per successful deployment.
-          for pr in sorted(prs, key=lambda pr: pr['number']):
-              if not eligible(pr):
-                  continue
+          candidates = sorted((pr for pr in prs if eligible(pr)), key=lambda pr: pr['number'])
+          selected = candidates[0] if candidates else None
+          # Dependabot may rebase other PRs automatically. Only this queue can
+          # grant merge eligibility, so those rebases cannot bypass deployment.
+          for pr in prs:
+              if pr.get('autoMergeRequest') and (not selected or pr['number'] != selected['number']):
+                  subprocess.run(['gh', 'pr', 'merge', str(pr['number']), '--repo', repo, '--disable-auto'], check=True, stdout=sys.stderr)
+          if selected:
+              pr = selected
               behind = int(subprocess.check_output([
                   'gh', 'api', f'repos/{repo}/compare/{main_sha}...{pr["headRefOid"]}',
                   '--jq', '.behind_by'], text=True).strip())
+              subprocess.run(['gh', 'pr', 'merge', str(pr['number']), '--repo', repo,
+                              '--auto', '--rebase', '--match-head-commit', pr['headRefOid']], check=True, stdout=sys.stderr)
               if behind > 0:
                   print(pr['number'])
               else:
                   print(f'PR #{pr["number"]} is current; waiting for its checks/auto-merge', file=sys.stderr)
-              break
           PY
 
           if [[ ! -s "$rebase_list" ]]; then
