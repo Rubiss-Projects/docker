@@ -41,19 +41,46 @@ jobs:
 
           sleep 30
 
+          # Do not start the next update until the current main deployment is healthy.
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import time
+
+          repo = os.environ['REPOSITORY']
+          def api(path):
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/{path}'], text=True))
+
+          for attempt in range(32):
+              main = api('branches/main')['commit']['sha']
+              runs = api('actions/workflows/deploy-service-changes.yml/runs?branch=main&per_page=30')['workflow_runs']
+              current = next((r for r in runs if r['head_sha'] == main), None)
+              busy = any(r['status'] != 'completed' for r in runs)
+              if current and current['status'] == 'completed' and not busy:
+                  if current['conclusion'] != 'success':
+                      raise SystemExit('Latest main deployment failed; leaving dependency updates paused')
+                  break
+              if attempt == 31:
+                  raise SystemExit('Deployment is still pending; retry the rebase workflow after it finishes')
+              time.sleep(15)
+          PY
+
           prs_json="$RUNNER_TEMP/dependabot-prs.json"
           rebase_list="$RUNNER_TEMP/dependabot-rebase-prs.txt"
           gh pr list \
             --repo "$REPOSITORY" \
             --state open \
             --author app/dependabot \
-            --json number,body,mergeStateStatus \
+            --json number,body,mergeStateStatus,headRefOid \
             --limit 100 > "$prs_json"
 
           python3 - "$prs_json" > "$rebase_list" <<'PY'
           import json
           import re
           import sys
+          import os
+          import subprocess
           from pathlib import Path
 
           prs = json.loads(Path(sys.argv[1]).read_text())
@@ -100,11 +127,21 @@ jobs:
 
               return True
 
-          for pr in prs:
-              if pr.get("mergeStateStatus") != "BEHIND":
+          repo = os.environ['REPOSITORY']
+          main_sha = subprocess.check_output(['gh', 'api', f'repos/{repo}/branches/main', '--jq', '.commit.sha'], text=True).strip()
+          # GitHub can temporarily report UNKNOWN after a merge. Compare commit
+          # ancestry instead, and rebase only one PR per successful deployment.
+          for pr in sorted(prs, key=lambda pr: pr['number']):
+              if not eligible(pr):
                   continue
-              if eligible(pr):
-                  print(pr["number"])
+              behind = int(subprocess.check_output([
+                  'gh', 'api', f'repos/{repo}/compare/{main_sha}...{pr["headRefOid"]}',
+                  '--jq', '.behind_by'], text=True).strip())
+              if behind > 0:
+                  print(pr['number'])
+              else:
+                  print(f'PR #{pr["number"]} is current; waiting for its checks/auto-merge', file=sys.stderr)
+              break
           PY
 
           if [[ ! -s "$rebase_list" ]]; then

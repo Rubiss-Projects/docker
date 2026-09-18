@@ -538,7 +538,7 @@ Focus: Core networking and container management.
 
 ### 📊 Observability
 Focus: Monitoring and metrics.
-- Grafana, Prometheus, InfluxDB, Uptime Kuma, Tautulli, Speedtest Tracker, Glances, cAdvisor
+- Grafana, Prometheus, InfluxDB, Uptime Kuma, Tracearr, Speedtest Tracker, Glances, cAdvisor
 
 ### 🖥️ Hardware
 Focus: Physical hardware stats.
