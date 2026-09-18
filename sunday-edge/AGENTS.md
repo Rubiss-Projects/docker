@@ -256,3 +256,16 @@ dates, requires all daily responses, and deduplicates/sorts the resulting games.
 An upstream failure still makes `/healthz` return 503; do not suppress that alert
 or treat a partial schedule as healthy. For this incident, verify a completed
 analytics task and fresh source collection, not just a newly started supervisor.
+
+Release `v0.2.11` adds lossless simulation-player transport compression (worker
+`dfs-simulator-v37`, protocol `dfs-simulation-contract-v7`) to fix analytics-rich
+leases exceeding the web response budget. Deploy the matching web app before
+these images. The web app rejects older workers until the compatible pool
+registers; a worker-only rollback to v36 will not restore compute with the v37
+web app. No database migration or volume changes are needed.
+
+After rollout, verify all configured compute replicas register as v37, then
+generate a fresh Week 2 portfolio with current inputs and the intended planned
+entry count. Confirm simulation batches actually complete and entry-readiness
+checks pass before export; healthy containers alone do not establish recovery.
+Keep the old `BATCH_FAILED` portfolio blocked and preserved for audit.
