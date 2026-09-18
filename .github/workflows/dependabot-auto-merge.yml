@@ -112,16 +112,8 @@ jobs:
         run: |
           printf 'Skipping auto-merge: %s\n' "${{ steps.classify.outputs.reason }}"
 
-      - name: Enable GitHub auto-merge
+      - name: Report queued update
         if: steps.classify.outputs.eligible == 'true'
         shell: bash
         run: |
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            printf '::error::DEPENDABOT_AUTOMERGE_TOKEN secret is required so auto-merges trigger deploy workflows\n'
-            exit 1
-          fi
-
-          gh pr merge --auto --rebase "$PR_URL"
-        env:
-          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          printf 'Eligible update queued. Dependabot Rebase enables one merge after a healthy deployment on the next main push or hourly run.\n'

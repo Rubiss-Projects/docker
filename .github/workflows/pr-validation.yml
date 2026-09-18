@@ -190,7 +190,8 @@ jobs:
                       fail(f"{workflow}: Dependabot rebase workflow must only use push to main, schedule, and workflow_dispatch")
 
               if is_dependabot_token_workflow:
-                  if secret_reference_count != 1 or DEPENDABOT_AUTOMERGE_SECRET_REF not in workflow_text:
+                  expected_secret_count = 1 if is_dependabot_rebase else 0
+                  if secret_reference_count != expected_secret_count or (is_dependabot_rebase and DEPENDABOT_AUTOMERGE_SECRET_REF not in workflow_text):
                       fail(f"{workflow}: Dependabot token workflow must only reference {DEPENDABOT_AUTOMERGE_SECRET_REF}")
                   if secrets_context_dumped:
                       fail(f"{workflow}: Dependabot token workflow must not dump the secrets context")
