@@ -2,7 +2,7 @@ services:
   # Prowlarr is our torrent indexer/searcher. Sonarr/Radarr use Prowlarr as a source
   # https://prowlarr.com/
   prowlarr:
-    image: lscr.io/linuxserver/prowlarr:version-2.4.0.5397@sha256:4fd7a166c8f46dd3370a871c250ee577d6c2ae97a0dbe0e3614b5ef736205620
+    image: lscr.io/linuxserver/prowlarr:version-2.5.2.5491@sha256:aaa16ba7d66e413db6d0358d3b6c68d833578ba7f176f24a51807181e7637fce
     container_name: prowlarr
     volumes:
       - ./config:/config
