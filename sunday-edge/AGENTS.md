@@ -19,6 +19,45 @@ in any worker. The deployment helper sends its token to Docker through stdin.
 
 Keep Sunday Edge operational documentation in this file.
 
+## Jev observation rollout (analytics v0.2.12)
+
+Only analytics moves to v0.2.12 for this rollout; the other roles remain at their
+compatible v0.2.11 pins. The analytics worker reports `sunday-edge-intelligence-v17`.
+Public `.env` enables `JEV_MODE=observe`, pinned to `jev-1.13.0`. There is no Jev
+enforcement mode: extraction, mandatory Sol review, accepted signals and lineup
+decisions remain authoritative. Observations drain after collection work and use
+a separate queue/cache/accounting directory in the existing analytics volume.
+
+`TYPESAFE_API_KEY` belongs only in git-crypt-encrypted `analytics.env.secret`.
+It uses the existing TypeSafe account, whose balance is shared with AI Assistant,
+but no Discord credentials, environment files or volumes are mounted/copied into
+analytics. The worker removes the TypeSafe key from Codex's subprocess environment.
+
+The observer's starting local spending guards are $0.15/day, $2/calendar month and
+$3 cumulative (UTC). The cumulative allowance does not reset automatically. These
+guards reserve conservatively before calls and reconcile actual API token usage;
+they are not provider-enforced billing caps and do not include other apps' usage.
+Unknown bills retain reservations. Disable with `JEV_MODE=off`; preserve the ledger.
+
+Deploy through the existing maintenance-wrapped workflow after the app release
+publishes the private analytics image. Do not patch files in running containers.
+Verify the analytics image/version, `jev_observation` log events, and:
+
+```sh
+docker exec sunday-edge-analytics node jev-summary.mjs
+```
+
+The read-only summary exposes counts and spending, never credentials or evidence.
+Persistent files live under `/data/state/jev-observe/`: `ledger.json`, `pending/`
+and `results/`. Retain accounting when rolling back or disabling observation.
+Missing/corrupt accounting stops Jev calls; never delete it to grant new allowance.
+Raw source/claim judgments are private, retained for 30 days, and still require
+labeled quality evaluation before Jev can acquire routing authority.
+
+No database migration, public endpoint, new volume, role credential sharing, or
+resource-limit change is required. Image rollback to analytics v0.2.11 with
+`JEV_MODE=off` preserves observation records; follow the normal maintenance wrapper.
+
 ## Service overview
 
 [docker-compose.yml](docker-compose.yml) is one stack with six service roles. `dfs` is a
