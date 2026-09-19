@@ -37,7 +37,9 @@ The observer's starting local spending guards are $0.15/day, $2/calendar month a
 $3 cumulative (UTC). The cumulative allowance does not reset automatically. These
 guards reserve conservatively before calls and reconcile actual API token usage;
 they are not provider-enforced billing caps and do not include other apps' usage.
-Unknown bills retain reservations. Disable with `JEV_MODE=off`; preserve the ledger.
+Unknown bills retain reservations. After a crash, a persisted response is reconciled
+against its original reservation date. A crash with no durable response halts paid
+observation until billing is reconciled. Disable with `JEV_MODE=off`; preserve the ledger.
 
 Deploy through the existing maintenance-wrapped workflow after the app release
 publishes the private analytics image. Do not patch files in running containers.
@@ -48,8 +50,10 @@ docker exec sunday-edge-analytics node jev-summary.mjs
 ```
 
 The read-only summary exposes counts and spending, never credentials or evidence.
-Persistent files live under `/data/state/jev-observe/`: `ledger.json`, `pending/`
-and `results/`. Retain accounting when rolling back or disabling observation.
+Persistent files live under `/data/state/jev-observe/`: `ledger.json`, `pending/`,
+`results/` and `attempts/`. Attempt logs preserve each artifact/extractor's provenance
+even when multiple attempts share one cached judgment. Retain accounting when
+rolling back or disabling observation.
 Missing/corrupt accounting stops Jev calls; never delete it to grant new allowance.
 Raw source/claim judgments are private, retained for 30 days, and still require
 labeled quality evaluation before Jev can acquire routing authority.
