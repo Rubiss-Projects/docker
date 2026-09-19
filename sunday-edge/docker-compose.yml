@@ -81,7 +81,7 @@ services:
 
   analytics:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.11
+    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.12
     container_name: sunday-edge-analytics
     env_file:
       - path: analytics.env.secret
@@ -91,6 +91,11 @@ services:
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
       ANALYTICS_STATE_DIR: /data/state
       CODEX_WORK_DIR: /data/work
+      JEV_MODE: ${JEV_MODE:-off}
+      JEV_MODEL: ${JEV_MODEL:-jev-1.13.0}
+      JEV_DAILY_BUDGET_USD: ${JEV_DAILY_BUDGET_USD:-0.15}
+      JEV_MONTHLY_BUDGET_USD: ${JEV_MONTHLY_BUDGET_USD:-2}
+      JEV_TOTAL_BUDGET_USD: ${JEV_TOTAL_BUDGET_USD:-3}
       NODE_OPTIONS: --max-old-space-size=1536
     cpus: ${ANALYTICS_CPUS:-2.0}
     mem_limit: ${ANALYTICS_MEMORY:-2g}
