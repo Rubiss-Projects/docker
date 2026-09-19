@@ -113,10 +113,6 @@ jobs:
         # main-host cAdvisor to Windows Compose so its host mounts resolve there.
         run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
 
-      - name: Install Tracearr maintenance restart priority
-        shell: bash
-        run: python3 /mnt/e/Docker/scripts/install-tracearr-maintenance.py --apply
-
   deploy-pi:
     name: Deploy Raspberry Pi service folders
     needs: detect-changes
