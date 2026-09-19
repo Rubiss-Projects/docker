@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.13.3` and runs in shared security mode. Schedules and run
+The service pins `v1.14.0` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 Shared `/chat` threads use `CHAT_PARTICIPATION_MODE=smart` and
@@ -13,6 +13,11 @@ turns, subject to the existing permissions and input limits. The evaluator
 recognizes the bot by its server nickname (Rook here) and account name. Jev uses
 the highest-probability individual choice, including silence, without a
 confidence cutoff. Direct-reply winners bypass unsolicited-reply cooldown.
+Participation and emoji selection are separate questions, so uncertainty between
+emoji does not change whether the bot reacts. Usable custom emoji are discovered
+automatically from this server and rechecked before use. Jev chooses from their
+names and conversation context, with Unicode defaults available; no server emoji
+IDs or names need configuration.
 
 `TYPESAFE_API_KEY` is supplied through the git-crypt encrypted `.env.secret`
 overlay and is not passed to shared provider processes or the browser helper.
