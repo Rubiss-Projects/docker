@@ -1,6 +1,6 @@
 # AI Assistant
 
-The service pins `v1.14.1` and runs in shared security mode. Schedules and run
+The service pins `v1.14.2` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
 Shared `/chat` threads use `CHAT_PARTICIPATION_MODE=smart` and
@@ -31,9 +31,17 @@ set `CHAT_PARTICIPATION_EVALUATOR=provider` and recreate the service. The
 participation mode can also be changed to `always` or `mentions-only`.
 
 eBay item lookups use a fresh Chromium session to establish anonymous site
-cookies and retrieve current auction facts. JavaScript, subresources, downloads,
-and redirects are blocked. Chromium retains its sandbox; the seccomp profile
+cookies and retrieve current auction facts. Up to five validated redirects to
+the same item on `www.ebay.com` are allowed. JavaScript, subresources and downloads
+remain blocked on this path. Chromium retains its sandbox; the seccomp profile
 permits its user-namespace `chroot` while host capabilities remain dropped.
+
+Browser reads return redacted navigation diagnostics and distinguish verification
+challenges, redirect loops, navigation limits, and wrong-item redirects. Results
+expose image and embedded-page links so the agent can follow seller descriptions
+and inspect listing photos with existing tools. The agent uses `fetch_webpage`
+for browser access and keeps shipping quotes tied to the destination actually
+shown by the source; a separate browser CLI is not required.
 
 General research can use hosted search/article opening and `fetch_webpage`, which
 supports RSS/Atom and large articles with continuation chunks. Sparse script pages
