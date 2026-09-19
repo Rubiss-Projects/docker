@@ -312,3 +312,19 @@ generate a fresh Week 2 portfolio with current inputs and the intended planned
 entry count. Confirm simulation batches actually complete and entry-readiness
 checks pass before export; healthy containers alone do not establish recovery.
 Keep the old `BATCH_FAILED` portfolio blocked and preserved for audit.
+
+
+## Doubtful availability rollout (v0.2.13)
+
+All six image references move to v0.2.13. Compute registers as
+`dfs-simulator-v38`; the matching web app refuses older compute workers.
+The app and workers preserve DOUBTFUL and block new entry recommendations
+containing doubtful players, including legacy Questionable inputs retaining
+a Doubtful source status. Already-started late-swap slots remain preserved.
+No database migration, volume, credential, resource, or Jev configuration change
+is required. The release retains the Jev observer and receipt fixes.
+
+After deployment, verify all six compute replicas register v38. Existing
+Week 2 portfolios remain audit records; refresh analytics and regenerate before
+exporting a replacement. Rollback requires a compatible app/worker pair; do not
+roll workers alone back to v37 while the app requires v38.
