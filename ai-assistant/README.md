@@ -3,6 +3,12 @@
 The service pins `v1.14.2` and runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
+Edit `system-prompt.txt` to customize Rook's identity, tone, and project references.
+The file is mounted read-only at `/data/system-prompt.txt`, selected
+by `AI_ASSISTANT_SYSTEM_PROMPT_FILE` in `.env`. A blank file adds no custom
+instructions. After editing, run `docker compose restart ai-assistant` from this
+directory to ensure the updated prompt is used.
+
 Shared `/chat` threads use `CHAT_PARTICIPATION_MODE=smart` and
 `CHAT_PARTICIPATION_EVALUATOR=jev`. The bot chooses whether to reply, react, or
 remain silent during group conversations. Explicit mentions and `/chat` still
