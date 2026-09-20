@@ -21,6 +21,7 @@ services:
     volumes:
       - ai-assistant-data:/data
       - ./rights.json:/etc/ai-assistant/rights.json:ro
+      - ./system-prompt.txt:/data/system-prompt.txt:ro
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=256m,uid=10001,gid=10001
