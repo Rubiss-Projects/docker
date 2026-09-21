@@ -15,6 +15,20 @@ n8n is a fair-code licensed workflow automation tool that allows you to connect 
 ./workflows:/files          # Auto-import directory for JSON workflows
 ```
 
+## Torrent Retention
+
+Ben approved selective cleanup: tracker-deleted registrations may be removed
+when every tracker of a private torrent freshly confirms deletion. Preserve
+local media and any torrent with a working or unconfirmed tracker. Failed
+cross-seed cleanup is limited to aged, stopped, low-completion injections with
+no download/upload/completion history in the dedicated cross-seed directory.
+Neither job deletes local media. Genuine downloads and near-complete torrents
+are retained. Other removals require explicit immediate approval.
+
+The legacy `scripts/cleanup_crossseed_stuck.py` command delegates to the same
+JavaScript implementation and requires Node.js. Run policy tests with
+`node --test n8n/scripts/torrent-cleanup-policy.test.cjs`.
+
 ## Workflow Management (Auto-Import)
 This service is configured to automatically import and activate workflows from the filesystem on startup.
 

@@ -22,6 +22,16 @@ Use the nearest applicable `AGENTS.md` for the task:
 
 ## Architecture Patterns
 
+### Changes to main and checkout hygiene
+
+Use `.agents/skills/merge-to-main/SKILL.md` when preparing commits/PRs, merging,
+or finishing repository work. All changes to `main` must go through a PR with
+Codex automated review (at most five rounds, addressing actionable feedback).
+Before any PR merge, and at the end of every task even without a PR, leave the
+canonical `/mnt/e/Docker` checkout clean on `main`: the self-hosted deployment
+runner uses this checkout. Prefer a separate feature worktree and never discard
+someone else's work to satisfy this requirement.
+
 ### Service Organization
 - **One service per directory**: Each folder contains a complete docker-compose.yml with its dependencies
 - **Naming Convention**: Folder name MUST match `container_name` (required for n8n automations and Uptime Kuma)

@@ -286,6 +286,9 @@ jobs:
       - name: Validate Python syntax
         run: python3 -m py_compile scripts/*.py
 
+      - name: Test torrent cleanup retention policy
+        run: node --test n8n/scripts/torrent-cleanup-policy.test.cjs
+
       - name: Test planned Grafana maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
