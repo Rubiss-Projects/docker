@@ -104,8 +104,9 @@ ports are reachable on proxynet; no ports or public proxy are added.
 
 `compute.env.secret`, `analytics.env.secret`, `maintenance.env.secret`, and
 `watchdog.env.secret` are encrypted with git-crypt. Each service loads only its own
-file. The archive service needs no credentials. Maintenance alone receives the
-database URL; the analytics login lives in its own private volume.
+file. The archive service needs no credentials. Maintenance and the league monitor
+(watchdog) receive the database URL in their own secret files; the monitor also
+requires CONFIG_ENCRYPTION_KEY. The analytics login lives in its own private volume.
 
 Keep GHCR packages private. The deployment runner's dedicated Docker configuration
 must have a Linux-compatible login with `read:packages` and access to the private
@@ -343,7 +344,9 @@ consumer now drains legacy deliveries; settings retain durable schedules. The
 worker invokes the authenticated POST /api/cron/monitor-watchdog only to publish
 DFS reanalysis from the production runtime. It runs the expensive league analysis
 and Discord delivery itself. Its supervisor bounds each batch to three minutes;
-database claims retain a 30-minute backoff after a killed task.
+Docker allows 200 seconds before forced termination. The supervisor forwards
+shutdown signals to the task; interrupted database claims retain a 30-minute
+backoff, so this grace period does not guarantee completion during a restart.
 
 Verify fresh monitor_completed events and advancing MonitorState.lastSuccessAt,
 including existing future due times, before retiring old Vercel consumers. All
