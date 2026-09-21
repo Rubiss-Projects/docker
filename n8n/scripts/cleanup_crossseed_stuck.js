@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 /**
- * Clean up stuck cross-seed torrents from Transmission.
+ * Retire unused failed cross-seed injections, preserving all local media.
  *
- * Node.js port of cleanup_crossseed_stuck.py for n8n container compatibility.
- * (n8n images no longer include Python or the Alpine apk package manager)
+ * Shared implementation for n8n and the legacy Python command-line launcher.
  *
- * Removes torrents injected by cross-seed that failed piece verification. This
- * includes near-0% stopped torrents, plus aged near-complete torrents that stay
- * active or queued because only unmatched files remain.
+ * Only stopped injections below the low-percent threshold, with no downloaded
+ * or uploaded bytes and no completion history, qualify. Near-complete torrents
+ * and genuine downloads are retained even if stalled.
  *
  * Also cleans up corresponding .torrent files from cross-seed's output directory
  * to prevent re-injection on the next scan cycle.
  *
  * Usage:
- *   node cleanup_crossseed_stuck.js [--dry-run] [--max-percent 5] [--near-complete-percent 99] [--near-complete-max-left-mb 512] [--grace-hours 1]
+ *   node cleanup_crossseed_stuck.js [--dry-run] [--max-percent 5] [--grace-hours 1]
  *   node cleanup_crossseed_stuck.js --json --rpc-url http://transmission:9091/transmission/rpc/
  */
 
@@ -24,21 +23,16 @@ const path = require('path');
 
 const DEFAULT_RPC_URL = 'http://localhost:9091/transmission/rpc/';
 const DEFAULT_CROSS_SEED_DIR = path.join(
-  path.dirname(path.dirname(path.resolve(__filename))),
+  path.resolve(__dirname, '../..'),
   'cross-seed', 'config', 'cross-seeds'
 );
 const DEFAULT_MAX_PERCENT = 5.0;
-const DEFAULT_NEAR_COMPLETE_PERCENT = 99.0;
-const DEFAULT_NEAR_COMPLETE_MAX_LEFT_MB = 512;
 const DEFAULT_GRACE_HOURS = 1.0;
-const DOWNLOAD_STATES = new Set([0, 3, 4]);
 
 function parseArgs() {
   const args = {
     dryRun: false,
     maxPercent: DEFAULT_MAX_PERCENT,
-    nearCompletePercent: DEFAULT_NEAR_COMPLETE_PERCENT,
-    nearCompleteMaxLeftMb: DEFAULT_NEAR_COMPLETE_MAX_LEFT_MB,
     graceHours: DEFAULT_GRACE_HOURS,
     jsonOutput: false,
     rpcUrl: DEFAULT_RPC_URL,
@@ -54,11 +48,8 @@ function parseArgs() {
         args.maxPercent = parseFloat(argv[++i]);
         break;
       case '--near-complete-percent':
-        args.nearCompletePercent = parseFloat(argv[++i]);
-        break;
       case '--near-complete-max-left-mb':
-        args.nearCompleteMaxLeftMb = parseFloat(argv[++i]);
-        break;
+        throw new Error('Near-complete torrent cleanup is no longer supported');
       case '--grace-hours':
         args.graceHours = parseFloat(argv[++i]);
         break;
@@ -72,6 +63,12 @@ function parseArgs() {
         args.crossSeedDir = argv[++i];
         break;
     }
+  }
+  if (!Number.isFinite(args.maxPercent) || args.maxPercent < 0 || args.maxPercent > DEFAULT_MAX_PERCENT) {
+    throw new Error('max-percent must be between 0 and 5; genuine downloads must be retained');
+  }
+  if (!Number.isFinite(args.graceHours) || args.graceHours < 0) {
+    throw new Error('grace-hours must be a nonnegative number');
   }
   return args;
 }
@@ -143,27 +140,13 @@ function isCrossSeed(torrent) {
 }
 
 function getStuckReason(torrent, args) {
-  if (!DOWNLOAD_STATES.has(torrent.status)) return null;
+  if (torrent.status !== 0 || torrent.error === 3) return null;
+  if (torrent.downloadedEver !== 0 || torrent.uploadedEver !== 0 || torrent.doneDate !== 0) return null;
+  if (!String(torrent.downloadDir || '').startsWith('/data/cross-seed-links/')) return null;
 
   const percent = torrent.percentDone * 100;
-  if (torrent.status === 0 && percent <= args.maxPercent) {
+  if (Number.isFinite(percent) && percent >= 0 && percent <= args.maxPercent) {
     return 'stopped-below-threshold';
-  }
-
-  const leftBytes = torrent.leftUntilDone || 0;
-  const leftMb = leftBytes / 1024 / 1024;
-  const hasDownloadRate = (torrent.rateDownload || 0) > 0;
-  const hasError = (torrent.error || 0) !== 0 || Boolean(torrent.errorString);
-  const hasFailureSignal = torrent.isStalled === true || hasError;
-  if (
-    torrent.percentDone < 1 &&
-    leftBytes > 0 &&
-    percent >= args.nearCompletePercent &&
-    leftMb <= args.nearCompleteMaxLeftMb &&
-    !hasDownloadRate &&
-    hasFailureSignal
-  ) {
-    return 'near-complete-stalled';
   }
 
   return null;
@@ -183,6 +166,10 @@ async function findStuckTorrents(rpcUrl, sessionId, args, graceSeconds) {
     'labels',
     'hashString',
     'addedDate',
+    'downloadDir',
+    'downloadedEver',
+    'uploadedEver',
+    'doneDate',
   ];
   const result = await rpcCall(rpcUrl, sessionId, 'torrent-get', { fields });
 
@@ -204,10 +191,16 @@ async function findStuckTorrents(rpcUrl, sessionId, args, graceSeconds) {
   return stuck;
 }
 
-async function removeTorrents(rpcUrl, sessionId, ids) {
+async function removeTorrents(rpcUrl, sessionId, ids, args) {
+  const fresh = await rpcCall(rpcUrl, sessionId, 'torrent-get', {
+    ids, fields: ['id', 'labels', 'status', 'error', 'percentDone', 'downloadDir', 'downloadedEver', 'uploadedEver', 'doneDate'],
+  });
+  if (fresh.torrents.length !== ids.length || fresh.torrents.some((t) => !ids.includes(t.id) || !isCrossSeed(t) || !getStuckReason(t, args))) {
+    throw new Error('Cross-seed state changed before removal; preserving all candidates');
+  }
   await rpcCall(rpcUrl, sessionId, 'torrent-remove', {
     ids,
-    'delete-local-data': true,
+    'delete-local-data': false,
   });
 }
 
@@ -224,8 +217,7 @@ function cleanupTorrentFiles(crossSeedDir, torrents, jsonOutput) {
     const lowerName = filename.toLowerCase();
     for (const torrent of torrents) {
       const hash = (torrent.hashString || '').toLowerCase();
-      const name = (torrent.name || '').toLowerCase();
-      if ((hash && lowerName.includes(hash)) || (name && lowerName.includes(name))) {
+      if (hash && lowerName.endsWith('.torrent') && lowerName.includes(hash)) {
         try {
           fs.unlinkSync(path.join(crossSeedDir, filename));
           if (!jsonOutput) console.log('  Removed: ' + filename);
@@ -262,10 +254,6 @@ async function main() {
   if (!args.jsonOutput) {
     console.log('Cross-seed stuck torrent cleanup');
     console.log('  Low-percent stopped max:    ' + args.maxPercent + '%');
-    console.log('  Near-complete min:          ' + args.nearCompletePercent + '%');
-    console.log(
-      '  Near-complete max left:     ' + args.nearCompleteMaxLeftMb + ' MiB'
-    );
     console.log('  Grace period:               ' + args.graceHours + 'h');
     console.log('  Dry run:                    ' + args.dryRun);
     console.log();
@@ -349,7 +337,7 @@ async function main() {
   if (!args.jsonOutput) {
     console.log('Removing ' + ids.length + ' torrent(s) from Transmission...');
   }
-  await removeTorrents(args.rpcUrl, sessionId, ids);
+  await removeTorrents(args.rpcUrl, sessionId, ids, args);
   if (!args.jsonOutput) console.log('  Done.');
 
   if (!args.jsonOutput) {

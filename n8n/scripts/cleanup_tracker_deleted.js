@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 /**
- * Clean up torrents whose tracker reports the torrent was deleted.
+ * Remove registrations only when every tracker freshly confirms deletion.
  *
- * The script checks Transmission torrent-level errors and per-tracker
- * announce/scrape results for permanent deletion messages, then removes the
- * matching torrents from Transmission. Local data is kept by default because
- * these are often completed Sonarr/Radarr items that may still be useful.
+ * Every tracker of a private torrent must have a fresh announce confirming
+ * deletion, without a newer successful scrape. Local data is always preserved.
  *
  * Usage:
- *   node cleanup_tracker_deleted.js [--dry-run] [--grace-hours 1] [--delete-local-data]
+ *   node cleanup_tracker_deleted.js [--dry-run] [--grace-hours 1]
  *   node cleanup_tracker_deleted.js --json --rpc-url http://transmission:9091/transmission/rpc/
  */
 
@@ -39,8 +37,7 @@ function parseArgs() {
         args.dryRun = true;
         break;
       case '--delete-local-data':
-        args.deleteLocalData = true;
-        break;
+        throw new Error('Tracker cleanup preserves local data; --delete-local-data is not supported');
       case '--grace-hours':
         args.graceHours = parseFloat(argv[++i]);
         break;
@@ -127,15 +124,17 @@ function findDeletionMatch(messages) {
   return null;
 }
 
-function getTrackerMessages(torrent) {
-  const messages = [];
-  if (torrent.errorString) messages.push(torrent.errorString);
-
-  for (const tracker of torrent.trackerStats || []) {
-    if (tracker.lastAnnounceResult) messages.push(tracker.lastAnnounceResult);
-    if (tracker.lastScrapeResult) messages.push(tracker.lastScrapeResult);
+function confirmedDeletion(torrent, now = Date.now() / 1000) {
+  // A public torrent may still be reachable through DHT; don't retire it here.
+  const trackers = torrent.trackerStats || [];
+  if (!torrent.isPrivate || trackers.length === 0 || torrent.error === 3) return null;
+  for (const tracker of trackers) {
+    const age = now - tracker.lastAnnounceTime;
+    if (!Number.isFinite(age) || age < 0 || age > 86400) return null;
+    if (tracker.lastAnnounceSucceeded || !findDeletionMatch([tracker.lastAnnounceResult])) return null;
+    if (tracker.lastScrapeSucceeded && tracker.lastScrapeTime >= tracker.lastAnnounceTime) return null;
   }
-  return messages;
+  return trackers[0].lastAnnounceResult;
 }
 
 async function findDeletedTorrents(rpcUrl, sessionId, graceSeconds) {
@@ -150,6 +149,7 @@ async function findDeletedTorrents(rpcUrl, sessionId, graceSeconds) {
     'error',
     'errorString',
     'trackerStats',
+    'isPrivate',
   ];
   const result = await rpcCall(rpcUrl, sessionId, 'torrent-get', { fields });
 
@@ -159,7 +159,7 @@ async function findDeletedTorrents(rpcUrl, sessionId, graceSeconds) {
     const age = now - (torrent.addedDate || now);
     if (age < graceSeconds) continue;
 
-    const match = findDeletionMatch(getTrackerMessages(torrent));
+    const match = confirmedDeletion(torrent, now);
     if (!match) continue;
 
     torrent.cleanupReason = 'tracker-deleted';
@@ -169,10 +169,16 @@ async function findDeletedTorrents(rpcUrl, sessionId, graceSeconds) {
   return deleted;
 }
 
-async function removeTorrents(rpcUrl, sessionId, ids, deleteLocalData) {
+async function removeTorrents(rpcUrl, sessionId, ids) {
+  const fresh = await rpcCall(rpcUrl, sessionId, 'torrent-get', {
+    ids, fields: ['id', 'isPrivate', 'error', 'trackerStats'],
+  });
+  if (fresh.torrents.length !== ids.length || fresh.torrents.some((t) => !ids.includes(t.id) || !confirmedDeletion(t))) {
+    throw new Error('Tracker state changed before removal; preserving all candidates');
+  }
   await rpcCall(rpcUrl, sessionId, 'torrent-remove', {
     ids,
-    'delete-local-data': deleteLocalData,
+    'delete-local-data': false,
   });
 }
 
@@ -275,7 +281,7 @@ async function main() {
   if (!args.jsonOutput) {
     console.log('Removing ' + ids.length + ' torrent(s) from Transmission...');
   }
-  await removeTorrents(args.rpcUrl, sessionId, ids, args.deleteLocalData);
+  await removeTorrents(args.rpcUrl, sessionId, ids);
 
   if (args.jsonOutput) {
     console.log(
