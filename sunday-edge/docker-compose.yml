@@ -165,6 +165,7 @@ services:
       DATABASE_POOL_MAX: 2
       NODE_OPTIONS: --max-old-space-size=768
     cpus: ${MONITOR_CPUS:-1.0}
+    stop_grace_period: 200s
     mem_limit: ${MONITOR_MEMORY:-1g}
     memswap_limit: ${MONITOR_MEMORY:-1g}
     pids_limit: 64
