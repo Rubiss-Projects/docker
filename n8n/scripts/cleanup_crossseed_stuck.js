@@ -41,6 +41,10 @@ function parseArgs() {
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
     switch (argv[i]) {
+      case '-h':
+      case '--help':
+        args.help = true;
+        break;
       case '--dry-run':
         args.dryRun = true;
         break;
@@ -62,6 +66,8 @@ function parseArgs() {
       case '--cross-seed-dir':
         args.crossSeedDir = argv[++i];
         break;
+      default:
+        throw new Error('Unknown argument: ' + argv[i]);
     }
   }
   if (!Number.isFinite(args.maxPercent) || args.maxPercent < 0 || args.maxPercent > DEFAULT_MAX_PERCENT) {
@@ -249,6 +255,10 @@ function buildRemovedList(stuck) {
 
 async function main() {
   const args = parseArgs();
+  if (args.help) {
+    console.log('Usage: cleanup_crossseed_stuck [--dry-run] [--json] [--max-percent 0..5] [--grace-hours N] [--rpc-url URL] [--cross-seed-dir PATH]');
+    return;
+  }
   const graceSeconds = args.graceHours * 3600;
 
   if (!args.jsonOutput) {
