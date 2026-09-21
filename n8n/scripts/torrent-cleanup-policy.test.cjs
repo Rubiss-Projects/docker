@@ -4,13 +4,22 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function load(file) {
+function load(file, argv = []) {
   const filename = path.join(__dirname, file);
   const source = fs.readFileSync(filename, 'utf8').split('\nmain().catch')[0];
-  const context = { require, console, process, __filename: filename, __dirname };
+  const context = { require, console, process: { ...process, argv: ['node', filename, ...argv] }, __filename: filename, __dirname };
   vm.runInNewContext(source, context);
   return context;
 }
+
+test('legacy launcher help is read-only and invalid cleanup arguments fail closed', () => {
+  const { execFileSync } = require('node:child_process');
+  const launcher = path.resolve(__dirname, '../../scripts/cleanup_crossseed_stuck.py');
+  assert.match(execFileSync('python3', [launcher, '--help'], { encoding: 'utf8', timeout: 5000 }), /^Usage:/);
+  for (const argv of [['--max-percent', '99'], ['--max-percent', 'NaN'], ['--grace-hours', '-1'], ['--dryrun']]) {
+    assert.throws(() => load('cleanup_crossseed_stuck.js', argv).parseArgs());
+  }
+});
 
 test('tracker deletion needs fresh confirmation from every tracker of a private torrent', () => {
   const { confirmedDeletion } = load('cleanup_tracker_deleted.js');
