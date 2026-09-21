@@ -66,7 +66,7 @@ resource-limit change is required. Image rollback to analytics v0.2.11 with
 
 [docker-compose.yml](docker-compose.yml) is one stack with six service roles. `dfs` is a
 replicated service: six instances by default, with five other containers for
-analytics, maintenance, checkpoint recovery, monitor scheduling, and archival.
+analytics, maintenance, checkpoint recovery, league monitoring, and archival.
 The app repository publishes five private, release-versioned GHCR images. Recovery
 uses the compute image with its own entrypoint. The web app stays on Vercel.
 
@@ -88,10 +88,10 @@ Each replica exclusively locks a logical slot without a Docker socket. Slots 5
 and 6 retain manual/urgent reservations; additional slots increase general capacity.
 With fewer than five replicas, general slots still handle every type of work.
 
-The defaults cap all eleven containers together at 9.7 CPU cores and 7.75 GiB
+The defaults cap all eleven containers together at 10.6 CPU cores and 8.625 GiB
 memory, with no extra swap allowance. Each DFS replica is capped at 1 CPU/512 MiB;
 analytics at 2 CPUs/2 GiB; maintenance at 1 CPU/2 GiB; research at 0.5 CPU/512 MiB;
-and each scheduler at 0.1 CPU/128 MiB. These are ceilings, not reservations.
+the league monitor at 1 CPU/1 GiB; and checkpoint recovery at 0.1 CPU/128 MiB. These are ceilings, not reservations.
 Each added DFS replica adds its configured CPU/memory ceiling and twelve scheduled
 idle control-plane requests per hour. Edit the role limits in `.env` as needed.
 
@@ -328,3 +328,24 @@ After deployment, verify all six compute replicas register v38. Existing
 Week 2 portfolios remain audit records; refresh analytics and regenerate before
 exporting a replacement. Rollback requires a compatible app/worker pair; do not
 roll workers alone back to v37 while the app requires v38.
+
+## League monitor offload (v0.2.16)
+
+The sunday-edge/watchdog container now runs league, draft, waiver and trade
+analysis locally, polling durable MonitorState due times every 15 seconds. Its
+own git-crypt-encrypted watchdog.env.secret requires DATABASE_URL,
+CONFIG_ENCRYPTION_KEY and CRON_SECRET. Do not mount another role's secret file.
+No Vercel queue token, archive volume or new service is required. Existing
+Homepage, Kuma and Prometheus endpoints remain on port 9460.
+
+Deploy the matching web revision before promoting these images. The web monitor
+consumer now drains legacy deliveries; settings retain durable schedules. The
+worker invokes the authenticated POST /api/cron/monitor-watchdog only to publish
+DFS reanalysis from the production runtime. It runs the expensive league analysis
+and Discord delivery itself. Its supervisor bounds each batch to three minutes;
+database claims retain a 30-minute backoff after a killed task.
+
+Verify fresh monitor_completed events and advancing MonitorState.lastSuccessAt,
+including existing future due times, before retiring old Vercel consumers. All
+six image references must match the app release. A rollback to the old watchdog
+also requires restoring the prior web scheduler, since it cannot execute monitors.
