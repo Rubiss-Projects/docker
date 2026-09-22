@@ -352,3 +352,17 @@ Verify fresh monitor_completed events and advancing MonitorState.lastSuccessAt,
 including existing future due times, before retiring old Vercel consumers. All
 six image references must match the app release. A rollback to the old watchdog
 also requires restoring the prior web scheduler, since it cannot execute monitors.
+
+## Contest learning corrections (v0.2.18)
+
+Deploy the matching web revision before all six image references. Compute now
+registers as `dfs-simulator-v39`; older workers are fenced. Simulation protocol v7
+and frozen historical inputs remain supported. Rollback requires a compatible
+web/worker pair. No database migration, volume, secret or resource changes apply.
+
+Ownership calibration v10 uses the eligible public-field population. After
+promotion, run the existing Week 2 calibration maintenance task and verify a
+completed job plus fresh v10 calibration receipts. This refresh does not promote
+unqualified parameters. Verify all six compute registrations, a bounded compute
+diagnostic, and policy v5's 25,000-trial T15/FINAL cap. Preserve the missed Week 2
+FINAL checkpoint; a post-lock diagnostic cannot become prospective evidence.
