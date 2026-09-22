@@ -1,0 +1,743 @@
+{
+  "uid": "transmission-stability",
+  "title": "Transmission Stability",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": [
+    "transmission",
+    "storage",
+    "reliability"
+  ],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Functional RPC now",
+      "type": "stat",
+      "description": "Fresh session-stats result only. 409 alone is not success. No data is unknown, never healthy.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"rpc_up\") FROM \"transmission\" WHERE time > now() - 90s",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "RPC failed",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "RPC healthy",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Registered torrents now",
+      "type": "stat",
+      "description": "All registered torrents, including idle seeders. Missing RPC data is not a zero-torrent inventory.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"torrents\") FROM \"transmission\" WHERE time > now() - 90s",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "title": "RPC and inventory latency",
+      "type": "timeseries",
+      "description": "Read-only probes every 30 seconds. Session time includes CSRF negotiation. Whole probe deadline 8 seconds.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_seconds\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Session stats",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"inventory_seconds\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Torrent inventory",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Functional RPC vs listener",
+      "type": "timeseries",
+      "description": "1 = success, 0 = measured failure; gaps = collector unavailable. Docker/Kuma additionally use three failed health checks and startup grace.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_up\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Functional RPC",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"listener_up\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "HTTP listener",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"inventory_up\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Inventory RPC",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Payload transfer rates",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"download_bytes_per_second\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Download",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"upload_bytes_per_second\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Upload",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Torrent state and connected peers",
+      "type": "timeseries",
+      "description": "Seeding state includes idle torrents. An error or no peer demand alone does not justify a restart.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"seeding\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Seeding",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"downloading\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Downloading",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"checking\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Checking",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"queued\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Queued",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"paused_torrents\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Paused",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"peers\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Peers",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"torrent_errors\") FROM \"transmission\" WHERE $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Errors",
+          "refId": "G"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Container memory",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "max(container_memory_working_set_bytes{name=\"transmission\"})",
+          "legendFormat": "Working set",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "max(container_spec_memory_limit_bytes{name=\"transmission\"})",
+          "legendFormat": "Limit",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Container CPU and throttling",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"transmission\"}[2m]))",
+          "legendFormat": "CPU cores",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "sum(rate(container_cpu_cfs_throttled_seconds_total{name=\"transmission\"}[2m]))",
+          "legendFormat": "Throttled seconds/sec",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Observed restarts and OOM events",
+      "type": "timeseries",
+      "description": "Start-time gauge changes are sampled; includes planned recreation. Not an exact Docker event count. Nightly maintenance normally begins at 05:00 ET.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "changes((max(container_start_time_seconds{name=\"transmission\"}))[15m:15s])",
+          "legendFormat": "Start changes / 15m",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "expr": "sum(increase(container_oom_events_total{name=\"transmission\"}[15m]))",
+          "legendFormat": "OOM / 15m",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Successful RPC probes over selected range",
+      "type": "stat",
+      "description": "Fraction of observed probes, NOT wall-clock uptime: missing collection and maintenance are excluded from the denominator. Kuma retains the service uptime history.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_up\") FROM \"transmission\" WHERE $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 16,
+      "title": "Last collector observation",
+      "type": "stat",
+      "description": "Timestamp generated by the collector. The separate missing-telemetry alert covers gaps in collection.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"observed_at\") * 1000 FROM \"transmission\" WHERE $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Transmission uptime",
+      "url": "https://uptime.benlawson.dev/dashboard/126",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Windows disk latency and I/O",
+      "url": "/d/fdvyllsgg8v7kf/windows?var-hostname=Ben-Server&var-disk=E%3A",
+      "targetBlank": true,
+      "includeVars": false,
+      "keepTime": true
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Annotations & Alerts",
+        "type": "dashboard",
+        "builtIn": 1,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        }
+      }
+    ]
+  }
+}

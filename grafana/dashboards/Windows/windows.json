@@ -19,7 +19,15 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "links": [],
+  "links": [
+    {
+      "type": "link",
+      "title": "Transmission RPC and load",
+      "url": "/d/transmission-stability",
+      "targetBlank": true,
+      "keepTime": true
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -2386,6 +2394,251 @@
       ],
       "title": "Disk $disk Queue",
       "type": "timeseries"
+    },
+    {
+      "id": 65,
+      "title": "Disk $disk disk latency",
+      "type": "timeseries",
+      "description": "Windows LogicalDisk counters. Correlate sustained latency with RPC delays and Linux p9 waits; this is evidence, not proof of disk failure.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Avg._Disk_sec/Read\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Avg._Disk_sec/Write\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Write",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 66,
+      "title": "Disk $disk disk throughput",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 50,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Disk_Read_Bytes_persec\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Read",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Disk_Write_Bytes_persec\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Write",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 67,
+      "title": "Disk $disk disk operations",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 50,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Disk_Reads_persec\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Reads",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Disk_Writes_persec\") FROM \"win_disk\" WHERE \"host\" =~ /^$hostname$/ AND \"instance\" =~ /^$disk$/ AND $timeFilter  GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Writes",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "iops",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 68,
+      "type": "row",
+      "title": "Physical disk latency",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 57,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 69,
+      "title": "Disk device latency",
+      "type": "timeseries",
+      "description": "Windows PhysicalDisk instances; Storage Spaces may expose a virtual volume as well as constituent devices.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 58,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"Avg._Disk_sec/Read\") AS \"read\", mean(\"Avg._Disk_sec/Write\") AS \"write\" FROM \"win_diskio\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval), \"instance\" fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_instance $col",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
     },
     {
       "collapsed": false,

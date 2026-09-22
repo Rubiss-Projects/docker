@@ -26,6 +26,7 @@ services:
       - ./data:/config
       - ../../Media:/data
       - ./scripts:/scripts:ro
+      - ./init:/custom-cont-init.d:ro
       - ./watch:/watch
     ports:
       - 9091:9091
@@ -39,24 +40,27 @@ services:
         reservations:
           memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "[ \"$(curl --silent --show-error --connect-timeout 3 --max-time 8 -o /dev/null -w '%{http_code}' http://localhost:9091/transmission/rpc)\" = \"409\" ]"]
+      test: ["CMD", "python3", "/usr/local/bin/transmission-rpc-health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 120s
     labels:
       - homepage.group=Downloads
       - homepage.name=Transmission
       - homepage.icon=transmission.png
       - homepage.href=https://transmission.benlawson.dev/
-      - homepage.description=Torrent client
+      - homepage.description=Torrent client · functional RPC health
       - homepage.widget.type=transmission
       - homepage.widget.url=http://transmission:9091
       - homepage.widget.username=
       - homepage.widget.password=
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Downloads
-      - swag.uptime-kuma.monitor.url=http://transmission:9091/transmission/rpc
-      - swag.uptime-kuma.monitor.accepted_statuscodes=409
+      - swag.uptime-kuma.monitor.type=docker
+      - swag.uptime-kuma.monitor.docker_container=transmission
+      - swag.uptime-kuma.monitor.docker_host=1
+      - swag.uptime-kuma.monitor.description=Functional RPC health via Docker; Windows Docker host
     networks:
       - proxynet
 

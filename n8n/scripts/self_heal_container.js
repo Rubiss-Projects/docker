@@ -114,6 +114,8 @@ async function main() {
 
 async function recoverUnhealthy() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+  if (container === 'transmission') await captureDiagnostics();
+  if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
   savePending({ attemptedAt: Date.now(), lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
   actions.push({ action: 'restart', reason: 'container health is unhealthy' });
 
@@ -127,6 +129,53 @@ async function recoverUnhealthy() {
   }
   // Docker already escalates to SIGKILL after restart's grace period. A client
   // timeout does not cancel that operation; an additional kill races its start.
+}
+
+async function captureDiagnostics() {
+  // Existing Docker read access is sufficient. Never persist Config/Env, mounts,
+  // raw daemon logs or tracker URLs. A failed capture must not block recovery.
+  try {
+    const snapshot = { capturedAt: new Date().toISOString(), containerId };
+    const results = await Promise.allSettled([
+      docker('GET', `/containers/${containerId}/json`, { timeoutMs: 3000 }),
+      docker('GET', `/containers/${containerId}/stats?stream=false&one-shot=true`, { timeoutMs: 3000 }),
+    ]);
+    const [inspect, stats] = results;
+    if (inspect.status === 'fulfilled') {
+      const info = inspect.value.json;
+      snapshot.state = { ...summarize(info), startedAt: info.State.StartedAt,
+        finishedAt: info.State.FinishedAt, oomKilled: info.State.OOMKilled,
+        restartCount: info.RestartCount };
+      snapshot.health = (info.State.Health?.Log || []).slice(-5).map((entry) => {
+        // Only our structured probe output is eligible for persistence.
+        let probe;
+        try {
+          const value = JSON.parse(entry.Output);
+          probe = { rpc_up: value.rpc_up, listener_up: value.listener_up,
+            rpc_seconds: value.rpc_seconds, observed_at: value.observed_at,
+            diagnostics: value.diagnostics };
+        } catch { probe = { unavailable: true }; }
+        return { start: entry.Start, end: entry.End, exitCode: entry.ExitCode, probe };
+      });
+    } else snapshot.inspectionUnavailable = true;
+    if (stats.status === 'fulfilled') {
+      const value = stats.value.json;
+      snapshot.resources = { read: value?.read, memory: value?.memory_stats,
+        cpu: value?.cpu_stats, blockIO: value?.blkio_stats, pids: value?.pids_stats };
+    } else snapshot.statsUnavailable = true;
+    const dir = path.join(stateDir, 'diagnostics');
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const name = `transmission-${Date.now()}.json`;
+    const serialized = JSON.stringify(snapshot, null, 2);
+    if (Buffer.byteLength(serialized) > 128 * 1024) throw new Error('Diagnostic size limit exceeded');
+    fs.writeFileSync(path.join(dir, name), serialized, { mode: 0o600 });
+    // Retain the newest 20 incidents, independently of recovery intent.
+    const older = fs.readdirSync(dir).filter((file) => /^transmission-\d+\.json$/.test(file)).sort().slice(0, -20);
+    for (const file of older) fs.unlinkSync(path.join(dir, file));
+    actions.push({ action: 'diagnostics_saved', file: name });
+  } catch {
+    actions.push({ action: 'diagnostics_unavailable' });
+  }
 }
 
 async function startContainer() {
@@ -260,6 +309,7 @@ function docker(method, path, { timeoutMs, ok = [200, 204] } = {}) {
       res.on('error', reject);
       res.on('data', (chunk) => {
         body += chunk;
+        if (body.length > 2 * 1024 * 1024) req.destroy(new Error('Docker response exceeded size limit'));
       });
       res.on('end', () => {
         let json = null;

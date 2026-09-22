@@ -1,0 +1,9 @@
+apiVersion: 1
+muteTimes:
+  - orgId: 1
+    name: transmission-windows-nightly
+    time_intervals:
+      - times:
+          - start_time: "05:00"
+            end_time: "05:30"
+        location: America/New_York
