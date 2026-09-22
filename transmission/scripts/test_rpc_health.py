@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 spec = importlib.util.spec_from_file_location("probe", Path(__file__).with_name("rpc-health.py"))
@@ -113,6 +113,23 @@ class ProbeTests(unittest.TestCase):
             with patch.object(sys, 'argv', ['probe', '--metrics']), patch.object(probe, 'collect') as collect:
                 self.assertEqual(probe.main(), 1)
                 collect.assert_not_called()
+
+    def test_diagnostic_identity_is_restored_after_process_read_failure(self):
+        proc = MagicMock()
+        proc.name = '42'
+        proc.stat.return_value.st_uid = 123
+        proc.stat.return_value.st_gid = 456
+        comm, task = MagicMock(), MagicMock()
+        comm.read_text.return_value = 'transmission-da'
+        task.iterdir.side_effect = PermissionError()
+        proc.joinpath.side_effect = lambda name: {'comm': comm, 'task': task}[name]
+        with patch.object(probe.Path, 'glob', return_value=[proc]), \
+             patch.object(probe.os, 'geteuid', return_value=0), \
+             patch.object(probe.os, 'getegid', return_value=0), \
+             patch.object(probe.os, 'seteuid') as uid, patch.object(probe.os, 'setegid') as gid:
+            probe.diagnostics()
+            self.assertEqual([c.args[0] for c in uid.call_args_list], [123, 0])
+            self.assertEqual([c.args[0] for c in gid.call_args_list], [456, 0])
 
 
 if __name__ == "__main__":
