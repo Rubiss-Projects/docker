@@ -64,6 +64,12 @@ it is not an exact event counter.
    This edits the existing monitor and updates SWAG's label cache. The mod's
    normal edit path deletes/recreates monitors, so do not use it for this
    migration. Verify monitor 126 still exists and reports `healthy`.
+   The installed mod runs as the s6 **oneshot**
+   `init-mod-swag-auto-uptime-kuma-install`; its Python entry point synchronizes
+   once and disconnects, with no Docker-event subscription. This deployment
+   does not change SWAG, Kuma or their dependencies, so it does not rerun that
+   init hook. Do not restart SWAG or manually invoke the mod until this step is
+   complete. Recheck these assumptions if combining with another deployment.
 3. Run `E:\Docker\transmission\install-telegraf.ps1` in elevated PowerShell.
    It backs up the existing configuration, manages only its marked block,
    validates the actual Windows inputs, then restarts Telegraf. The existing
@@ -87,8 +93,12 @@ Failed functional health probes include bounded Linux thread wait channels,
 open descriptor count and cgroup pressure/CPU/memory information. Before a
 Transmission restart, the existing n8n helper saves the latest structured health
 results, Docker state and one-shot resource statistics. The newest 20 snapshots
-live in `n8n/config/recovery/diagnostics`. The capture is best-effort with bounded
-Docker calls and cannot prevent recovery when diagnostics are unavailable.
+live in the n8n container's Linux `/tmp/container-recovery-diagnostics`, and each
+snapshot is included in existing n8n execution output/history. This avoids
+additional synchronous writes to the suspect E: mount before recovery. Linux
+copies do not survive n8n container recreation; execution history is subject to
+n8n's normal retention. Capture is best-effort with bounded Docker calls and
+does not prevent recovery when diagnostics are unavailable.
 
 Telegraf collection depends on Docker exec. A Docker/WSL outage can prevent collection entirely; this
 is reported as missing telemetry, not RPC success. Windows counters continue

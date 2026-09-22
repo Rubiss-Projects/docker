@@ -18,6 +18,7 @@ const graceMs = numberArg(args.graceMs, 'UNHEALTHY_GRACE_MS', container === 'tra
 const cooldownMs = numberArg(args.cooldownMs, 'RECOVERY_COOLDOWN_MS', 900000);
 const stateDir = process.env.RECOVERY_STATE_DIR || '/root/.n8n/recovery';
 const lockDir = process.env.RECOVERY_LOCK_DIR || '/tmp/container-recovery-locks';
+const diagnosticsDir = process.env.RECOVERY_DIAGNOSTICS_DIR || '/tmp/container-recovery-diagnostics';
 const pendingPath = path.join(stateDir, `${container}.json`);
 const pausePath = path.join(stateDir, `${container}.paused`);
 const actions = [];
@@ -163,7 +164,9 @@ async function captureDiagnostics() {
       snapshot.resources = { read: value?.read, memory: value?.memory_stats,
         cpu: value?.cpu_stats, blockIO: value?.blkio_stats, pids: value?.pids_stats };
     } else snapshot.statsUnavailable = true;
-    const dir = path.join(stateDir, 'diagnostics');
+    // Do not synchronously write extra evidence to the suspect Windows mount
+    // before recovery. Keep a Linux copy and include it in n8n execution output.
+    const dir = diagnosticsDir;
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     const name = `transmission-${Date.now()}.json`;
     const serialized = JSON.stringify(snapshot, null, 2);
@@ -172,7 +175,7 @@ async function captureDiagnostics() {
     // Retain the newest 20 incidents, independently of recovery intent.
     const older = fs.readdirSync(dir).filter((file) => /^transmission-\d+\.json$/.test(file)).sort().slice(0, -20);
     for (const file of older) fs.unlinkSync(path.join(dir, file));
-    actions.push({ action: 'diagnostics_saved', file: name });
+    actions.push({ action: 'diagnostics_saved', file: name, snapshot });
   } catch {
     actions.push({ action: 'diagnostics_unavailable' });
   }

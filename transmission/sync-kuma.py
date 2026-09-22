@@ -18,8 +18,8 @@ if not service.connect(os.environ["UPTIME_KUMA_URL"], os.environ["UPTIME_KUMA_US
 try:
     service.load_data()
     old = service.get_monitor("transmission")
-    if not old:
-        raise RuntimeError("Existing Transmission monitor not found; refusing to recreate history")
+    if not old or old["id"] != 126:
+        raise RuntimeError("Expected existing Transmission monitor 126; refusing to modify a replacement")
     docker = DockerService("swag.uptime-kuma")
     labels = docker.client.containers.get("transmission").labels
     desired = service.build_monitor_data("transmission", docker.parse_container_labels(labels, ".monitor."))
