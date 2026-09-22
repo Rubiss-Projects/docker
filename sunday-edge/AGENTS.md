@@ -366,3 +366,41 @@ completed job plus fresh v10 calibration receipts. This refresh does not promote
 unqualified parameters. Verify all six compute registrations, a bounded compute
 diagnostic, and policy v5's 25,000-trial T15/FINAL cap. Preserve the missed Week 2
 FINAL checkpoint; a post-lock diagnostic cannot become prospective evidence.
+
+## Construction research (v0.2.20)
+
+Deploy the matching web revision, then all six image references through the
+maintenance-wrapped workflow. This adds a development-only CLI to maintenance;
+production lineup selection and qualification gates remain unchanged. Compute
+stays `dfs-simulator-v39`, protocol v7. There are no schema, volume, credential,
+resource or scheduler changes. The web Research ledger exposes the candidate
+coverage and salary preference proposals, without automatic promotion.
+
+For a bounded runtime check, prepare a private frozen pre-lock JSON input using
+the [app protocol](https://github.com/Rubiss/fantasy-football/blob/v0.2.20/docs/construction-research.md).
+Keep one legal nine-player baseline and only its nine eligible players, retaining
+their frozen inputs, settings, source metadata and verified payout schedule. Set
+`phase` to `DEVELOPMENT`, `supportSize` to 20, `trials` to 100 and use two distinct
+field seeds. Include no realized outcomes. This is a runtime fixture, not research
+evidence or an entry recommendation. Use the following single-line WSL commands;
+the exclusive input/output paths must be unused before starting:
+
+```sh
+docker exec -i sunday-edge-maintenance node -e 'const fs=require("node:fs"),x=JSON.parse(fs.readFileSync(0,"utf8")); if(x.players.length!==9||x.baseline.length!==1||x.supportSize!==20||x.trials!==100||x.fieldSeeds.length!==2) throw Error("Expected bounded runtime fixture"); fs.writeFileSync("/tmp/construction-v020-input.json",JSON.stringify(x),{flag:"wx"})' < frozen-construction-smoke.json
+docker exec sunday-edge-maintenance timeout 120 node --import tsx scripts/dfs-construction-research.mts /tmp/construction-v020-input.json /tmp/construction-v020-report.json
+docker exec sunday-edge-maintenance node -e 'const fs=require("node:fs"),a=require("node:assert/strict"),r=JSON.parse(fs.readFileSync("/tmp/construction-v020-report.json","utf8")); a.equal(r.phase,"DEVELOPMENT"); a.equal(r.productionChangeSupported,false); a.equal(r.cells.length,6); a.ok(r.coverage.expanded.lineups>=1); a.match(r.implementation["lib/dfs/research-random.ts"],/^[a-f0-9]{64}$/); a.match(r.implementation["package-lock.json"],/^[a-f0-9]{64}$/); console.log(JSON.stringify({status:"PASSED",cells:r.cells.length,candidates:r.coverage.expanded.lineups,hashedFiles:Object.keys(r.implementation).length}))'
+```
+
+Retain the verification summary with the image version/source revision and deploy
+run. Once this invocation is complete, remove only its two temporary files:
+`docker exec sunday-edge-maintenance node -e 'const fs=require("node:fs"); for(const p of ["/tmp/construction-v020-input.json","/tmp/construction-v020-report.json"]) fs.rmSync(p,{force:true})'`.
+Confirm all eleven configured containers are healthy on v0.2.20 and all six compute
+registrations have fresh v39 heartbeats. A scheduler heartbeat alone does not
+prove this CLI executed. If the command fails, preserve its error, stop further
+promotion and diagnose it rather than treating health checks as success.
+
+Rollback uses a reviewed PR changing all six pins back to v0.2.19 and the normal
+deployment workflow, followed by container revision/health and registration
+verification. v0.2.19 is protocol/schema compatible; retain frozen research
+artifacts and persistent volumes. Do not patch running application files or
+delete archives to recover.
