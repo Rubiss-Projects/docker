@@ -17,6 +17,11 @@ database, exposed endpoint or second restart controller is added.
   through its existing Docker integration. Kuma's existing Transmission monitor
   uses its native Docker monitor with Windows Docker host ID 1. It retains its
   existing interval, retries, notifications, maintenance membership and history.
+  Installed Kuma **2.5.4** explicitly evaluates `State.Health.Status` in
+  `server/model/monitor.js` (healthy → Up, unhealthy → Down, starting → Pending).
+  This was checked against its actual running source and all three mocked
+  states. The short Docker-monitor list in the older Kuma guidance is not an
+  exhaustive description of the current implementation.
 - Windows Telegraf executes the same probe every 30 seconds with `--metrics`,
   which adds a lightweight `torrent-get` of only status, error code and peer
   count. Only aggregate metrics are sent to the existing `ben-server` bucket.
@@ -52,6 +57,8 @@ it is not an exact event counter.
 1. Deploy the reviewed Compose/scripts/Grafana changes through the normal PR
    path. Pause existing n8n Transmission recovery during planned recreation as
    described in `../n8n/AGENTS.md`, and resume it after functional health returns.
+   Future probe-only changes require a planned Transmission restart to refresh
+   the Linux copy; an unchanged `compose up` alone does not rerun custom init.
 2. Preserve Kuma history before allowing SWAG's label sync to run:
    `docker exec -i swag python3 - < transmission/sync-kuma.py`.
    This edits the existing monitor and updates SWAG's label cache. The mod's
