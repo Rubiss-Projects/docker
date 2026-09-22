@@ -2,6 +2,17 @@
 
 Use this guidance when working on Transmission BitTorrent client configuration and automation.
 
+## Current retention and observability policy (2026-09-22)
+
+Retain all torrents and data; do not reduce torrent counts, add bandwidth caps,
+or impose seeding limits as a stability fix. This overrides older generic tuning
+examples below. Size resources from measurements, not the historical per-torrent
+memory estimates in this document (1,408 torrents used roughly 210 MiB RSS).
+
+See `OBSERVABILITY.md` for the functional RPC check, existing Windows Telegraf
+collection, Grafana dashboards, Kuma history-preserving migration and diagnostic
+capture. Storage changes remain contingent on an uncapped 24–48 hour baseline.
+
 ## Service Overview
 Transmission is a lightweight, cross-platform BitTorrent client that handles downloads for Sonarr, Radarr, and other *arr services. It provides a web UI and API for remote management.
 

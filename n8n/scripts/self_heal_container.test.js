@@ -20,6 +20,11 @@ async function scenario(t, handler) {
   const actions = [];
   let current = state('running');
   const server = http.createServer((request, response) => {
+    if (request.url.includes('/stats?')) {
+      response.setHeader('Content-Type', 'application/json');
+      response.end(JSON.stringify({ memory_stats: { usage: 123 }, cpu_stats: {} }));
+      return;
+    }
     const action = request.method === 'GET' ? 'inspect' : request.url.split('/').at(-1).split('?')[0];
     actions.push(action);
     response.setHeader('Content-Type', 'application/json');
@@ -72,6 +77,12 @@ test('starts a container that exits late after restart fails, without a competin
   assert.equal(s.actions.filter((a) => a === 'start').length, 1);
   assert.ok(!s.actions.includes('kill'));
   assert.ok(!fs.existsSync(s.pendingPath));
+  const diagnosticFiles = fs.readdirSync(path.join(s.dir, 'diagnostics'));
+  assert.equal(diagnosticFiles.length, 1);
+  const diagnostic = JSON.parse(fs.readFileSync(path.join(s.dir, 'diagnostics', diagnosticFiles[0])));
+  assert.equal(diagnostic.state.health, 'unhealthy');
+  assert.equal(diagnostic.resources.memory.usage, 123);
+  assert.ok(!('Config' in diagnostic));
 });
 
 test('watchdog finishes shutdown after the original recovery process has exited', async (t) => {

@@ -16,7 +16,7 @@ groups:
               to: 0
             datasourceUid: adw07verg2qrkd
             model:
-              expr: increase(container_start_time_seconds{name!=""}[15m])
+              expr: changes((max by (name, job) (container_start_time_seconds{name!=""}))[15m:15s])
           - refId: B
             datasourceUid: __expr__
             model:
@@ -43,7 +43,7 @@ groups:
           __dashboardUid__: fdw07wwnc7y0wa
           __panelId__: "3"
           summary: "Container {{ $labels.name }} is restarting"
-          description: "Container {{ $labels.name }} has restarted {{ $values.B.Value }} times in the last 15 minutes."
+          description: "Container {{ $labels.name }} has {{ $values.B.Value }} observed start-time changes in the last 15 minutes (15-second sampling; includes recreation)."
         labels:
           severity: warning
 

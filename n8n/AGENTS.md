@@ -47,6 +47,12 @@ starts an exited container only with matching saved container identity, so
 ordinary intentional stops and replacement containers stay stopped. Failed
 starts have a 15-minute cooldown. Healthy recovery clears the intent.
 
+Before an unhealthy Transmission restart, capture bounded Docker state/resource
+statistics and the structured health-probe diagnostics (Linux thread waits and
+cgroup pressure). Keep the newest 20 snapshots in `recovery/diagnostics`; omit
+environment variables, raw logs, media paths and tracker URLs. Capture failures
+do not prevent recovery. No extra Docker proxy permissions are required.
+
 For planned Transmission maintenance, pause **both** recovery paths first:
 `docker exec n8n sh -c 'mkdir -p /root/.n8n/recovery && touch /root/.n8n/recovery/transmission.paused'`.
 Wait for any already-issued Docker restart to finish before stopping the service.

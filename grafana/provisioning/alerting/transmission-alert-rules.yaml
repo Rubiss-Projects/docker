@@ -1,0 +1,154 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: transmission
+  folder: Docker
+  interval: 1m
+  rules:
+  - uid: transmission_telemetry_missing
+    title: Transmission telemetry missing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource: &id001
+          type: influxdb
+          uid: ddvyigh44dblsd
+        rawQuery: true
+        query: SELECT count("rpc_up") FROM "transmission" WHERE $timeFilter
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+    for: 2m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: Transmission telemetry missing
+      description: No recent Transmission samples. Check Windows Telegraf, Docker
+        exec, and InfluxDB. Missing telemetry is not a healthy RPC result. This alert
+        does not restart Transmission.
+      __dashboardUid__: transmission-stability
+      __panelId__: '16'
+    labels:
+      service: transmission
+      severity: warning
+  - uid: transmission_rpc_slow
+    title: Transmission RPC latency high
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource: *id001
+        rawQuery: true
+        query: SELECT mean("rpc_seconds") FROM "transmission" WHERE $timeFilter AND
+          "rpc_up" = 1
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 1.5
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Transmission RPC latency high
+      description: 'Successful session-stats calls averaged over 1.5 seconds for five
+        minutes. Correlate E: latency/queue, CPU and memory before tuning. Kuma and
+        the existing n8n watchdog own outage recovery.'
+      __dashboardUid__: transmission-stability
+      __panelId__: '3'
+    labels:
+      service: transmission
+      severity: warning
+  - uid: transmission_inventory_failed
+    title: Transmission inventory RPC failing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource: *id001
+        rawQuery: true
+        query: SELECT mean("inventory_up") FROM "transmission" WHERE $timeFilter AND
+          "rpc_up" = 1
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0.5
+            type: lt
+          operator:
+            type: and
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Transmission inventory RPC failing
+      description: Session RPC responds but most lightweight torrent-get probes fail.
+        Review RPC and disk latency; this alert does not restart or remove torrents.
+      __dashboardUid__: transmission-stability
+      __panelId__: '4'
+    labels:
+      service: transmission
+      severity: warning
