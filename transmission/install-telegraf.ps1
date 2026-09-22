@@ -18,7 +18,7 @@ try {
     # Windows PowerShell 5 treats informational native stderr as ErrorRecords.
     $ErrorActionPreference = 'Continue'
     try {
-        & (Join-Path (Split-Path $Config) 'telegraf.exe') --config $Config --input-filter 'exec:win_perf_counters' --test 2>&1 | Out-String | Write-Verbose
+        & (Join-Path (Split-Path $Config) 'telegraf.exe') --config $Config --input-filter 'exec:http_response:win_perf_counters' --test 2>&1 | Out-String | Write-Verbose
         $validationExit = $LASTEXITCODE
     } finally { $ErrorActionPreference = 'Stop' }
     if ($validationExit -ne 0) { throw 'Telegraf validation failed' }

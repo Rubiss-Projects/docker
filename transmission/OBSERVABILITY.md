@@ -22,6 +22,10 @@ database, exposed endpoint or second restart controller is added.
   count. Only aggregate metrics are sent to the existing `ben-server` bucket.
   Linux tmpfs locks prevent overlapping probes of each mode. No names, hashes,
   paths, trackers or credentials enter telemetry. RPC is read-only.
+- Telegraf's built-in `http_response` input separately checks the published
+  Windows port for HTTP 409 and records response time. This preserves endpoint
+  reachability visibility across the Windows/Docker boundary, independently of
+  the in-container functional check. Endpoint failures alert but do not restart.
 - **Transmission Stability** (`/d/transmission-stability`) shows RPC/inventory
   success and latency, torrent state, peer count, payload rates, existing
   cAdvisor memory/CPU/OOM data and observed start-time changes. Current-state

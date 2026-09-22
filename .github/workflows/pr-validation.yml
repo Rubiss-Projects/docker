@@ -292,6 +292,9 @@ jobs:
       - name: Test container recovery
         run: node --test n8n/scripts/self_heal_container.test.js
 
+      - name: Test Transmission functional health probe
+        run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
+
       - name: Test planned Grafana maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 

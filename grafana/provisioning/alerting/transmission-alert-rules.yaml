@@ -152,3 +152,53 @@ groups:
     labels:
       service: transmission
       severity: warning
+  - uid: transmission_endpoint_failed
+    title: Transmission published endpoint failing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource:
+          type: influxdb
+          uid: ddvyigh44dblsd
+        rawQuery: true
+        query: SELECT mean("result_code") FROM "transmission_endpoint" WHERE $timeFilter
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 3m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Transmission published endpoint failing
+      description: Windows cannot reliably reach the expected RPC 409 response on
+        port 9091. Compare the functional Docker check to distinguish endpoint/network
+        failure from a daemon stall. This alert does not restart Transmission.
+      __dashboardUid__: transmission-stability
+      __panelId__: '19'
+    labels:
+      service: transmission
+      severity: warning
