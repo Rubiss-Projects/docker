@@ -706,6 +706,175 @@
         },
         "colorMode": "value"
       }
+    },
+    {
+      "id": 17,
+      "title": "RPC latency percentiles over selected range",
+      "type": "stat",
+      "description": "Percentiles of successful observed session-stats probes; excludes failures and collection gaps.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT percentile(\"rpc_seconds\",95) AS \"p95\", percentile(\"rpc_seconds\",99) AS \"p99\" FROM \"transmission\" WHERE $timeFilter AND \"rpc_up\" = 1",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 18,
+      "title": "Published RPC endpoint response time",
+      "type": "timeseries",
+      "description": "Native Telegraf HTTP check from Windows through published port 9091. An expected 409 proves reachability only; functional health is measured separately.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"response_time\") FROM \"transmission_endpoint\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "HTTP response",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "Published RPC endpoint now",
+      "type": "stat",
+      "description": "0 = expected HTTP 409. Other result codes mean timeout, connection failure or unexpected HTTP status. Samples expire after 90 seconds.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"result_code\") FROM \"transmission_endpoint\" WHERE time > now() - 90s",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Reachable (409)",
+                  "color": "green"
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": 10,
+                "result": {
+                  "text": "Endpoint failed",
+                  "color": "red"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
     }
   ],
   "links": [
