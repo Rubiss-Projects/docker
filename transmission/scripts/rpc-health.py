@@ -106,9 +106,16 @@ def diagnostics():
     """Bounded Linux-only evidence, without reading media or revealing paths/trackers."""
     result = {}
     for proc in Path("/proc").glob("[0-9]*"):
+        original_uid = os.geteuid()
+        original_gid = os.getegid()
         try:
             if proc.joinpath("comm").read_text().strip() != "transmission-da":
                 continue
+            # Container root lacks CAP_SYS_PTRACE across UIDs. Read as the
+            # daemon owner; otherwise Linux silently reports every wait as 0.
+            owner = proc.stat()
+            os.setegid(owner.st_gid)
+            os.seteuid(owner.st_uid)
             result["pid"] = int(proc.name)
             result["threads"] = [{"tid": int(task.name), "wait": task.joinpath("wchan").read_text().strip()[:80]}
                                  for task in list(proc.joinpath("task").iterdir())[:32]]
@@ -116,6 +123,9 @@ def diagnostics():
             break
         except OSError:
             continue
+        finally:
+            os.seteuid(original_uid)
+            os.setegid(original_gid)
     for name in ("memory.current", "memory.events", "io.pressure", "cpu.stat"):
         try:
             result[name] = Path("/sys/fs/cgroup", name).read_text()[:1024]
