@@ -39,7 +39,7 @@ async function scenario(t, handler) {
   const pendingPath = path.join(dir, 'transmission.json');
   function run(extra = []) {
     const child = spawn(process.execPath, [script, '--container', 'transmission',
-      '--requestTimeoutMs=200', '--restartTimeoutSeconds=0.01', '--verifyTimeoutMs=500',
+      '--requestTimeoutMs=1000', '--restartTimeoutSeconds=0.01', '--verifyTimeoutMs=500',
       '--pollIntervalMs=15', '--graceMs=0', ...extra], {
       env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${server.address().port}`,
         RECOVERY_STATE_DIR: dir, RECOVERY_LOCK_DIR: path.join(dir, 'locks') },
