@@ -5,6 +5,9 @@ The SWAG mod otherwise deletes and recreates monitors when labels change.
 """
 import os
 import sys
+import time
+
+from uptime_kuma_api import UptimeKumaApi
 
 sys.path.insert(0, "/app")
 from auto_uptime_kuma.config_service import ConfigService
@@ -13,9 +16,12 @@ from auto_uptime_kuma.uptime_kuma_service import UptimeKumaService
 
 config = ConfigService(os.environ["URL"])
 service = UptimeKumaService(config)
-if not service.connect(os.environ["UPTIME_KUMA_URL"], os.environ["UPTIME_KUMA_USERNAME"], os.environ["UPTIME_KUMA_PASSWORD"]):
-    raise RuntimeError("Kuma unavailable")
+service.api = UptimeKumaApi(os.environ["UPTIME_KUMA_URL"], timeout=30)
 try:
+    # Match the existing kuma-maintenance helper: the socket can connect before
+    # Kuma has installed its login handler. Immediate library login is dropped.
+    time.sleep(0.25)
+    service.api.login(os.environ["UPTIME_KUMA_USERNAME"], os.environ["UPTIME_KUMA_PASSWORD"])
     service.load_data()
     old = service.get_monitor("transmission")
     if not old or old["id"] != 126:
