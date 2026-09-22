@@ -39,11 +39,20 @@ if (args.locked === 'true') {
   // Kernel-held locks survive neither process death nor n8n restarts. Keep the
   // lock on Linux /tmp, not the Windows-backed persistent state directory.
   fs.mkdirSync(lockDir, { recursive: true });
-  const child = spawn('flock', ['-n', '-E', '75', path.join(lockDir, `${container}.lock`),
-    process.execPath, __filename, ...process.argv.slice(2), '--locked=true'], { stdio: 'inherit' });
+  // BusyBox flock has no -E flag. Lock contention exits 1 without output;
+  // the recovery child always emits JSON, and flock setup errors emit stderr.
+  const child = spawn('flock', ['-n', path.join(lockDir, `${container}.lock`),
+    process.execPath, __filename, ...process.argv.slice(2), '--locked=true'], { stdio: ['inherit', 'pipe', 'pipe'] });
+  let hadOutput = false;
+  for (const [input, output] of [[child.stdout, process.stdout], [child.stderr, process.stderr]]) {
+    input.on('data', (chunk) => {
+      hadOutput = true;
+      output.write(chunk);
+    });
+  }
   child.on('error', (error) => fail(error.message));
-  child.on('exit', (code) => {
-    if (code === 75) {
+  child.on('close', (code) => {
+    if (code === 1 && !hadOutput) {
       finish({ ok: true, container, actions, result: 'recovery_already_running' });
     }
     process.exit(code ?? 1);
