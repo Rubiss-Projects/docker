@@ -47,7 +47,8 @@ async function scenario(t, handler) {
       '--requestTimeoutMs=1000', '--restartTimeoutSeconds=0.01', '--verifyTimeoutMs=500',
       '--pollIntervalMs=15', '--graceMs=0', ...extra], {
       env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${server.address().port}`,
-        RECOVERY_STATE_DIR: dir, RECOVERY_LOCK_DIR: path.join(dir, 'locks') },
+        RECOVERY_STATE_DIR: dir, RECOVERY_LOCK_DIR: path.join(dir, 'locks'),
+        RECOVERY_DIAGNOSTICS_DIR: path.join(dir, 'diagnostics') },
     });
     let stdout = '';
     let stderr = '';
@@ -83,6 +84,7 @@ test('starts a container that exits late after restart fails, without a competin
   assert.equal(diagnostic.state.health, 'unhealthy');
   assert.equal(diagnostic.resources.memory.usage, 123);
   assert.ok(!('Config' in diagnostic));
+  assert.deepEqual(result.payload.actions.find((a) => a.action === 'diagnostics_saved').snapshot, diagnostic);
 });
 
 test('watchdog finishes shutdown after the original recovery process has exited', async (t) => {

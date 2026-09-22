@@ -49,9 +49,13 @@ starts have a 15-minute cooldown. Healthy recovery clears the intent.
 
 Before an unhealthy Transmission restart, capture bounded Docker state/resource
 statistics and the structured health-probe diagnostics (Linux thread waits and
-cgroup pressure). Keep the newest 20 snapshots in `recovery/diagnostics`; omit
-environment variables, raw logs, media paths and tracker URLs. Capture failures
-do not prevent recovery. No extra Docker proxy permissions are required.
+cgroup pressure). Keep the newest 20 snapshots in Linux
+`/tmp/container-recovery-diagnostics` and include each snapshot in the existing
+n8n execution output; omit environment variables, raw logs, media paths and
+tracker URLs. Avoid extra synchronous writes to the suspect Windows mount
+before recovery. The Linux copies survive Transmission restarts but not n8n
+container recreation; use execution history afterward. Capture failures do not
+prevent recovery. No extra Docker proxy permissions are required.
 
 For planned Transmission maintenance, pause **both** recovery paths first:
 `docker exec n8n sh -c 'mkdir -p /root/.n8n/recovery && touch /root/.n8n/recovery/transmission.paused'`.
