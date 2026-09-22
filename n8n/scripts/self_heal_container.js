@@ -2,17 +2,28 @@
 'use strict';
 
 const http = require('http');
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawn } = require('node:child_process');
 
 const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
 const container = (args.container || process.env.CONTAINER_NAME || '').trim().toLowerCase();
 const dockerBaseUrl = new URL(process.env.DOCKER_API_URL || 'http://socket-proxy:2375');
 const requestTimeoutMs = numberArg(args.requestTimeoutMs, 'REQUEST_TIMEOUT_MS', 15000);
-const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT_SECONDS', 10);
-const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', 90000);
+const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT_SECONDS', container === 'transmission' ? 60 : 10);
+const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', container === 'transmission' ? 600000 : 90000);
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
-const postKillWaitMs = numberArg(args.postKillWaitMs, 'POST_KILL_WAIT_MS', 30000);
+const graceMs = numberArg(args.graceMs, 'UNHEALTHY_GRACE_MS', container === 'transmission' ? 180000 : 0, 0);
+const cooldownMs = numberArg(args.cooldownMs, 'RECOVERY_COOLDOWN_MS', 900000);
+const stateDir = process.env.RECOVERY_STATE_DIR || '/root/.n8n/recovery';
+const lockDir = process.env.RECOVERY_LOCK_DIR || '/tmp/container-recovery-locks';
+const pendingPath = path.join(stateDir, `${container}.json`);
+const pausePath = path.join(stateDir, `${container}.paused`);
 const actions = [];
+let containerId;
+let pending;
+let originalStartedAt;
 
 if (!container) {
   fail('Missing --container argument');
@@ -22,28 +33,65 @@ if (!CONTAINER_NAME_PATTERN.test(container)) {
   fail(`Invalid Docker container name: ${container}`);
 }
 
-main().catch((error) => {
-  fail(error.message, { actions });
-});
+if (args.locked === 'true') {
+  main().catch((error) => fail(error.message, { actions }));
+} else {
+  // Kernel-held locks survive neither process death nor n8n restarts. Keep the
+  // lock on Linux /tmp, not the Windows-backed persistent state directory.
+  fs.mkdirSync(lockDir, { recursive: true });
+  const child = spawn('flock', ['-n', '-E', '75', path.join(lockDir, `${container}.lock`),
+    process.execPath, __filename, ...process.argv.slice(2), '--locked=true'], { stdio: 'inherit' });
+  child.on('error', (error) => fail(error.message));
+  child.on('exit', (code) => {
+    if (code === 75) {
+      finish({ ok: true, container, actions, result: 'recovery_already_running' });
+    }
+    process.exit(code ?? 1);
+  });
+}
 
 async function main() {
-  const before = await getContainer();
+  if (fs.existsSync(pausePath)) {
+    finish({ ok: true, container, actions, result: 'maintenance_paused' });
+  }
+  let before = await getContainer();
+  containerId = before.Id;
+  originalStartedAt = before.State.StartedAt;
+  if (!containerId) throw new Error('Docker inspection did not return a container ID');
+  fs.mkdirSync(stateDir, { recursive: true });
+  pending = fs.existsSync(pendingPath) ? JSON.parse(fs.readFileSync(pendingPath, 'utf8')) : null;
+  if (pending && pending.containerId !== containerId) clearPending();
   const beforeStatus = summarize(before);
 
-  if (before.State.Status !== 'running') {
+  if (isRecovered(before) || (isHealthy(before) && pending && Date.now() - pending.attemptedAt >= cooldownMs)) {
+    clearPending();
+    finish({ ok: true, container, before: beforeStatus, actions, result: 'no_action' });
+  }
+  if (args.watchdog === 'true' && isStopped(before) && !pending) {
+    finish({ ok: true, container, before: beforeStatus, actions, result: 'stopped_without_recovery_intent' });
+  }
+  if (isStopped(before)) {
+    if (pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs) {
+      finish({ ok: false, container, before: beforeStatus, actions, result: 'start_cooldown' }, 1);
+    }
     actions.push({ action: 'start', reason: `container status is ${before.State.Status}` });
     await startContainer();
-  } else if (before.State.Health && before.State.Health.Status !== 'healthy') {
-    await recoverUnhealthy();
-  } else {
-    finish({ ok: true, container, before: beforeStatus, actions, after: beforeStatus, result: 'no_action' });
-    return;
+  } else if (before.State.Status === 'running' && before.State.Health?.Status === 'unhealthy') {
+    if (pending && Date.now() - pending.attemptedAt < cooldownMs) {
+      // A timed-out restart can still be stopping the container in Docker.
+      actions.push({ action: 'observe_pending_recovery' });
+    } else {
+      before = await waitForGrace(before);
+      if (before.State.Status === 'running' && before.State.Health?.Status === 'unhealthy') {
+        await recoverUnhealthy();
+      }
+    }
   }
 
   const after = await waitForRecovery();
   const afterStatus = summarize(after);
-  const healthyEnough = after.State.Status === 'running'
-    && (!after.State.Health || after.State.Health.Status === 'healthy');
+  const healthyEnough = isRecovered(after);
+  if (healthyEnough) clearPending();
 
   finish({
     ok: healthyEnough,
@@ -56,57 +104,37 @@ async function main() {
 }
 
 async function recoverUnhealthy() {
+  if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+  savePending({ attemptedAt: Date.now(), lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
   actions.push({ action: 'restart', reason: 'container health is unhealthy' });
 
   try {
-    await docker('POST', `/containers/${encodeURIComponent(container)}/restart?t=${restartTimeoutSec}`, {
+    await docker('POST', `/containers/${containerId}/restart?t=${restartTimeoutSec}`, {
       timeoutMs: (restartTimeoutSec * 1000) + 5000,
       ok: [204],
     });
-    return;
   } catch (error) {
     actions.push({ action: 'restart_failed', message: error.message });
   }
-
-  let current = await getContainer();
-  if (current.State.Status !== 'running') {
-    actions.push({ action: 'start_after_failed_restart', reason: `container status is ${current.State.Status}` });
-    await startContainer();
-    return;
-  }
-
-  actions.push({ action: 'force_kill', reason: 'container was still running after restart failed' });
-  try {
-    await docker('POST', `/containers/${encodeURIComponent(container)}/kill?signal=SIGKILL`, {
-      timeoutMs: requestTimeoutMs,
-      ok: [204, 409],
-    });
-  } catch (error) {
-    actions.push({ action: 'force_kill_failed', message: error.message });
-  }
-
-  current = await waitForNonRunning(postKillWaitMs);
-  if (current.State.Status !== 'running') {
-    actions.push({ action: 'start_after_force_kill', reason: `container status is ${current.State.Status}` });
-    await startContainer();
-    return;
-  }
-
-  actions.push({
-    action: 'wait_for_restarted_container',
-    reason: `container is ${current.State.Status} with health ${current.State.Health ? current.State.Health.Status : 'none'}`,
-  });
+  // Docker already escalates to SIGKILL after restart's grace period. A client
+  // timeout does not cancel that operation; an additional kill races its start.
 }
 
 async function startContainer() {
-  await docker('POST', `/containers/${encodeURIComponent(container)}/start`, {
-    timeoutMs: requestTimeoutMs,
-    ok: [204, 304],
-  });
+  if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+  savePending({ attemptedAt: pending?.attemptedAt ?? Date.now(), lastStartAt: Date.now(), kind: 'start' });
+  try {
+    await docker('POST', `/containers/${containerId}/start`, {
+      timeoutMs: requestTimeoutMs,
+      ok: [204, 304],
+    });
+  } catch (error) {
+    actions.push({ action: 'start_failed', message: error.message });
+  }
 }
 
 async function getContainer() {
-  const result = await docker('GET', `/containers/${encodeURIComponent(container)}/json`, {
+  const result = await docker('GET', `/containers/${containerId || encodeURIComponent(container)}/json`, {
     timeoutMs: requestTimeoutMs,
     ok: null,
   });
@@ -124,10 +152,17 @@ async function getContainer() {
 async function waitForRecovery() {
   let deadline = Date.now() + verifyTimeoutMs;
   let last = await getContainer();
-  let startedDuringVerification = false;
+  let startedDuringVerification = Boolean(pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs);
 
   while (Date.now() < deadline) {
-    last = await getContainer();
+    if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+    try {
+      last = await getContainer();
+    } catch (error) {
+      actions.push({ action: 'inspection_failed', message: error.message });
+      await sleep(pollIntervalMs);
+      continue;
+    }
     if (last.State.Status !== 'running') {
       if (last.State.Status === 'restarting') {
         await sleep(pollIntervalMs);
@@ -138,6 +173,10 @@ async function waitForRecovery() {
           action: 'not_startable_during_verification',
           reason: `container entered non-startable status ${last.State.Status}`,
         });
+        return last;
+      }
+      if (args.watchdog === 'true' && !pending) {
+        actions.push({ action: 'stopped_without_recovery_intent' });
         return last;
       }
       if (startedDuringVerification) {
@@ -157,28 +196,50 @@ async function waitForRecovery() {
       await sleep(pollIntervalMs);
       continue;
     }
-    if (last.State.Status === 'running' && (!last.State.Health || last.State.Health.Status === 'healthy')) {
+    if (isRecovered(last)) {
       return last;
     }
     await sleep(pollIntervalMs);
   }
 
+  // Keep pending intent on disk so a later watchdog invocation can finish a
+  // shutdown that outlasts this bounded verification window.
   return last;
 }
 
-async function waitForNonRunning(maxMs) {
-  const deadline = Date.now() + maxMs;
-  let last = await getContainer();
-
-  while (Date.now() < deadline) {
-    if (last.State.Status !== 'running') {
-      return last;
-    }
+async function waitForGrace(last) {
+  const deadline = Date.now() + graceMs;
+  while (Date.now() < deadline && last.State.Status === 'running' && last.State.Health?.Status === 'unhealthy') {
+    if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
     await sleep(pollIntervalMs);
     last = await getContainer();
   }
-
   return last;
+}
+
+function isHealthy(info) {
+  return info.State.Status === 'running' && (!info.State.Health || info.State.Health.Status === 'healthy');
+}
+
+function isRecovered(info) {
+  // A healthy response from the old process does not mean an in-flight Docker
+  // restart has completed. Wait for its new start time before clearing intent.
+  return isHealthy(info) && (pending?.kind !== 'restart' || info.State.StartedAt !== pending.startedAt);
+}
+
+function isStopped(info) {
+  return ['created', 'exited'].includes(info.State.Status);
+}
+
+function savePending(values) {
+  pending = { ...pending, containerId, ...values };
+  fs.writeFileSync(`${pendingPath}.tmp`, JSON.stringify(pending));
+  fs.renameSync(`${pendingPath}.tmp`, pendingPath);
+}
+
+function clearPending() {
+  fs.rmSync(pendingPath, { force: true });
+  pending = null;
 }
 
 function docker(method, path, { timeoutMs, ok = [200, 204] } = {}) {
@@ -187,6 +248,7 @@ function docker(method, path, { timeoutMs, ok = [200, 204] } = {}) {
     const req = http.request(url, { method, timeout: timeoutMs }, (res) => {
       let body = '';
       res.setEncoding('utf8');
+      res.on('error', reject);
       res.on('data', (chunk) => {
         body += chunk;
       });
@@ -213,6 +275,10 @@ function docker(method, path, { timeoutMs, ok = [200, 204] } = {}) {
       });
     });
 
+    const deadline = setTimeout(() => {
+      req.destroy(new Error(`Docker ${method} ${path} exceeded ${timeoutMs}ms`));
+    }, timeoutMs);
+    req.on('close', () => clearTimeout(deadline));
     req.on('timeout', () => {
       req.destroy(new Error(`Docker ${method} ${path} timed out after ${timeoutMs}ms`));
     });
@@ -247,9 +313,9 @@ function parseArgs(argv) {
   return parsed;
 }
 
-function numberArg(argValue, envName, fallback) {
-  const value = Number(argValue || process.env[envName] || fallback);
-  return Number.isFinite(value) && value > 0 ? value : fallback;
+function numberArg(argValue, envName, fallback, minimum = Number.MIN_VALUE) {
+  const value = Number(argValue ?? process.env[envName] ?? fallback);
+  return Number.isFinite(value) && value >= minimum ? value : fallback;
 }
 
 function sleep(ms) {

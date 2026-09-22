@@ -1,0 +1,26 @@
+{
+  "id": "transmissionRecoveryWatchdog1",
+  "active": true,
+  "name": "Transmission Recovery Watchdog",
+  "description": "Every five minutes, checks Transmission using the same locked recovery script as Uptime Kuma. Finishes delayed shutdowns with saved recovery intent, tolerates transient disk stalls, and leaves intentionally stopped containers alone. Maintenance pause: /root/.n8n/recovery/transmission.paused.",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] } },
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": { "command": "node /mnt/e/Docker/n8n/scripts/self_heal_container.js --container transmission --watchdog=true" },
+      "name": "Recover Transmission",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 300]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": { "main": [[{ "node": "Recover Transmission", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "executionTimeout": 1800, "timezone": "America/New_York" }
+}

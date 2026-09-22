@@ -289,6 +289,9 @@ jobs:
       - name: Test torrent cleanup retention policy
         run: node --test n8n/scripts/torrent-cleanup-policy.test.cjs
 
+      - name: Test container recovery
+        run: node --test n8n/scripts/self_heal_container.test.js
+
       - name: Test planned Grafana maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 

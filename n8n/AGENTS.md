@@ -30,6 +30,32 @@ JavaScript implementation and requires Node.js. Run policy tests with
 `node --test n8n/scripts/torrent-cleanup-policy.test.cjs`.
 
 ## Workflow Management (Auto-Import)
+
+### Transmission recovery
+
+`scripts/self_heal_container.js` handles Uptime Kuma down alerts. The
+`transmission-recovery-watchdog-workflow.json` fallback runs every five minutes.
+Both paths use the same per-container `flock` in Linux `/tmp`, preventing
+overlapping restarts. Transmission gets a three-minute unhealthy grace period,
+a 60-second Docker shutdown grace, and up to ten minutes of verification (a
+late start gets a fresh verification window). Workflow timeouts are 30 minutes.
+
+A timed-out restart is observed, not followed by another kill: Docker may still
+be completing its stop/start. Recovery intent is saved under
+`/root/.n8n/recovery` (host `n8n/config/recovery`) before mutation. The fallback
+starts an exited container only with matching saved container identity, so
+ordinary intentional stops and replacement containers stay stopped. Failed
+starts have a 15-minute cooldown. Healthy recovery clears the intent.
+
+For planned Transmission maintenance, pause **both** recovery paths first:
+`docker exec n8n sh -c 'mkdir -p /root/.n8n/recovery && touch /root/.n8n/recovery/transmission.paused'`.
+Wait for any already-issued Docker restart to finish before stopping the service.
+Resume with `docker exec n8n rm /root/.n8n/recovery/transmission.paused`.
+The pause does not hide Uptime Kuma alerts. Recovery never removes torrents or
+media and never restarts Docker Desktop. A fallback failure remains a failed n8n
+execution; inspect its JSON actions and the original Kuma alert.
+
+Run focused recovery tests with `node --test n8n/scripts/self_heal_container.test.js`.
 This service is configured to automatically import and activate workflows from the filesystem on startup.
 
 1.  **Location**: Place your workflow JSON files in `./workflows`.
