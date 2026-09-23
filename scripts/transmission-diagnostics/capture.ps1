@@ -44,7 +44,11 @@ function Invoke-DockerBounded([string]$Arguments, [string]$InputText = '', [int]
 $mutex = New-Object System.Threading.Mutex($false, 'Global\TransmissionStallDiagnostics')
 $locked = $false
 try {
-    $locked = $mutex.WaitOne(0)
+    try { $locked = $mutex.WaitOne(0) }
+    catch [System.Threading.AbandonedMutexException] {
+        # WaitOne grants ownership before throwing when the prior holder died.
+        $locked = $true
+    }
     if (-not $locked) { exit 0 }
     $state = (Invoke-DockerBounded 'inspect --format "{{json .State}}" transmission') | ConvertFrom-Json
     if (-not $state.Running) { exit 0 }
