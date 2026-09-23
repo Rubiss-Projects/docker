@@ -10,14 +10,14 @@ if ($Install) {
     $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
     $principal = New-ScheduledTaskPrincipal -UserId 'Rubiss' -LogonType S4U -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Proc-only Transmission stall evidence; no service recovery or torrent mutations.' -Force | Out-Null
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Bounded Linux proc and Windows I/O stall evidence; no service recovery or torrent mutations.' -Force | Out-Null
     exit 0
 }
 
 # Bound Docker CLI waits independently of the daemon and snapshot alarm.
-function Invoke-DockerBounded([string]$Arguments, [string]$InputText = '', [int]$Seconds = 15) {
+function Invoke-DiagnosticCommand([string]$Executable, [string]$Arguments, [string]$InputText = '', [int]$Seconds = 15) {
     $info = New-Object System.Diagnostics.ProcessStartInfo
-    $info.FileName = $docker
+    $info.FileName = $Executable
     $info.Arguments = $Arguments
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
@@ -34,12 +34,18 @@ function Invoke-DockerBounded([string]$Arguments, [string]$InputText = '', [int]
         $process.StandardInput.Close()
         if (-not $process.WaitForExit($Seconds * 1000)) {
             $process.Kill()
-            throw 'Docker diagnostic command timed out'
+            throw "Diagnostic command timed out: $Executable"
         }
-        if ($process.ExitCode -ne 0) { throw ('Docker diagnostic command failed: ' + $stderr.Result) }
+        if ($process.ExitCode -ne 0) { throw ('Diagnostic command failed: ' + $stdout.Result + $stderr.Result) }
         return $stdout.Result
     } finally { $process.Dispose() }
 }
+
+function Invoke-DockerBounded([string]$Arguments, [string]$InputText = '', [int]$Seconds = 15) {
+    Invoke-DiagnosticCommand $docker $Arguments $InputText $Seconds
+}
+
+. (Join-Path $PSScriptRoot 'windows-trace.ps1')
 
 $mutex = New-Object System.Threading.Mutex($false, 'Global\TransmissionStallDiagnostics')
 $locked = $false
@@ -61,20 +67,29 @@ try {
     $image = (Invoke-DockerBounded 'inspect --format "{{.Image}}" transmission').Trim()
     if ($image -notmatch '^sha256:[a-f0-9]{64}$') { throw 'Unexpected image identity' }
     $source = Get-Content (Join-Path $PSScriptRoot 'snapshot.py') -Raw
+    $captureId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
+    $windowsTrace = @{ status = 'not_started' }
     # Same local image: no pull, network, media/config mounts, Docker socket or
     # persistent daemon privileges. SYS_PTRACE permits proc syscall reads only
     # in this short-lived helper; the script never attaches to the daemon.
     try {
+        # Tracing failures must not suppress the existing Linux evidence.
+        try { $windowsTrace = Start-WindowsIoTrace $outputDir $captureId }
+        catch { $windowsTrace = @{ status = 'failed'; error = $_.Exception.Message } }
         $raw = Invoke-DockerBounded "run --rm -i --name $helper --label diagnostic.owner=transmission-stall-capture --pull never --network none --pid container:transmission --read-only --cap-drop ALL --cap-add SYS_PTRACE --cap-add DAC_READ_SEARCH --security-opt no-new-privileges --memory 64m --memory-swap 64m --pids-limit 16 --user 0 --entrypoint python3 $image -" $source 25
         if ($raw.Length -gt 1048576) { throw 'Snapshot exceeded 1 MiB bound' }
         $evidence = $raw | ConvertFrom-Json
-        $report = @{ capturedAt = [DateTime]::UtcNow.ToString('o'); manualTest = [bool]$CaptureNow; state = $state; evidence = $evidence }
-        $destination = Join-Path $outputDir ('capture-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '.json')
+        Complete-WindowsIoTrace $windowsTrace
+        $report = @{ capturedAt = [DateTime]::UtcNow.ToString('o'); manualTest = [bool]$CaptureNow; state = $state; evidence = $evidence; windowsTrace = $windowsTrace }
+        $destination = Join-Path $outputDir ('capture-' + $captureId + '.json')
         $report | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $destination -Encoding UTF8
         # Only our own diagnostic reports are rotated, never media or backups.
         Get-ChildItem $outputDir -Filter 'capture-*.json' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 20 | Remove-Item
         Write-Output $destination
+        if ($windowsTrace.status -ne 'complete') { throw 'Windows I/O trace failed; Linux report was saved.' }
     } finally {
+        # PLA also enforces a 20-second duration if this process is terminated.
+        if ($windowsTrace.status -eq 'running') { Complete-WindowsIoTrace $windowsTrace }
         # A killed CLI can leave its container behind. Remove only the owned helper.
         try {
             $labels = (Invoke-DockerBounded "inspect --format `"{{json .Config.Labels}}`" $helper" '' 5) | ConvertFrom-Json
