@@ -1,7 +1,28 @@
 # AI Assistant
 
-The service pins `v1.14.2` and runs in shared security mode. Schedules and run
+The service runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
+
+GitHub contributions are enabled for everyone already allowed to chat with the
+bot. Users can ask for a draft PR in `Rubiss-Projects/ai-assistant` or
+`Rubiss-Projects/docker` and revise their own contribution in the same conversation.
+Maintainers review, mark ready, and merge on GitHub. Dependabot's existing merge
+workflows and repository rules are unchanged.
+
+The two restricted GitHub Apps use configuration and keys provisioned privately
+at `/data/.config/ai-assistant/github-apps/`, owned by UID 10001 with directory mode
+0700 and file mode 0600. Their state persists at
+`/data/.config/ai-assistant/github-contributions.json`. These files stay outside
+provider workspaces and are not mounted in the browser helper. Provision them
+before enabling the feature on a new host; do not commit keys to this repository.
+See the application's [setup instructions](https://github.com/Rubiss-Projects/ai-assistant/blob/main/docs/github-contributions.md).
+
+To narrow access, set `GITHUB_CONTRIBUTIONS_ACCESS=granted` and grant
+`github.contribute` or the `contributor` preset through `rights.json`, then recreate
+the assistant. To disable the feature, set
+`AI_ASSISTANT_ENABLE_GITHUB_CONTRIBUTIONS=false` and recreate it. Suspending the
+App installations revokes GitHub access immediately. Keep the keys and ownership
+state for recovery; this feature does not migrate session storage.
 
 Edit `system-prompt.txt` to customize Rook's identity, tone, and project references.
 The file is mounted read-only at `/data/system-prompt.txt`, selected
