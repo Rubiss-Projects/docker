@@ -46,6 +46,7 @@ function Invoke-DockerBounded([string]$Arguments, [string]$InputText = '', [int]
 }
 
 . (Join-Path $PSScriptRoot 'windows-trace.ps1')
+. (Join-Path $PSScriptRoot 'clock-calibration.ps1')
 
 $mutex = New-Object System.Threading.Mutex($false, 'Global\TransmissionStallDiagnostics')
 $locked = $false
@@ -65,28 +66,33 @@ try {
     # Capture at most once per five minutes, not once per repeated failed probe.
     if (-not $CaptureNow -and $latest -and $latest.LastWriteTimeUtc -gt [DateTime]::UtcNow.AddMinutes(-5)) { exit 0 }
     $image = (Invoke-DockerBounded 'inspect --format "{{.Image}}" transmission').Trim()
+    $helperIdentity = Join-Path $outputDir 'linux-helper-image.txt'
+    if (Test-Path -LiteralPath $helperIdentity) { $image = (Get-Content -LiteralPath $helperIdentity -Raw).Trim() }
     if ($image -notmatch '^sha256:[a-f0-9]{64}$') { throw 'Unexpected image identity' }
     $source = Get-Content (Join-Path $PSScriptRoot 'snapshot.py') -Raw
     $captureId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
     $windowsTrace = @{ status = 'not_started' }
-    # Same local image: no pull, network, media/config mounts, Docker socket or
-    # persistent daemon privileges. SYS_PTRACE permits proc syscall reads only
-    # in this short-lived helper; the script never attaches to the daemon.
+    # Local immutable diagnostic image; no pulls, host mounts or networking.
+    # Brief ptrace attachment is confined to this disposable helper.
+    $clockBefore = Get-ClockCalibration
     try {
         # Tracing failures must not suppress the existing Linux evidence.
         try { $windowsTrace = Start-WindowsIoTrace $outputDir $captureId }
         catch { $windowsTrace = @{ status = 'failed'; error = $_.Exception.Message } }
-        $raw = Invoke-DockerBounded "run --rm -i --name $helper --label diagnostic.owner=transmission-stall-capture --pull never --network none --pid container:transmission --read-only --cap-drop ALL --cap-add SYS_PTRACE --cap-add DAC_READ_SEARCH --security-opt no-new-privileges --memory 64m --memory-swap 64m --pids-limit 16 --user 0 --entrypoint python3 $image -" $source 25
+        $raw = Invoke-DockerBounded "run --rm -i --name $helper --label diagnostic.owner=transmission-stall-capture --pull never --network none --pid container:transmission --read-only --cap-drop ALL --cap-add SYS_PTRACE --cap-add DAC_READ_SEARCH --security-opt no-new-privileges --memory 128m --memory-swap 128m --pids-limit 16 --user 0 --entrypoint python3 $image -" $source 25
         if ($raw.Length -gt 1048576) { throw 'Snapshot exceeded 1 MiB bound' }
         $evidence = $raw | ConvertFrom-Json
         Complete-WindowsIoTrace $windowsTrace
-        $report = @{ capturedAt = [DateTime]::UtcNow.ToString('o'); manualTest = [bool]$CaptureNow; state = $state; evidence = $evidence; windowsTrace = $windowsTrace }
+        $clockAfter = Get-ClockCalibration
+        $report = @{ capturedAt = [DateTime]::UtcNow.ToString('o'); manualTest = [bool]$CaptureNow; state = $state; evidence = $evidence; windowsTrace = $windowsTrace; helperImage = $image; clockCalibration = (Compare-ClockCalibration $clockBefore $clockAfter) }
         $destination = Join-Path $outputDir ('capture-' + $captureId + '.json')
         $report | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $destination -Encoding UTF8
         # Only our own diagnostic reports are rotated, never media or backups.
         Get-ChildItem $outputDir -Filter 'capture-*.json' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 20 | Remove-Item
         Write-Output $destination
         if ($windowsTrace.status -ne 'complete') { throw 'Windows I/O trace failed; Linux report was saved.' }
+        if ($evidence.linuxTrace.timing.status -notin @('captured', 'no_matching_syscalls')) { throw 'Linux syscall timing unavailable; partial report was saved.' }
+        if (@($evidence.linuxTrace.remainingTracers).Count -gt 0) { throw 'Tracer still present after capture; inspect the saved report.' }
     } finally {
         # PLA also enforces a 20-second duration if this process is terminated.
         if ($windowsTrace.status -eq 'running') { Complete-WindowsIoTrace $windowsTrace }

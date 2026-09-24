@@ -33,7 +33,7 @@ but do not suppress Linux evidence or the separate n8n recovery controller.
 Analyze ETLs offline using Windows Performance Analyzer, or Windows' existing
 `Get-WinEvent -Path <etl> -Oldest` / `tracerpt`. Match file read starts and operation
 ends by IRP, associate file objects with file-name events, and compare disk
-response times with UTC Linux samples. Disk response timestamps use the trace's
+response times with calibrated Linux samples. Disk response timestamps use the trace's
 clock; use its metadata rather than assuming raw durations are milliseconds.
 An absent name mapping or a request crossing the trace boundaries is inconclusive.
 Check lost buffers and circular overwrite before inferring absence of slow I/O.
@@ -45,16 +45,48 @@ The trace is written directly to E: (not C:); unlike the Linux snapshot it is no
 held entirely in memory until completion. A blocked E: path may delay flushing
 or prevent a usable trace. The file-size limit does not guarantee write latency.
 
+## Linux timing and clock calibration
+
+Before and after each capture, three guest time readings are bracketed by Windows
+UTC and measured with a monotonic stopwatch. Reports contain the interval for
+**Linux minus Windows**, raw samples and round-trip time. Subtract that interval
+from Linux timestamps to compare them with ETW; preserve the uncertainty rather
+than claiming an exact midpoint. Wall-clock jumps, failed samples or inconsistent
+intervals are marked uncertain/unavailable. Compare the before/after intervals;
+disjoint intervals produce `offset_changed`. Even `consistent_endpoints` cannot
+exclude an intervening clock step. Do not extrapolate this calibration to older
+incidents or across clock changes, or infer exact cross-host timing during drift.
+
 On failure, at most once per five minutes, a disposable helper joins only
-Transmission's PID namespace and takes three proc snapshots one second apart.
-It uses the already-installed Transmission image by immutable local image ID,
+Transmission's PID namespace and takes three proc snapshots one second apart,
+followed by bounded syscall tracing and a fourth snapshot. It uses an explicitly
+built local diagnostic image (pinned Transmission base plus strace) by immutable ID,
 overrides the entrypoint, has no network, host mounts, Docker socket, writable
-root filesystem or persistent state, and is limited to 64 MiB and 16 processes.
-All capabilities are dropped except SYS_PTRACE (proc syscall permission) and
+root filesystem or persistent state, and is limited to 128 MiB and 16 processes.
+All capabilities are dropped except SYS_PTRACE (proc reads and short attachment) and
 DAC_READ_SEARCH (read the daemon owner's descriptor directory). Transmission
-itself gains no capabilities and does not need a restart. The collector does not
-attach ptrace, read process memory, or capture media contents or credentials.
-Kernel stacks may report PermissionError; do not broaden permissions for this.
+itself gains no capabilities and does not need a restart.
+
+Strace attaches for at most two seconds/1,000 selected calls, recording raw
+arguments and durations for pread64, pwrite64, fsync and fdatasync. A separate
+one-second/two-call pass attempts user-space unwinding (up to 16 frames); this
+can read process memory for unwinding but does not output media/credential
+buffers. Both passes cap output at 256 KiB. SIGINT detaches, with SIGKILL of the
+tracer as fallback; never use strace's kill-on-exit option. Existing tracers cause
+attachment to be skipped. The report checks for remaining attached threads.
+
+On this Docker Desktop host user-stack unwinding currently reports Operation not
+permitted; this is recorded as unavailable, not a successful stack capture. Kernel
+stacks may also report PermissionError. Do not broaden privileges to bypass this.
+Timing works independently. Raw schedstat values (CPU time, run-queue wait in ns,
+timeslices) and per-thread sample bounds help separate scheduling from I/O waits;
+counters can be disabled or unavailable on some kernels. Tracing adds scheduling
+stops and affects measured latency; these are instrumented durations, not a clean
+performance benchmark. A hot process can reach the call limit before two seconds.
+
+If the helper identity file is absent, proc collection falls back to the runtime
+image and saves a partial report with tracing unavailable and a failed task result.
+An unavailable optional stack does not fail otherwise successful timing capture.
 
 Evidence contains architecture, raw syscall number/arguments, thread wait
 channels, descriptor-to-path mappings, timestamps and recent Docker health
@@ -67,24 +99,29 @@ them or send their contents to metrics/Discord.
 Linux snapshots buffer in helper memory and Windows process memory, then save to
 `E:\Scripts\Logs\transmission-stalls\capture-*.json`. Only the newest 20 of these
 diagnostic reports are retained. Raw evidence is limited to 1 MiB per capture
-(formatted reports are somewhat larger); typical reports are about 53 KiB.
+(formatted reports are somewhat larger).
 No C: report files or media copies are created. The diagnostic task does not hold
 Transmission locks; Task Scheduler bounds the task to two minutes. Docker CLI calls
-have separate timeouts, the collector has a ten-second alarm, and only the named,
+have separate timeouts, the collector has a fifteen-second alarm, and only the named,
 ownership-labelled helper can be force-removed after timeout. A failed collection
 returns a nonzero task result and does not prevent existing n8n recovery.
 
 Install after PR merge from elevated Windows PowerShell:
 
 ```powershell
+& E:\Docker\scripts\transmission-diagnostics\install-linux-helper.ps1
 & E:\Docker\scripts\transmission-diagnostics\capture.ps1 -Install
 ```
 
+The explicit build needs network access to the image registry/package repository;
+capture never builds or pulls. Rebuild after changing the diagnostic Dockerfile.
 Installation does not restart Docker or Transmission. To test without inducing
 an outage, run the same script with `-CaptureNow`; reports mark this as manual.
 Check Task Scheduler LastTaskResult and LastRunTime after installation. Inspect
 reports locally to verify syscall reads succeeded and `windowsTrace.status` is
-`complete`; confirm the collector is stopped with `logman query TransmissionStallIO-v1`.
+`complete`, timing is captured/no_matching_syscalls, remainingTracers is empty and
+clockCalibration contains usable bounds; confirm the collector is stopped with
+`logman query TransmissionStallIO-v1`.
 Stop automatic capture with
 `Disable-ScheduledTask -TaskName 'Transmission stall diagnostics'` when the
 investigation is complete; retained reports remain on E:.
@@ -92,4 +129,5 @@ investigation is complete; retained reports remain on E:.
 Tests: `python3 -m unittest discover -s scripts/transmission-diagnostics`.
 Windows retention/error tests: `powershell -NoProfile -File
 scripts/transmission-diagnostics/test_windows_trace.ps1` (does not start ETW).
+Clock tests: run `test_clock_calibration.ps1` in Windows PowerShell.
 Host scripts are installed explicitly, not by the Compose deployment workflow.
