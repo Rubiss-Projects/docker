@@ -11,6 +11,7 @@ services:
       - path: .env.secret
         required: false
     environment:
+      USER_INSTRUCTION_MODE: admin_and_self
       HOME: /data
       AI_ASSISTANT_CONFIG_DIR: /data
       AI_ASSISTANT_WORKSPACE_ROOT: /data/workspaces
