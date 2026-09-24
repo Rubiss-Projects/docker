@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.14.2
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.15.0
     container_name: ai-assistant
     restart: unless-stopped
     # Let scheduled inference finish within its default 10-minute timeout, plus cleanup.
@@ -53,7 +53,7 @@ services:
       - browser-control
 
   browser:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.14.2
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.15.0
     container_name: ai-assistant-browser
     entrypoint: ["node", "/app/dist/src/browserWorker.js"]
     restart: unless-stopped
