@@ -404,3 +404,25 @@ deployment workflow, followed by container revision/health and registration
 verification. v0.2.19 is protocol/schema compatible; retain frozen research
 artifacts and persistent volumes. Do not patch running application files or
 delete archives to recover.
+
+## Week 3 Millionaire template (v0.2.21)
+
+Deploy the matching web revision, then all six image references through the
+maintenance-wrapped workflow. All eleven containers must be healthy with image
+version `v0.2.21` and source revision `421b4e44c2ded3bbbe203117026526d80e29bebe`.
+Confirm all six compute registrations retain fresh `dfs-simulator-v39` heartbeats.
+There are no schema, protocol, volume, credential, resource or scheduler changes.
+
+Verify the production alias serves that revision. In the running maintenance
+container, call `listDfsContestTemplates` for an existing user and locate
+`builtin-nfl-fantasy-football-millionaire-2-75m`. Check the Week 3 label, $20 entry,
+161,764-entry capacity, 150-entry limit, and all 23 payout tiers. Run
+`validatedDfsPayoutTiers` and `buildDfsContestEconomics` against the returned
+template: payouts must total $2,750,000, first place pays $1,000,000, rank 37,425
+pays $30, and rank 37,426 pays $0. This read-only check requires no new contest,
+portfolio or queue work. Retain its result with the deployment evidence.
+
+Rollback uses a reviewed PR changing all six pins to `v0.2.20`, followed by the
+normal deployment workflow and container revision/health and registration checks.
+That release is schema/protocol compatible. Preserve all persistent volumes and
+historical records; never patch running application files to roll back.
