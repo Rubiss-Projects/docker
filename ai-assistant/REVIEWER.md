@@ -33,5 +33,6 @@ ledgers or make no-op commits/new PRs to reset a review budget.
 To disable, set `AI_ASSISTANT_ENABLE_CODEX_REVIEWS=false` and redeploy. Existing
 sessions refresh their shared context at the next turn; contributions otherwise
 keep working. Do not delete either persistent volume. The previous compatible
-application version for this rollout is v1.17.0; remove the reviewer dependency
-and service when promoting that older image, which has no review-worker entrypoint.
+application version for this rollout is v1.17.0; remove the reviewer dependency,
+service, and its deployment-readiness probes when promoting that older image,
+which has no review-worker entrypoint. Preserve both review ledgers and volumes.
