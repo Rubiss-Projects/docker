@@ -328,6 +328,14 @@ verify_stack_readiness() {
   local stack_dir=$1
 
   case "$stack_dir" in
+    ai-assistant)
+      wait_container_ready ai-assistant-reviewer 180
+      wait_container_ready ai-assistant-browser 180
+      wait_container_ready ai-assistant 180
+      wait_container_url ai-assistant-browser http://localhost:3123/health 60
+      docker exec ai-assistant-reviewer curl -fsS --max-time 5 --unix-socket /review-control/review.sock http://localhost/health >/dev/null \
+        || die "AI Assistant review socket health probe failed"
+      ;;
     sunday-edge)
       # Compose-generated replica names cannot be inferred from service keys.
       # Check the actual containers, and require all configured replicas.

@@ -72,6 +72,13 @@ network shared with the assistant; publish no host port. Use `browser-egress` fo
 public internet access, retain its memory/swap limit, and mount no bot credentials
 or data volumes. The main `ai-assistant` service remains on `proxynet`.
 
+**Narrow exception — AI Assistant review helper:** `ai-assistant-reviewer` also
+stays off `proxynet`, with no published port. Its control socket volume is shared
+only with the assistant, outside agent workspaces. It uses `review-egress` for
+Codex service traffic and its own ChatGPT login volume, never the assistant's
+data/credentials or a Docker socket. Retain its memory/swap, CPU, and PID limits.
+All three AI Assistant containers use the same immutable release version.
+
 ### Port Management
 - **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
 - **Internal services**: Use non-standard ports to avoid conflicts

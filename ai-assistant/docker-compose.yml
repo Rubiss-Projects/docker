@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.17.0
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.18.0
     container_name: ai-assistant
     restart: unless-stopped
     # Let scheduled inference finish within its default 10-minute timeout, plus cleanup.
@@ -19,8 +19,11 @@ services:
     depends_on:
       browser:
         condition: service_healthy
+      reviewer:
+        condition: service_healthy
     volumes:
       - ai-assistant-data:/data
+      - ai-assistant-review-control:/review-control
       - ./rights.json:/etc/ai-assistant/rights.json:ro
       - ./system-prompt.txt:/data/system-prompt.txt:ro
     read_only: true
@@ -54,7 +57,7 @@ services:
       - browser-control
 
   browser:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.17.0
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.18.0
     container_name: ai-assistant-browser
     entrypoint: ["node", "/app/dist/src/browserWorker.js"]
     restart: unless-stopped
@@ -78,14 +81,54 @@ services:
       - browser-control
       - browser-egress
 
+  reviewer:
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.18.0
+    container_name: ai-assistant-reviewer
+    entrypoint: ["node", "/app/dist/src/reviewWorker.js"]
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    environment:
+      HOME: /data
+      CODEX_HOME: /data/.codex
+      CODEX_REVIEW_MODEL: gpt-6-astra
+      CODEX_REVIEW_REASONING_EFFORT: medium
+    # No bot env_file, GitHub credentials, assistant data, Docker socket, or exposed port.
+    volumes:
+      - ai-assistant-review-data:/data
+      - ai-assistant-review-control:/review-control
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m,uid=10001,gid=10001
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./seccomp-bwrap.json
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--unix-socket", "/review-control/review.sock", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - review-egress
+
 volumes:
   ai-assistant-data:
     name: ai-assistant-data
+  ai-assistant-review-data:
+    name: ai-assistant-review-data
+  ai-assistant-review-control:
+    name: ai-assistant-review-control
 
 networks:
   browser-control:
     internal: true
   browser-egress:
+  review-egress:
   proxynet:
     external: true
     name: proxynet
