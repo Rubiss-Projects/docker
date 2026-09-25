@@ -426,3 +426,28 @@ Rollback uses a reviewed PR changing all six pins to `v0.2.20`, followed by the
 normal deployment workflow and container revision/health and registration checks.
 That release is schema/protocol compatible. Preserve all persistent volumes and
 historical records; never patch running application files to roll back.
+
+## Jev observation calibration and GPT-6 (v0.2.23)
+
+Deploy the matching web revision before these workers: ingestion must accept
+`codex-news-v14` and `codex-adjudication-v13`. All six image references move
+together. Compute remains `dfs-simulator-v39`, protocol v7; no database migration,
+volume, credential, resource or scheduler changes are required.
+
+The public Compose environment explicitly selects `gpt-6-luna` for extraction
+and `gpt-6-sol` for escalation, overriding older model names in the encrypted
+analytics env file. Existing reasoning effort remains unchanged. Jev stays in
+`observe` mode on `jev-1.13.0`, with the same $0.15 daily, $2 monthly and $3 total
+caps. Preserve its ledger; a deployment must never refill the total allowance.
+
+Verify all eleven containers' image version/revision and health, six fresh v39
+registrations, a fresh successful analytics collection and ingestion, and new
+Jev receipts using `football-fields-observe-v2`. Inspect actual extraction
+provenance for GPT-6 and the new extraction version; configured model names alone
+do not prove successful provider calls. Observe a fresh successful monitor run.
+Jev observations must not filter articles, route Codex calls or control lineups.
+
+Rollback through a reviewed promotion of all six pins to `v0.2.21`, restoring
+`CODEX_MODEL=gpt-5.6-luna` and `CODEX_ESCALATION_MODEL=gpt-5.6-sol` together. The
+new web ingestion allowlists retain the prior versions, so worker rollback is
+compatible. Preserve observation receipts, spending ledgers and durable jobs.
