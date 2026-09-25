@@ -1,5 +1,6 @@
-param([switch]$Install, [switch]$CaptureNow)
+param([switch]$Install, [switch]$CaptureNow, [switch]$EnableLinuxTracing)
 $ErrorActionPreference = 'Stop'
+if ($EnableLinuxTracing -and (-not $CaptureNow -or $Install)) { throw 'Linux tracing requires an explicit manual -CaptureNow run, not installation or automatic capture.' }
 $taskName = 'Transmission stall diagnostics'
 $outputDir = 'E:\Scripts\Logs\transmission-stalls'
 $helper = 'transmission-stall-snapshot'
@@ -67,19 +68,20 @@ try {
     if (-not $CaptureNow -and $latest -and $latest.LastWriteTimeUtc -gt [DateTime]::UtcNow.AddMinutes(-5)) { exit 0 }
     $image = (Invoke-DockerBounded 'inspect --format "{{.Image}}" transmission').Trim()
     $helperIdentity = Join-Path $outputDir 'linux-helper-image.txt'
-    if (Test-Path -LiteralPath $helperIdentity) { $image = (Get-Content -LiteralPath $helperIdentity -Raw).Trim() }
+    if ($EnableLinuxTracing -and (Test-Path -LiteralPath $helperIdentity)) { $image = (Get-Content -LiteralPath $helperIdentity -Raw).Trim() }
     if ($image -notmatch '^sha256:[a-f0-9]{64}$') { throw 'Unexpected image identity' }
     $source = Get-Content (Join-Path $PSScriptRoot 'snapshot.py') -Raw
     $captureId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
     $windowsTrace = @{ status = 'not_started' }
     # Local immutable diagnostic image; no pulls, host mounts or networking.
-    # Brief ptrace attachment is confined to this disposable helper.
+    # Automatic collection reads proc only. Attachment requires manual opt-in.
+    $traceEnabled = if ($EnableLinuxTracing) { '1' } else { '0' }
     $clockBefore = Get-ClockCalibration
     try {
         # Tracing failures must not suppress the existing Linux evidence.
         try { $windowsTrace = Start-WindowsIoTrace $outputDir $captureId }
         catch { $windowsTrace = @{ status = 'failed'; error = $_.Exception.Message } }
-        $raw = Invoke-DockerBounded "run --rm -i --name $helper --label diagnostic.owner=transmission-stall-capture --pull never --network none --pid container:transmission --read-only --cap-drop ALL --cap-add SYS_PTRACE --cap-add DAC_READ_SEARCH --security-opt no-new-privileges --memory 128m --memory-swap 128m --pids-limit 16 --user 0 --entrypoint python3 $image -" $source 25
+        $raw = Invoke-DockerBounded "run --rm -i --name $helper --label diagnostic.owner=transmission-stall-capture --pull never --network none --pid container:transmission --read-only --cap-drop ALL --cap-add SYS_PTRACE --cap-add DAC_READ_SEARCH --security-opt no-new-privileges --memory 128m --memory-swap 128m --pids-limit 16 --env TRANSMISSION_TRACE_ENABLED=$traceEnabled --user 0 --entrypoint python3 $image -" $source 25
         if ($raw.Length -gt 1048576) { throw 'Snapshot exceeded 1 MiB bound' }
         $evidence = $raw | ConvertFrom-Json
         Complete-WindowsIoTrace $windowsTrace
@@ -91,8 +93,11 @@ try {
         Get-ChildItem $outputDir -Filter 'capture-*.json' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 20 | Remove-Item
         Write-Output $destination
         if ($windowsTrace.status -ne 'complete') { throw 'Windows I/O trace failed; Linux report was saved.' }
-        if ($evidence.linuxTrace.timing.status -notin @('captured', 'no_matching_syscalls')) { throw 'Linux syscall timing unavailable; partial report was saved.' }
-        if (@($evidence.linuxTrace.remainingTracers).Count -gt 0) { throw 'Tracer still present after capture; inspect the saved report.' }
+        if ($EnableLinuxTracing) {
+            if ($evidence.linuxTrace.timing.status -notin @('captured', 'no_matching_syscalls')) { throw 'Linux syscall timing unavailable; partial report was saved.' }
+            if (@($evidence.linuxTrace.remainingTracers).Count -gt 0) { throw 'Tracer still present after capture; inspect the saved report.' }
+        }
+        if (-not @($evidence.samples | Where-Object { $_.pid }).Count) { throw 'No daemon snapshots collected; partial report was saved.' }
     } finally {
         # PLA also enforces a 20-second duration if this process is terminated.
         if ($windowsTrace.status -eq 'running') { Complete-WindowsIoTrace $windowsTrace }

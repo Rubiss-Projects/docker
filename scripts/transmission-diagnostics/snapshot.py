@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import time
 
+IO_SYSCALLS = ("pread64", "pwrite64", "preadv", "pwritev", "preadv2", "pwritev2", "fsync", "fdatasync")
 
 def read(path, limit=2048):
     try:
@@ -95,7 +96,7 @@ def trace_io(pid, stacks=False):
     if attached_threads(pid):
         return {"status": "unavailable", "error": "existing tracer; attachment skipped"}
     command = ["strace", "-qq", "-f", "-ttt", "-T", "-e", "raw=all", "-e", "signal=none",
-               "-e", "trace=pread64,pwrite64,fsync,fdatasync", "-p", str(pid),
+               "-e", "trace=" + ",".join(IO_SYSCALLS), "-p", str(pid),
                f"--syscall-limit={2 if stacks else 1000}"]
     if stacks:
         command += ["-k", "--stack-trace-frame-limit=16"]
@@ -106,7 +107,7 @@ def trace_io(pid, stacks=False):
         result["error"] = "stack unwinding denied by host permissions"
     elif "ptrace(" in text or "invalid option" in text or "unrecognized option" in text:
         result["status"] = "failed"
-    elif any(name + "(" in text for name in ("pread64", "pwrite64", "fsync", "fdatasync")):
+    elif any(name + "(" in text for name in IO_SYSCALLS):
         result["status"] = "captured"
     elif result["exitCode"] not in (0, -signal.SIGINT):
         result["status"] = "failed"
@@ -126,14 +127,16 @@ def attached_threads(pid):
     return attached
 
 
-def collect():
+def collect(trace_enabled=False):
     samples = []
     for _ in range(3):
         samples.append(snapshot())
         time.sleep(1)
     pid = samples[-1].get("pid")
-    tracing = {"status": "daemon_not_found"}
-    if pid:
+    tracing = {"status": "disabled", "reason": "automatic captures must not attach to the daemon"}
+    if trace_enabled and not pid:
+        tracing = {"status": "daemon_not_found"}
+    if trace_enabled and pid:
         tracing = {"timing": trace_io(pid), "stacks": trace_io(pid, stacks=True)}
         samples.append(snapshot())
         tracing["remainingTracers"] = attached_threads(pid)
@@ -143,4 +146,4 @@ def collect():
 if __name__ == "__main__":
     # Container cleanup is an independent outer bound if proc/unwinding wedges.
     signal.alarm(15)
-    print(json.dumps(collect()))
+    print(json.dumps(collect(trace_enabled=os.environ.get("TRANSMISSION_TRACE_ENABLED") == "1")))

@@ -5,10 +5,19 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from snapshot import bounded_command, read, snapshot, trace_io
+from snapshot import bounded_command, collect, read, snapshot, trace_io
 
 
 class SnapshotTest(unittest.TestCase):
+    @patch('snapshot.snapshot', return_value={'pid': 232})
+    @patch('snapshot.time.sleep')
+    @patch('snapshot.trace_io')
+    def test_default_collection_never_attaches(self, trace, sleep, sample):
+        result = collect()
+        trace.assert_not_called()
+        self.assertEqual(len(result['samples']), 3)
+        self.assertEqual(result['linuxTrace']['status'], 'disabled')
+
     def test_command_deadline_and_forced_stop(self):
         started = time.monotonic()
         result = bounded_command([sys.executable, '-c',

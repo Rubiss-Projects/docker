@@ -7,6 +7,13 @@ while the latest check is successful; a short stall can resolve between polls.
 The task persists across Windows/WSL/Docker restarts and needs Docker available.
 It neither restarts services nor changes RPC/session/media data.
 
+**September 24 incident correction:** automatic captures are passive again.
+Two downloads reported `Interrupted system call` around ptrace captures; causation
+is unproven, but attachment can interrupt syscalls and is unsuitable for unattended
+capture on this host. The filesystem stall predates attachment. Proc snapshots,
+scheduling counters, clock calibration and Windows ETW remain enabled. Neither
+scheduled runs nor plain `-CaptureNow` attach strace, even if its helper is installed.
+
 ## Correlated Windows I/O trace
 
 On the same trigger, the task starts a 20-second Windows ETW trace immediately
@@ -58,17 +65,22 @@ exclude an intervening clock step. Do not extrapolate this calibration to older
 incidents or across clock changes, or infer exact cross-host timing during drift.
 
 On failure, at most once per five minutes, a disposable helper joins only
-Transmission's PID namespace and takes three proc snapshots one second apart,
-followed by bounded syscall tracing and a fourth snapshot. It uses an explicitly
-built local diagnostic image (pinned Transmission base plus strace) by immutable ID,
+Transmission's PID namespace and takes three proc snapshots one second apart.
+It uses the existing Transmission image by immutable ID. Only an explicitly
+requested manual trace adds syscall tracing and a fourth snapshot, using a built
+local diagnostic image (pinned Transmission base plus strace) by immutable ID,
 overrides the entrypoint, has no network, host mounts, Docker socket, writable
 root filesystem or persistent state, and is limited to 128 MiB and 16 processes.
 All capabilities are dropped except SYS_PTRACE (proc reads and short attachment) and
 DAC_READ_SEARCH (read the daemon owner's descriptor directory). Transmission
 itself gains no capabilities and does not need a restart.
 
+Manual tracing requires `-CaptureNow -EnableLinuxTracing`; do not enable it in the
+scheduled task. Before using it, account for its potential to interrupt writes and
+stop downloads. Healthy-run detach tests do not rule out this effect during stalls.
 Strace attaches for at most two seconds/1,000 selected calls, recording raw
-arguments and durations for pread64, pwrite64, fsync and fdatasync. A separate
+arguments and durations for positioned reads/writes (including preadv2/pwritev2),
+fsync and fdatasync. A separate
 one-second/two-call pass attempts user-space unwinding (up to 16 frames); this
 can read process memory for unwinding but does not output media/credential
 buffers. Both passes cap output at 256 KiB. SIGINT detaches, with SIGKILL of the
@@ -84,8 +96,10 @@ counters can be disabled or unavailable on some kernels. Tracing adds scheduling
 stops and affects measured latency; these are instrumented durations, not a clean
 performance benchmark. A hot process can reach the call limit before two seconds.
 
-If the helper identity file is absent, proc collection falls back to the runtime
-image and saves a partial report with tracing unavailable and a failed task result.
+Automatic captures report `linuxTrace.status=disabled` as a successful passive mode.
+For manual tracing, if the helper identity file is absent, proc collection falls
+back to the runtime image and saves a partial report with tracing unavailable and
+a failed task result.
 An unavailable optional stack does not fail otherwise successful timing capture.
 
 Evidence contains architecture, raw syscall number/arguments, thread wait
@@ -109,17 +123,18 @@ returns a nonzero task result and does not prevent existing n8n recovery.
 Install after PR merge from elevated Windows PowerShell:
 
 ```powershell
-& E:\Docker\scripts\transmission-diagnostics\install-linux-helper.ps1
 & E:\Docker\scripts\transmission-diagnostics\capture.ps1 -Install
 ```
 
-The explicit build needs network access to the image registry/package repository;
+Only for a separately planned manual trace, `install-linux-helper.ps1` builds its
+helper. This explicit build needs network access to the image registry/package repository;
 capture never builds or pulls. Rebuild after changing the diagnostic Dockerfile.
 Installation does not restart Docker or Transmission. To test without inducing
 an outage, run the same script with `-CaptureNow`; reports mark this as manual.
 Check Task Scheduler LastTaskResult and LastRunTime after installation. Inspect
 reports locally to verify syscall reads succeeded and `windowsTrace.status` is
-`complete`, timing is captured/no_matching_syscalls, remainingTracers is empty and
+`complete`, linuxTrace is disabled for passive captures (for manual tracing,
+timing is captured/no_matching_syscalls and remainingTracers is empty), and
 clockCalibration contains usable bounds; confirm the collector is stopped with
 `logman query TransmissionStallIO-v1`.
 Stop automatic capture with
