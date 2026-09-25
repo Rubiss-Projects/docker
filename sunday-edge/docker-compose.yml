@@ -18,7 +18,7 @@ x-worker: &worker
 services:
   dfs:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.23
     # No container_name: Compose must generate a name for each replica.
     scale: ${DFS_REPLICAS:-6}
     env_file:
@@ -55,7 +55,7 @@ services:
 
   checkpoint-recovery:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.23
     container_name: sunday-edge-checkpoint-recovery
     hostname: ben-server
     entrypoint: [node, --import, tsx]
@@ -81,7 +81,7 @@ services:
 
   analytics:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.23
     container_name: sunday-edge-analytics
     env_file:
       - path: analytics.env.secret
@@ -91,6 +91,8 @@ services:
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
       ANALYTICS_STATE_DIR: /data/state
       CODEX_WORK_DIR: /data/work
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-6-luna}
+      CODEX_ESCALATION_MODEL: ${CODEX_ESCALATION_MODEL:-gpt-6-sol}
       JEV_MODE: ${JEV_MODE:-off}
       JEV_MODEL: ${JEV_MODEL:-jev-1.13.0}
       JEV_DAILY_BUDGET_USD: ${JEV_DAILY_BUDGET_USD:-0.15}
@@ -110,7 +112,7 @@ services:
 
   maintenance:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.23
     container_name: sunday-edge-maintenance
     env_file:
       - path: maintenance.env.secret
@@ -135,7 +137,7 @@ services:
 
   research:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-research:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-research:v0.2.23
     container_name: sunday-edge-research
     environment:
       TZ: ${TZ}
@@ -152,7 +154,7 @@ services:
 
   sunday-edge:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.21
+    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.23
     container_name: sunday-edge
     env_file:
       - path: watchdog.env.secret
