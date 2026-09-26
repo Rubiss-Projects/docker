@@ -24,6 +24,24 @@ the assistant. To disable the feature, set
 App installations revokes GitHub access immediately. Keep the keys and ownership
 state for recovery; this feature does not migrate session storage.
 
+Contribution limits are operator settings in this directory's public `.env`:
+
+| Variable | Default | Scope |
+| --- | --- | --- |
+| `GITHUB_CONTRIBUTIONS_PUBLISH_LIMIT` | `20` | Publish attempts per response, including failures. |
+| `CODEX_REVIEW_LIMIT` | `20` | Server-side Codex review attempts per PR, including failures/interruption, retained across turns and restarts. |
+
+Both accept non-negative safe integers: `0` means unlimited; unset or blank uses
+20. Invalid values stop enabled-service startup. Compose passes the same review
+limit to the assistant and reviewer without sharing their credentials. Redeploy
+after changing settings; existing sessions refresh on their next turn. Counts
+are retained when limits change. Unlimited removes only these quotas, not other
+tool budgets, access restrictions, timeouts, or review history capacity.
+
+A completed current-head review with no actionable findings ends the review loop,
+even when budget remains. Repeated requests reuse that result; genuine follow-up
+fixes trigger review of the new head. See [review worker operations](REVIEWER.md).
+
 Edit `system-prompt.txt` to customize Rook's identity, tone, and project references.
 The file is mounted read-only at `/data/system-prompt.txt`, selected
 by `AI_ASSISTANT_SYSTEM_PROMPT_FILE` in `.env`. A blank file adds no custom
