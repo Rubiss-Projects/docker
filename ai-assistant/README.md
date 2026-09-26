@@ -42,6 +42,14 @@ A completed current-head review with no actionable findings ends the review loop
 even when budget remains. Repeated requests reuse that result; genuine follow-up
 fixes trigger review of the new head. See [review worker operations](REVIEWER.md).
 
+Codex development shells can fetch npm packages from `registry.npmjs.org` and run
+the app's build and tests in private session scratch under `/data/codex-tmp`.
+The image includes native build tools and Node headers; `/tmp` remains `noexec`.
+Use the application's [sandbox development workflow](https://github.com/Rubiss-Projects/ai-assistant/blob/main/README.md#developing-from-the-bots-sandbox),
+which keeps test state temporary and leaves production credentials and host
+services inaccessible. Session reset/shutdown removes scratch; abrupt termination
+can leave scratch directories on the data volume.
+
 Edit `system-prompt.txt` to customize Rook's identity, tone, and project references.
 The file is mounted read-only at `/data/system-prompt.txt`, selected
 by `AI_ASSISTANT_SYSTEM_PROMPT_FILE` in `.env`. A blank file adds no custom
