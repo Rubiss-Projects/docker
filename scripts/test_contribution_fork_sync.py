@@ -176,6 +176,30 @@ class SyncTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_failed_fork_cools_down_without_delaying_the_other_fork(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            with patch.object(M.time, "time", return_value=1000), patch.object(
+                    M, "sync", side_effect=[M.SyncError("offline"), None]):
+                self.assertEqual(M.sync_all(apply=True, state_directory=state), 1)
+            retry = state / f"{M.FORKS[0].repository_id}.retry"
+            self.assertEqual(retry.read_text(), str(1000 + M.RETRY_SECONDS))
+            with patch.object(M.time, "time", return_value=1001), patch.object(M, "sync") as sync:
+                self.assertEqual(M.sync_all(apply=True, state_directory=state), 1)
+                sync.assert_called_once_with(M.FORKS[1], apply=True)
+            with patch.object(M.time, "time", return_value=1000 + M.RETRY_SECONDS), patch.object(M, "sync") as sync:
+                self.assertEqual(M.sync_all(apply=True, state_directory=state), 0)
+                self.assertEqual(sync.call_count, 2)
+            self.assertFalse(retry.exists())
+
+    def test_invalid_retry_state_does_not_start_network_work_for_that_fork(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            (state / f"{M.FORKS[0].repository_id}.retry").write_text("invalid")
+            with patch.object(M, "sync") as sync:
+                self.assertEqual(M.sync_all(apply=True, state_directory=state), 1)
+                sync.assert_called_once_with(M.FORKS[1], apply=True)
+
     def test_environment_does_not_inherit_credentials_or_git_overrides(self):
         with patch.dict(os.environ, {"GITHUB_TOKEN": "private", "GH_TOKEN": "private",
                                     "GIT_CONFIG_COUNT": "1", "GIT_DIR": "/unexpected"}):

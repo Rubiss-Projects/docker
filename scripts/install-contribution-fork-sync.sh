@@ -32,5 +32,5 @@ ln -sfn "$SCRIPT_DIR/contribution-fork-sync.service" "$USER_UNIT_DIR/contributio
 ln -sfn "$SCRIPT_DIR/contribution-fork-sync.timer" "$USER_UNIT_DIR/contribution-fork-sync.timer"
 systemctl --user daemon-reload
 systemctl --user enable --now contribution-fork-sync.timer
-systemctl --user start contribution-fork-sync.service
+systemctl --user start --no-block contribution-fork-sync.service
 systemctl --user --no-pager status contribution-fork-sync.timer

@@ -4,11 +4,13 @@
 import argparse
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+import time
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ FORKS = (
          "Rubiss/docker-contributions", 1384610118),
 )
 REF = "refs/heads/main"
+RETRY_SECONDS = 15 * 60
 
 
 class SyncError(Exception):
@@ -143,11 +146,37 @@ def sync(fork, apply=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Push verified fast-forwards (default: dry run)")
+    parser.add_argument("--scheduled", action="store_true", help="Use the systemd state directory for failure cooldowns")
     args = parser.parse_args()
+    if args.scheduled and (not args.apply or not os.environ.get("STATE_DIRECTORY")):
+        parser.error("--scheduled requires --apply and a systemd STATE_DIRECTORY")
+    state_directory = Path(os.environ["STATE_DIRECTORY"]) if args.scheduled else None
+    return sync_all(apply=args.apply, state_directory=state_directory)
+
+
+def sync_all(*, apply=False, state_directory=None):
+    """Keep healthy forks fresh while cooling down each failed fork independently."""
     failed = False
     for fork in FORKS:
+        retry_file = state_directory / f"{fork.repository_id}.retry" if state_directory else None
         try:
-            sync(fork, apply=args.apply)
+            if retry_file and retry_file.exists() and time.time() < int(retry_file.read_text()):
+                failed = True
+                print(f"{fork.repository}: deferred after failure; see earlier journal entry", flush=True)
+                continue
+            if retry_file:
+                # Reserve a retry window before work, including if systemd kills
+                # an interrupted run. Success clears it; failures keep it.
+                temporary = retry_file.with_suffix(".tmp")
+                temporary.write_text(str(int(time.time()) + RETRY_SECONDS))
+                temporary.replace(retry_file)
+            sync(fork, apply=apply)
+            if retry_file:
+                retry_file.unlink(missing_ok=True)
+        except (OSError, ValueError):
+            failed = True
+            print(f"{fork.repository}: ERROR: local storage/retry state invalid or inaccessible; inspect host state directory",
+                  file=sys.stderr, flush=True)
         except SyncError as error:
             failed = True
             print(f"{fork.repository}: ERROR: {error}", file=sys.stderr, flush=True)
