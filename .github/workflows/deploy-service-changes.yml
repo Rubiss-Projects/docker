@@ -113,6 +113,10 @@ jobs:
         # main-host cAdvisor to Windows Compose so its host mounts resolve there.
         run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
 
+      - name: Install main-host contribution fork maintenance
+        shell: bash
+        run: bash /mnt/e/Docker/scripts/install-contribution-fork-sync.sh
+
   deploy-pi:
     name: Deploy Raspberry Pi service folders
     needs: detect-changes
