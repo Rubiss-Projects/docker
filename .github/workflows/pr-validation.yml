@@ -295,7 +295,7 @@ jobs:
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 
-      - name: Test planned Grafana maintenance
+      - name: Test host maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Test Tracearr Seerr compatibility against the pinned image

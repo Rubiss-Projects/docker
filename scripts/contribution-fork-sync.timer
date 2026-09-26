@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep AI Assistant contribution forks current with upstream
+
+[Timer]
+OnStartupSec=30s
+OnUnitInactiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

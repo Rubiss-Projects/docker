@@ -1,0 +1,11 @@
+[Unit]
+Description=Fast-forward allowlisted AI Assistant contribution forks
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /mnt/e/Docker/scripts/sync-contribution-forks.py --apply
+WorkingDirectory=%h
+TimeoutStartSec=5min
+UMask=0077
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
