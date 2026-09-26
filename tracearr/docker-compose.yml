@@ -1,6 +1,6 @@
 services:
   tracearr:
-    image: ghcr.io/connorgallopo/tracearr:2.4.0@sha256:287d9b75dd2c95075988cdab6a55d586303e0f14a80e1c105c2ed0e02e133b8e
+    image: ghcr.io/connorgallopo/tracearr:2.5.1@sha256:2af90bdc9aa5a6fbc4adddcb2482a4ca7a18247e876ea7a020e1264a0e172757
     container_name: tracearr
     # Preserve the image entrypoint; validate/apply the Seerr fork compatibility before Node starts.
     command: ["/bin/sh", "-c", "node /opt/tracearr/patch-seerr-books.mjs && exec node apps/server/dist/index.js"]
