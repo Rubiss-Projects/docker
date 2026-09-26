@@ -26,6 +26,10 @@ or updates contribution branches/PRs. Divergence needs operator investigation.
 Ben-Server, not a container or an agent tool. It starts 30 seconds after the user
 manager starts, then one minute after each run finishes (including failures).
 The oneshot process exits between runs; systemd prevents overlapping activations.
+Each fork reserves a 15-minute retry window before starting, persisted in the private systemd user
+state directory (`~/.local/state/contribution-fork-sync`). Timer ticks during that
+window perform no network requests for that fork; the other fork still runs.
+Success clears the window immediately; failure or interruption leaves it in place.
 The existing Windows watchdog starts WSL/Docker after boot; user lingering keeps
 the timer available without an interactive session. A stopped WSL instance does
 not run timers; the startup activation catches up when WSL starts again.
@@ -42,12 +46,16 @@ An immediate publish after upstream changes workflows can still fail briefly;
 retry the saved contribution after a successful timer run. This job does not
 rebase existing work or create a fresh contribution branch. Network/authentication
 errors, changed repository settings and divergence fail closed and are retried
-on the next tick. Check the journal if failures persist.
+after the cooldown. Check the journal if failures persist. Invalid/inaccessible
+retry state also fails closed; inspect the named state directory before removing
+only the affected `.retry` file. This state contains timestamps, not credentials.
 
 ## Operations (WSL, as rubiss)
 
-The main-host deployment workflow installs/refreshes this timer and runs the job
-once. Installation requires lingering (`sudo loginctl enable-linger rubiss` if
+The main-host deployment workflow installs/refreshes this timer and queues the job
+once without waiting for GitHub. Installation failures fail deployment, but a sync
+failure remains visible on the service/journal without failing an unrelated
+successful service deployment. Installation requires lingering (`sudo loginctl enable-linger rubiss` if
 local policy cannot enable it without prompting), `python3`, `git`, `gh`, a stored
 host GitHub login, and noninteractive SSH access to GitHub with a known host key.
 No root service or additional dependency is installed.
@@ -59,6 +67,9 @@ python3 /mnt/e/Docker/scripts/sync-contribution-forks.py
 systemctl --user status contribution-fork-sync.timer contribution-fork-sync.service
 journalctl --user -u contribution-fork-sync.service -n 30 --no-pager
 systemctl --user start contribution-fork-sync.service
+
+# Explicit operator retry without the scheduled cooldown, after fixing its cause:
+python3 /mnt/e/Docker/scripts/sync-contribution-forks.py --apply
 ```
 
 Rollback: `systemctl --user disable --now contribution-fork-sync.timer`, then
