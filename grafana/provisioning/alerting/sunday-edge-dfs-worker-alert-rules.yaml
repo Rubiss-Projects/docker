@@ -42,7 +42,9 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: adw07verg2qrkd
             model:
-              expr: (sum(up{job="sunday-edge-dfs-workers"}) or vector(0)) / max(sunday_edge_dfs_worker_pool_desired_replicas)
+              # Convert bounded slot labels to values, deduplicate identities, and
+              # count only healthy slots within the live target.
+              expr: (count(max by (slot) ((sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="1"} * 1 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="2"} * 2 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="3"} * 3 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="4"} * 4 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="5"} * 5 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="6"} * 6) and on (instance, job) (up{job="sunday-edge-dfs-workers"} == 1)) <= scalar(max(sunday_edge_dfs_worker_pool_desired_replicas))) or vector(0)) / max(sunday_edge_dfs_worker_pool_desired_replicas)
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
