@@ -104,17 +104,21 @@ def next_state(previous, demand, now):
     state = dict(previous or {})
     current = state.get("desiredSlots", MINIMUM)
     low_since = state.get("lowSince")
+    low_desired = state.get("lowDesired")
     # A gap in successful samples invalidates the sustained quiet-period evidence.
     if now - state.get("updatedAt", 0) > 90_000:
         low_since = None
     if required >= current:
-        current, low_since = required, None
+        current, low_since, low_desired = required, None, None
     else:
-        low_since = now if low_since is None else low_since
+        # A different recommendation must establish its own quiet period.
+        if low_since is None or required != low_desired:
+            low_since = now
+        low_desired = required
         if now - low_since >= COOLDOWN_MS:
-            current, low_since = required, None
+            current, low_since, low_desired = required, None, None
     state.update(protocolVersion=1, desiredSlots=current, maxSlots=MAXIMUM,
-                 updatedAt=now, lowSince=low_since)
+                 updatedAt=now, lowSince=low_since, lowDesired=low_desired)
     # Wake the baseline as well as new replicas whenever runnable work exists.
     if demand["pending"] > 0 or "wakeToken" not in state:
         state["wakeToken"] = str(uuid.uuid4())
@@ -134,26 +138,11 @@ def lifecycle(args):
              "--ttl-minutes", "10", "--reason", "DFS autoscaling", "--", *args], timeout=240)
 
 
-def reconcile(dry_run=False):
-    workers = snapshot()
-    demand = app_request("GET")
-    if demand.get("protocolVersion") != 1 or any(worker["version"] != demand.get("workerVersion") for worker in workers):
-        raise ValueError("Worker/control-plane versions do not match")
-    sampled = dt.datetime.fromisoformat(demand["sampledAt"].replace("Z", "+00:00")).timestamp()
-    if abs(time.time() - sampled) > 60:
-        raise ValueError("Demand sample is stale")
-    previous = control_read()
-    if previous is None:
-        # Losing the state file is not evidence of five quiet minutes.
-        previous = {"desiredSlots": max(MINIMUM, max(worker["slot"] for worker in workers))}
-    state = next_state(previous, demand, int(time.time() * 1000))
+def apply_state(state, workers):
+    """Apply controls and fill required identities without killing busy excess slots."""
     desired = state["desiredSlots"]
     excess = [worker for worker in workers if worker["slot"] > desired]
     removable = [worker for worker in excess if worker["idle"] and worker["drained"]]
-    result = {"desiredSlots": desired, "onlineSlots": sorted(worker["slot"] for worker in workers),
-              "demand": demand, "drainingSlots": sorted(worker["slot"] for worker in excess), "dryRun": dry_run}
-    if dry_run:
-        return result
     control_write(state)
     # Remove only explicit logical identities; Compose's replica ordinals need
     # not match the OS-locked slots, so a blind scale-down can kill the wrong job.
@@ -173,9 +162,28 @@ def reconcile(dry_run=False):
                    "--scale", f"dfs={replicas}", "--wait", "--wait-timeout", "90", "dfs"])
         workers = snapshot()
     report(state, workers)
-    result.update(onlineSlots=sorted(worker["slot"] for worker in workers),
-                  drainingSlots=sorted(worker["slot"] for worker in workers if worker["slot"] > desired))
-    return result
+    return workers
+
+
+def reconcile(dry_run=False):
+    workers = snapshot()
+    demand = app_request("GET")
+    if demand.get("protocolVersion") != 1 or any(worker["version"] != demand.get("workerVersion") for worker in workers):
+        raise ValueError("Worker/control-plane versions do not match")
+    sampled = dt.datetime.fromisoformat(demand["sampledAt"].replace("Z", "+00:00")).timestamp()
+    if abs(time.time() - sampled) > 60:
+        raise ValueError("Demand sample is stale")
+    previous = control_read()
+    if previous is None:
+        # Losing the state file is not evidence of five quiet minutes.
+        previous = {"desiredSlots": max(MINIMUM, max(worker["slot"] for worker in workers))}
+    state = next_state(previous, demand, int(time.time() * 1000))
+    desired = state["desiredSlots"]
+    if not dry_run:
+        workers = apply_state(state, workers)
+    return {"desiredSlots": desired, "onlineSlots": sorted(worker["slot"] for worker in workers),
+            "demand": demand, "dryRun": dry_run,
+            "drainingSlots": sorted(worker["slot"] for worker in workers if worker["slot"] > desired)}
 
 
 def reset_control():
@@ -189,13 +197,17 @@ def reset_control():
             if time.monotonic() >= deadline:
                 raise
             time.sleep(2)
-    if len(workers) != MINIMUM or {worker["slot"] for worker in workers} != {1, 2}:
-        raise ValueError("Compose must restore the two baseline logical slots before reset")
+    if len(workers) != MINIMUM:
+        raise ValueError("Compose must restore two baseline replicas before reset")
     state = {"protocolVersion": 1, "desiredSlots": MINIMUM, "maxSlots": MAXIMUM,
-             "wakeToken": str(uuid.uuid4()), "updatedAt": int(time.time() * 1000), "lowSince": None}
-    control_write(state)
-    report(state, workers)
-    return {"reset": True, "desiredSlots": MINIMUM}
+             "wakeToken": str(uuid.uuid4()), "updatedAt": int(time.time() * 1000),
+             "lowSince": None, "lowDesired": None}
+    # Compose ordinals do not guarantee slots 1 and 2. Fill those identities;
+    # busy high slots can finish before normal reconciliation removes them.
+    workers = apply_state(state, workers)
+    return {"reset": True, "desiredSlots": MINIMUM,
+            "onlineSlots": sorted(worker["slot"] for worker in workers),
+            "drainingSlots": sorted(worker["slot"] for worker in workers if worker["slot"] > MINIMUM)}
 
 
 @contextlib.contextmanager
