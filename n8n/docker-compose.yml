@@ -28,7 +28,11 @@ services:
     volumes:
       - ./config:/root/.n8n
       - ./workflows:/files
-      - ../:/mnt/e/Docker
+      # Host-executed code and Compose configuration must not be writable by n8n.
+      - ../:/mnt/e/Docker:ro
+      # Existing IRC recovery and cross-seed cleanup persist only their own data.
+      - ../autobrr/config:/mnt/e/Docker/autobrr/config
+      - ../cross-seed/config/cross-seeds:/mnt/e/Docker/cross-seed/config/cross-seeds
     entrypoint: /bin/sh
     command: -c "sh /files/import-workflows.sh"
     labels:
