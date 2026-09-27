@@ -27,6 +27,7 @@ function Invoke-HostTransmissionProbe {
                 if ($token) { [void]$request.Headers.TryAddWithoutValidation('X-Transmission-Session-Id', $token) }
                 # ResponseContentRead includes the complete bounded body in the
                 # cancellation budget, even if the server sends headers early.
+                $failure = 1
                 $response = $client.SendAsync($request, [Net.Http.HttpCompletionOption]::ResponseContentRead, $cancel.Token).GetAwaiter().GetResult()
                 if ([int]$response.StatusCode -eq 409) {
                     $failure = 5
@@ -38,8 +39,11 @@ function Invoke-HostTransmissionProbe {
                 $failure = 3
                 if ([int]$response.StatusCode -ne 200) { break }
                 $failure = 4
-                $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json -ErrorAction Stop
-                if ($body.result -ne 'success' -or $body.tag -isnot [int] -or $body.tag -ne 1 -or $null -eq $body.arguments) { break }
+                $text = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+                # ConvertFrom-Json can unwrap a one-element root array.
+                if (-not $text.TrimStart().StartsWith('{')) { break }
+                $body = $text | ConvertFrom-Json -ErrorAction Stop
+                if ($body.result -cne 'success' -or $body.tag -isnot [int] -or $body.tag -ne 1 -or $body.arguments -isnot [pscustomobject]) { break }
                 $valid = $true
                 foreach ($field in @('activeTorrentCount', 'torrentCount', 'downloadSpeed', 'uploadSpeed')) {
                     $value = $body.arguments.$field
