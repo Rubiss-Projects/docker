@@ -60,6 +60,34 @@ class AutoscaleTests(unittest.TestCase):
         self.assertEqual(self.reconcile([worker], error=RuntimeError("unavailable")), ([], []))
         self.assertEqual(self.reconcile([worker], dry=True), ([], []))
 
+    def test_returning_demand_fills_missing_slot_while_excess_workers_drain(self):
+        workers = [dict(id=f"container{slot}", slot=slot, version="current", idle=False, drained=False)
+                   for slot in (1, 2, 3, 5, 6)]
+        final = workers + [dict(id="container7", slot=4, version="current", idle=True, drained=False)]
+        with patch.object(m, "snapshot", side_effect=[workers, final]), \
+             patch.object(m, "app_request", return_value=demand(4)), \
+             patch.object(m, "control_read", return_value=state(2)), \
+             patch.object(m, "control_write"), patch.object(m, "report") as report, \
+             patch.object(m, "lifecycle") as lifecycle, patch.object(m.time, "time", return_value=NOW / 1000):
+            result = m.reconcile()
+        self.assertEqual(lifecycle.call_args.args[0], ["docker", "compose", "up", "-d", "--no-deps",
+            "--no-recreate", "--pull", "never", "--scale", "dfs=6", "--wait", "--wait-timeout", "90", "dfs"])
+        self.assertEqual(result["onlineSlots"], [1, 2, 3, 4, 5, 6])
+        self.assertEqual(result["drainingSlots"], [5, 6])
+        self.assertEqual(report.call_args.args[1], final)
+
+    def test_removed_slots_are_absent_from_execution_result(self):
+        workers = [dict(id=f"container{slot}", slot=slot, version="current", idle=True, drained=slot > 2)
+                   for slot in range(1, 7)]
+        with patch.object(m, "snapshot", return_value=workers), \
+             patch.object(m, "app_request", return_value=demand()), \
+             patch.object(m, "control_read", return_value=state(low_since=NOW - 300_000)), \
+             patch.object(m, "control_write"), patch.object(m, "report"), \
+             patch.object(m, "lifecycle"), patch.object(m.time, "time", return_value=NOW / 1000):
+            result = m.reconcile()
+        self.assertEqual(result["onlineSlots"], [1, 2])
+        self.assertEqual(result["drainingSlots"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

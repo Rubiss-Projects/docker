@@ -95,14 +95,18 @@ powershell -NoProfile -File E:\Docker\scripts\sunday-edge-autoscale.ps1 -DryRun
 
 Pause the controller by creating `sunday-edge/autoscaling.paused` (ignored by Git).
 Remove that file to resume. `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=6` must remain
-aligned with the bounded controller policy. Manual lifecycle changes still use:
+aligned with the bounded controller policy. To manually restore the baseline,
+hold both lifecycle locks across Compose and the control reset. Run on Windows:
 
-```sh
-cd /mnt/e/Docker/sunday-edge
-python3 ../scripts/grafana-maintenance.py run --reason planned-scaling -- docker compose up -d --wait
-python3 ../scripts/sunday-edge-autoscale.py --reset-control
-docker compose ps
-docker compose stats
+```powershell
+. E:\Scripts\docker-desktop-common.ps1
+if (-not (Enter-DockerOperationLock)) { throw 'Docker maintenance is already running' }
+try {
+    wsl -d Ubuntu -- flock -x /tmp/docker-compose-ops-deploy.lock.d bash -lc 'cd /mnt/e/Docker/sunday-edge && python3 ../scripts/grafana-maintenance.py run --reason planned-scaling -- docker compose up -d --wait && python3 ../scripts/sunday-edge-autoscale.py --reset-control'
+    if ($LASTEXITCODE -ne 0) { throw 'Baseline restoration failed' }
+} finally {
+    Exit-DockerOperationLock
+}
 ```
 
 The allocator supports 1–32 slots, but this controller deliberately supports 2–6.
