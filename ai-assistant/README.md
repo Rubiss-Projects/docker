@@ -6,8 +6,29 @@ history persist in the existing `ai-assistant-data` volume.
 GitHub contributions are enabled for everyone already allowed to chat with the
 bot. Users can ask for a draft PR in `Rubiss-Projects/ai-assistant` or
 `Rubiss-Projects/docker` and revise their own contribution in the same conversation.
-Maintainers review, mark ready, and merge on GitHub. Dependabot's existing merge
-workflows and repository rules are unchanged.
+Conversation cards offer PR approval, merge, and release actions after a clean
+server review. Each click uses that person's own linked GitHub account; run
+`/github link` and follow the private device authorization instructions first.
+Contributors can approve as themselves, and GitHub decides whether the review
+qualifies. The server's configured `@admin` role and explicit bot administrators
+can merge or release only when their linked GitHub account also has access.
+Dependabot's existing merge workflows and repository rules are unchanged.
+
+The separate [Rubiss Assistant User Actions App](https://github.com/organizations/Rubiss-Projects/settings/apps/rubiss-assistant-user-actions)
+is installed here only on `ai-assistant` and `docker`. Its registration is public
+so people outside the organization can link their identities; this does not grant
+them repository access. Its public Client ID is in `.env`;
+it has Device Flow and expiring user tokens enabled, with webhooks disabled.
+No App private key or client secret is required. Linked tokens and action receipts
+persist outside provider workspaces at `/data/.config/ai-assistant/github-actions/`.
+Privately back up the whole directory, including its encryption key, with the bot
+data. Missing authorization never falls back to the operator's account.
+
+After an AI Assistant PR merges, refresh its card to preview the release version,
+commit, and all changes since the previous release. Publication still requires a
+separate click and successful merged-commit CI; deployment remains a reviewed
+Docker version-promotion PR. Disable only these actions with
+`AI_ASSISTANT_ENABLE_GITHUB_ACTIONS=false`, preserving linked-account state.
 
 The two restricted GitHub Apps use configuration and keys provisioned privately
 at `/data/.config/ai-assistant/github-apps/`, owned by UID 10001 with directory mode
