@@ -19,7 +19,7 @@ player. No proprietary Channels bundle is modified or redistributed.
 
 ## Vendored dependency
 
-- HLS.js 1.6.19, MIT licensed; see `LICENSE.hls.js`.
+- HLS.js 1.6.19, Apache-2.0 licensed; see `LICENSE.hls.js`.
 - Source: https://cdn.jsdelivr.net/npm/hls.js@1.6.19/dist/hls.min.js
 - Upstream: https://github.com/video-dev/hls.js/releases/tag/v1.6.19
 - The minified file is unmodified. Preserve its license notice when updating.

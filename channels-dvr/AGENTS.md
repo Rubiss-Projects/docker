@@ -42,6 +42,17 @@ buffers. Schedule that operation around active viewing and recordings. After
 deployment, verify the volume mount, GPU encoding, recording progress, and live
 browser playback; a healthy HTTP endpoint alone does not verify playback.
 
+### NVIDIA decoder thread limit
+
+On this 16-logical-CPU host, Channels' FFmpeg automatically uses 16 H.264 decoder
+threads and requests 33 NVDEC decode surfaces, which fails on the RTX 2070 with
+`CUDA_ERROR_INVALID_VALUE`. Restrict this container to CPUs `0-7` so automatic
+decoder threading stays within the GPU limit. GPU decoding, deinterlacing, and
+NVENC encoding remain enabled; Plex keeps its existing CPU allocation. An
+eight-CPU affinity test successfully transcoded the same Red Zone sample that
+failed with unrestricted affinity. Re-evaluate this host-specific restriction
+after an upstream decoder-thread fix or host CPU changes.
+
 ### Default Ports
 - 8089 - Web UI and API
 - 80 - HTTP streaming (if configured)

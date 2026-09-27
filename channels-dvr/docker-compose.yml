@@ -2,6 +2,8 @@ services:
   channels-dvr:
     image: fancybits/channels-dvr:nvidia@sha256:fd0f0fd21d70ec47f5a9237177ad9624b221b855f971d042f031daae20ccae88
     container_name: channels-dvr
+    # FFmpeg auto-selects 16 decoder threads with all CPUs, exceeding NVDEC surfaces.
+    cpuset: "0-7"
     ports:
       - "8089:8089"
     environment:
