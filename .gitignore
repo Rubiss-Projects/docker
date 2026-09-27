@@ -42,6 +42,7 @@ vrising/persistentdata/Settings/*
 !minecraft/data/config/paper-world-defaults.yml
 
 # Backup files
+sunday-edge/autoscaling.paused
 *.backup
 *.bak
 backups/

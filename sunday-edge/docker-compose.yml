@@ -20,14 +20,15 @@ services:
     <<: *worker
     image: ghcr.io/rubiss/sunday-edge-compute:v0.2.25
     # No container_name: Compose must generate a name for each replica.
-    scale: ${DFS_REPLICAS:-6}
+    scale: ${DFS_REPLICAS:-2}
     env_file:
       - path: compute.env.secret
         required: false
     environment:
       TZ: ${TZ}
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
-      DFS_WORKER_COUNT: ${DFS_REPLICAS:-6}
+      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-6}
+      DFS_POOL_CONTROL_PATH: /data/pool.json
       DFS_WORKER_POOL_ID: ${DFS_WORKER_POOL_ID:-ben-server}
       DFS_METRICS_PORT: 9460
       DFS_WORK_SIGNAL_PATH: /data/work-available
@@ -66,7 +67,9 @@ services:
     environment:
       TZ: ${TZ}
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
-      DFS_WORKER_COUNT: ${DFS_REPLICAS:-6}
+      DFS_WORKER_COUNT: ${DFS_REPLICAS:-2}
+      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-6}
+      DFS_POOL_CONTROL_PATH: /data/pool.json
       DFS_CHECKPOINT_METRICS_PORT: 9460
       WORKER_HEALTH_URL: http://127.0.0.1:9460/metrics
       NODE_OPTIONS: --max-old-space-size=96
@@ -74,6 +77,14 @@ services:
     mem_limit: ${SCHEDULER_MEMORY:-128m}
     memswap_limit: ${SCHEDULER_MEMORY:-128m}
     pids_limit: 64
+    # Same compute role/credentials; exposes live pool controls to the host helper.
+    volumes:
+      - type: volume
+        source: sunday-edge-dfs-data
+        target: /data
+        volume:
+          subpath: runtime
+          nocopy: true
     labels:
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.url=http://sunday-edge-checkpoint-recovery:9460/metrics
@@ -163,7 +174,7 @@ services:
       TZ: ${TZ}
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
       PROMETHEUS_URL: http://prometheus:9090
-      DFS_WORKER_COUNT: ${DFS_REPLICAS:-6}
+      DFS_WORKER_COUNT: ${DFS_REPLICAS:-2}
       DATABASE_POOL_MAX: 2
       NODE_OPTIONS: --max-old-space-size=768
     cpus: ${MONITOR_CPUS:-1.0}

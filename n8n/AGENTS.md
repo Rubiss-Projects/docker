@@ -135,7 +135,18 @@ n8n can connect to all services in this infrastructure:
 - `scripts/autobrr_irc_watchdog.js` is the scheduled missed-alert fallback.
 - Recovery credentials and the recovery API key live only in git-crypt protected `irc-recovery-secrets.json`. This file is intentionally separate from Compose dotenv files so `$` and other password characters are never interpolated by Compose.
 
+## Sunday Edge autoscaling
+
+`workflows/sunday-edge-autoscale-workflow.json` runs every 30 seconds using the
+encrypted `sundayEdgeHostSsh` SSH credential. Its fixed command enters the Windows
+Docker operation lock and calls `scripts/sunday-edge-autoscale.py` in WSL. The
+controller also shares the deployment lock; overlapping executions skip safely.
+The result node turns a nonzero SSH command exit into a failed workflow execution.
+See `sunday-edge/AGENTS.md` for baseline reset, draining, pause, and rollout steps.
+No Docker API privileges are added to n8n or the workers.
+
 ## Security Notes
+
 - Credentials are encrypted in the database
 - Use environment variables for sensitive data
 - Configure webhook authentication for external triggers

@@ -1,0 +1,41 @@
+{
+  "id": "sundayEdgeAutoscale1",
+  "active": true,
+  "name": "Sunday Edge Worker Autoscaling",
+  "description": "Reconciles 2–6 DFS slots every 30 seconds through the host's locked controller. Pause with sunday-edge/autoscaling.paused. SSH credentials live in n8n's encrypted store.",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "seconds", "secondsInterval": 30 }] } },
+      "name": "Every 30 Seconds",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "password",
+        "resource": "command",
+        "operation": "execute",
+        "command": "powershell.exe -NoProfile -NonInteractive -File E:\\Docker\\scripts\\sunday-edge-autoscale.ps1",
+        "cwd": ""
+      },
+      "name": "Reconcile DFS Workers",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "credentials": { "sshPassword": { "id": "sundayEdgeHostSsh", "name": "Sunday Edge Host SSH" } }
+    },
+    {
+      "parameters": { "jsCode": "if ($json.code !== 0) throw new Error('DFS host controller failed: ' + ($json.stderr || 'no error output')); return [{json: JSON.parse($json.stdout.trim().split('\\n').at(-1))}];" },
+      "name": "Check Controller Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Every 30 Seconds": { "main": [[{ "node": "Reconcile DFS Workers", "type": "main", "index": 0 }]] },
+    "Reconcile DFS Workers": { "main": [[{ "node": "Check Controller Result", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "executionTimeout": 600, "timezone": "America/New_York" }
+}

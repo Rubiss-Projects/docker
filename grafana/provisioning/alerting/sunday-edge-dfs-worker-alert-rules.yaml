@@ -6,6 +6,34 @@ groups:
     folder: Sunday Edge
     interval: 1m
     rules:
+      - uid: sunday_edge_dfs_autoscaler_stale
+        title: Sunday Edge autoscaler stopped checking demand
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: adw07verg2qrkd
+            model:
+              expr: time() - max(sunday_edge_dfs_worker_pool_controller_updated_seconds)
+          - refId: B
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: { params: [300], type: gt }
+                  operator: { type: and }
+        for: 2m
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          summary: "The DFS autoscaler has not reconciled demand for five minutes"
+          description: "Check the Sunday Edge n8n workflow, SSH credential, host locks, and autoscaling.paused. Existing capacity is retained."
+        labels: { severity: warning, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
+
       - uid: sunday_edge_dfs_worker_pool_degraded
         title: Sunday Edge DFS worker pool degraded
         condition: C
@@ -32,8 +60,8 @@ groups:
         annotations:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "1"
-          summary: "The DFS pool is below its configured replica count"
-          description: "Check docker compose ps/logs in the sunday-edge stack and DFS_REPLICAS in its .env. Intensive Vercel fallback remains disabled."
+          summary: "The DFS pool is below its live slot target"
+          description: "Check the Sunday Edge n8n autoscaling workflow, pool.json in the shared runtime volume, and docker compose ps/logs. The baseline is two and maximum is six. Intensive Vercel fallback remains disabled."
         labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_worker_failures
