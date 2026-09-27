@@ -164,11 +164,17 @@ def reconcile(dry_run=False):
         # could unexpectedly revive in the next reconciliation.
         lifecycle(["docker", "rm", "--force", *ids])
         workers = [worker for worker in workers if worker not in removable]
-    if len(workers) < desired:
+    missing = set(range(1, desired + 1)) - {worker["slot"] for worker in workers}
+    if missing:
+        # Draining high slots still own their locks but do not supply the target's
+        # active capacity. Add enough replicas to fill each missing logical slot.
+        replicas = len(workers) + len(missing)
         lifecycle(["docker", "compose", "up", "-d", "--no-deps", "--no-recreate", "--pull", "never",
-                   "--scale", f"dfs={desired}", "--wait", "--wait-timeout", "90", "dfs"])
+                   "--scale", f"dfs={replicas}", "--wait", "--wait-timeout", "90", "dfs"])
         workers = snapshot()
     report(state, workers)
+    result.update(onlineSlots=sorted(worker["slot"] for worker in workers),
+                  drainingSlots=sorted(worker["slot"] for worker in workers if worker["slot"] > desired))
     return result
 
 
