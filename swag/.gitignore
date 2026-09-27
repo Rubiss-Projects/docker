@@ -15,7 +15,8 @@ config/**/*.sample
 config/fail2ban/
 
 # Web root (unless custom content added)
-config/www/
+config/www/*
+!config/www/channels-player/
 
 # SSL certificates and keys (auto-renewed by Let's Encrypt)
 config/**/*.pem
