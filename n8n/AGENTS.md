@@ -145,6 +145,15 @@ The result node turns a nonzero SSH command exit into a failed workflow executio
 See `sunday-edge/AGENTS.md` for baseline reset, draining, pause, and rollout steps.
 No Docker API privileges are added to n8n or the workers.
 
+The credential is a dedicated `sshPrivateKey`, never the host login password.
+Its public key must have server-side `restrict,command="powershell.exe -NoProfile
+-NonInteractive -File E:/Docker/scripts/sunday-edge-autoscale.ps1"` options on one
+line in Windows OpenSSH's authorized-keys file. Verify that requesting another
+command still invokes the controller and forwarding is refused before activation.
+The repository mount is read-only so n8n cannot replace the host-executed helper
+or its Compose configuration. Existing writes stay in the n8n data/workflow mounts,
+autobrr's config directory, and the cross-seed registration directory.
+
 ## Security Notes
 
 - Credentials are encrypted in the database

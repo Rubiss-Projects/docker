@@ -124,9 +124,10 @@ Both paths already hold lifecycle locks/maintenance. A plain `docker restart`
 does not reset replica count or the live target.
 
 Provision n8n credential `sundayEdgeHostSsh` / `Sunday Edge Host SSH` as type
-`sshPassword` for the existing Ben-Server SSH account. Store its password only in
-n8n's encrypted credential store. Import it before activating the workflow; never
-put a password in workflow JSON, `.env`, logs, or command arguments. Verify a real
+`sshPrivateKey` with a dedicated key restricted server-side to the autoscaler
+wrapper, following `n8n/AGENTS.md`. Store the private key only in n8n's encrypted
+credential store. Import it before activating the workflow; never put the key
+in workflow JSON, `.env`, logs, or command arguments. Verify a real
 scheduled execution, controller freshness metrics, and 2/2 healthy workers.
 
 The two-worker baseline caps seven containers at 6.6 CPU cores and 6.625 GiB memory;

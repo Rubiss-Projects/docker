@@ -13,7 +13,7 @@
     },
     {
       "parameters": {
-        "authentication": "password",
+        "authentication": "privateKey",
         "resource": "command",
         "operation": "execute",
         "command": "powershell.exe -NoProfile -NonInteractive -File E:\\Docker\\scripts\\sunday-edge-autoscale.ps1",
@@ -23,7 +23,7 @@
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [480, 300],
-      "credentials": { "sshPassword": { "id": "sundayEdgeHostSsh", "name": "Sunday Edge Host SSH" } }
+      "credentials": { "sshPrivateKey": { "id": "sundayEdgeHostSsh", "name": "Sunday Edge Host SSH" } }
     },
     {
       "parameters": { "jsCode": "if ($json.code !== 0) throw new Error('DFS host controller failed: ' + ($json.stderr || 'no error output')); return [{json: JSON.parse($json.stdout.trim().split('\\n').at(-1))}];" },
