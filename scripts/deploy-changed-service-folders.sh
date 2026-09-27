@@ -648,6 +648,9 @@ deploy_stack() {
     if [[ "$DRY_RUN" != "true" ]]; then
       verify_config_mounts "$stack_dir"
       verify_stack_readiness "$stack_dir"
+      if [[ "$stack_dir" == "sunday-edge" ]]; then
+        python3 "$REPO_DIR/scripts/sunday-edge-autoscale.py" --reset-control
+      fi
     fi
   )
 }

@@ -32,9 +32,15 @@ def common_hooks(text):
     # A successfully created Grafana silence still needs cleanup if Kuma was down.
     block = block.replace('return $false', 'return $grafanaStarted')
     text = text[:start] + block + text[end:]
-    return replace_once(text,
+    text = replace_once(text,
         'function Stop-UptimeKumaMaintenance {\n',
         'function Stop-UptimeKumaMaintenance {\n    Stop-GrafanaMaintenance\n')
+    return replace_once(text,
+        '        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate")',
+        '        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate")\n'
+        '        if ($name -eq "sunday-edge" -and $composeResult.ExitCode -eq 0) {\n'
+        '            $composeResult = Invoke-WslCommand -Command "python3 /mnt/e/Docker/scripts/sunday-edge-autoscale.py --reset-control" -TimeoutSeconds 180\n'
+        '        }')
 
 
 def nightly_hooks(text):

@@ -2,13 +2,15 @@
 
 All roles live in this one Compose project. The `dfs` service uses replicas;
 never add `container_name` to it. The user explicitly requested this arrangement
-instead of one directory per container. `DFS_REPLICAS` in `.env` controls both
-the replica count and automatic slot allocation (1–32). Keep those consistent.
+instead of one directory per container. `DFS_REPLICAS=2` in `.env` is the startup
+baseline; `DFS_MAX_WORKER_SLOTS=6` is independent allocation capacity. The n8n
+controller changes the live target between two and six without rewriting `.env`.
 
 Private named volumes preserve Linux permissions for credentials and archives on
 Docker Desktop. Do not replace them with NTFS mounts, attach another role's
-volume/credentials, or remove a volume. The six compute replicas share only the
-DFS volume. No worker may receive a Docker socket or host drive mount.
+volume/credentials, or remove a volume. Compute replicas and checkpoint recovery
+share only the DFS volume's runtime subdirectory. No worker may receive a Docker
+socket or host drive mount.
 
 Preserve non-root execution, read-only root filesystems, dropped capabilities,
 no-new-privileges, process limits, CPU quotas, and memory/swap ceilings.
@@ -65,14 +67,35 @@ resource-limit change is required. Image rollback to analytics v0.2.11 with
 ## Service overview
 
 [docker-compose.yml](docker-compose.yml) is one stack with six service roles. `dfs` is a
-replicated service: six instances by default, with five other containers for
+replicated service: two baseline instances (up to six), with five other containers for
 analytics, maintenance, checkpoint recovery, league monitoring, and archival.
 The app repository publishes five private, release-versioned GHCR images. Recovery
 uses the compute image with its own entrypoint. The web app stays on Vercel.
 
 ## Scaling and limits
 
-Change `DFS_REPLICAS` in `sunday-edge/.env`, then run from WSL:
+The n8n `Sunday Edge Worker Autoscaling` workflow invokes
+`scripts/sunday-edge-autoscale.ps1` over SSH every 30 seconds. The Windows wrapper
+takes the existing Docker Desktop operation lock; the Python helper shares the
+deployment lock. It reads signed application demand, wakes workers, and reconciles
+Compose scale-up. After five minutes of sustained lower demand, excess logical
+slots finish their work and acknowledge draining before removal. Unavailable
+metrics, stale demand, incompatible workers, and API failures hold capacity.
+
+The live target/cooldown lives in `/data/pool.json` in the runtime volume. Slots
+remain stable; Compose container ordinals are not logical slot identities. The
+app records intentional departures as `SCALED_DOWN`. Grafana and Homepage consume
+the live target exported by checkpoint recovery.
+
+For read-only diagnostics on the Windows host:
+
+```powershell
+powershell -NoProfile -File E:\Docker\scripts\sunday-edge-autoscale.ps1 -DryRun
+```
+
+Pause the controller by creating `sunday-edge/autoscaling.paused` (ignored by Git).
+Remove that file to resume. `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=6` must remain
+aligned with the bounded controller policy. Manual lifecycle changes still use:
 
 ```sh
 cd /mnt/e/Docker/sunday-edge
@@ -81,12 +104,25 @@ docker compose ps
 docker compose stats
 ```
 
-Supported pool sizes are 1–32. Use the `.env` setting, rather than a standalone
-`--scale` override: it also informs slot assignment, polling phases, and alerts.
+The allocator supports 1–32 slots, but this controller deliberately supports 2–6.
+Do not use ad-hoc scale overrides while it is active.
 Compose generates replica names because a fixed `container_name` prevents scaling.
 Each replica exclusively locks a logical slot without a Docker socket. Slots 5
 and 6 retain manual/urgent reservations; additional slots increase general capacity.
 With fewer than five replicas, general slots still handle every type of work.
+
+Deployment verification calls `sunday-edge-autoscale.py --reset-control` after
+Compose restores the baseline. Install the nightly/recovery hook once with
+`python3 scripts/install-grafana-maintenance-hooks.py --apply`; it backs up the
+Windows helper and resets controls after the Sunday Edge Compose recreation.
+Both paths already hold lifecycle locks/maintenance. A plain `docker restart`
+does not reset replica count or the live target.
+
+Provision n8n credential `sundayEdgeHostSsh` / `Sunday Edge Host SSH` as type
+`sshPassword` for the existing Ben-Server SSH account. Store its password only in
+n8n's encrypted credential store. Import it before activating the workflow; never
+put a password in workflow JSON, `.env`, logs, or command arguments. Verify a real
+scheduled execution, controller freshness metrics, and 2/2 healthy workers.
 
 The defaults cap all eleven containers together at 10.6 CPU cores and 8.625 GiB
 memory, with no extra swap allowance. Each DFS replica is capped at 1 CPU/512 MiB;

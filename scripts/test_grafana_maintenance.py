@@ -85,11 +85,13 @@ class MaintenanceTests(unittest.TestCase):
                 'function Start-UptimeKumaMaintenance {\n'
                 '    Write-DockerLog "Creating Uptime Kuma maintenance window for Docker Desktop maintenance."\n'
                 '    if ($failed) { return $false }\n}\n'
-                'function Stop-UptimeKumaMaintenance {\n}\n')
+                'function Stop-UptimeKumaMaintenance {\n}\n'
+                '        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate")\n')
         updated = INSTALL["common_hooks"](text)
         self.assertEqual(INSTALL["common_hooks"](updated), updated)
         self.assertIn('if ($failed) { return $grafanaStarted }', updated)
         self.assertIn('function Stop-UptimeKumaMaintenance {\n    Stop-GrafanaMaintenance', updated)
+        self.assertIn('sunday-edge-autoscale.py --reset-control', updated)
         nightly = '} finally {\n    Remove-Item -Path $DockerMaintenanceLockPath\n}\n'
         updated = INSTALL["nightly_hooks"](nightly)
         self.assertEqual(INSTALL["nightly_hooks"](updated), updated)
