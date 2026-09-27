@@ -17,7 +17,7 @@
         "resource": "command",
         "operation": "execute",
         "command": "powershell.exe -NoProfile -NonInteractive -File E:\\Docker\\scripts\\sunday-edge-autoscale.ps1",
-        "cwd": ""
+        "cwd": "."
       },
       "name": "Reconcile DFS Workers",
       "type": "n8n-nodes-base.ssh",
