@@ -122,6 +122,8 @@ stack_dependents() {
 mark_service_dir() {
   local stack_dir=$1
   local reason=$2
+  # Scope the plan before deriving maintenance targets, not just at execution.
+  scope_allows_stack "$stack_dir" || return 0
   local current=${service_dirs[$stack_dir]:-}
 
   if [[ "$current" == "changed" ]]; then
