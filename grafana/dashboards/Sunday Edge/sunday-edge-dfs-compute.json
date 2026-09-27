@@ -11,7 +11,7 @@
       "id": 1,
       "type": "stat",
       "title": "Worker pool availability",
-      "description": "Available DFS containers; desired replica count is configured in the Sunday Edge Compose stack.",
+      "description": "Available DFS containers compared with the live autoscaling target; Compose restores a baseline of two and slot capacity is six.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
