@@ -38,6 +38,7 @@ function Test-ProbeCase([string]$Case, [int]$ExpectedCode, [int]$Budget = 1000) 
                         throw 'Token was not renewed'
                     }
                     if ($Case -eq 'invalid') { $body = '{broken' }
+                    if ($Case -eq 'root-array') { $body = '[' + $body + ']' }
                     if ($Case -eq 'wrong-tag') { $body = $body.Replace('"tag":1', '"tag":2') }
                     if ($Case -eq 'missing-field') { $body = $body.Replace('"uploadSpeed":10', '"other":10') }
                     if ($Case -eq 'http-error') { $status = '401 Unauthorized' }
@@ -86,6 +87,7 @@ Test-ProbeCase 'renew' 0
 Test-ProbeCase 'missing-token' 5
 Test-ProbeCase 'loop' 5
 Test-ProbeCase 'invalid' 4
+Test-ProbeCase 'root-array' 4
 Test-ProbeCase 'wrong-tag' 4
 Test-ProbeCase 'missing-field' 4
 Test-ProbeCase 'http-error' 3
