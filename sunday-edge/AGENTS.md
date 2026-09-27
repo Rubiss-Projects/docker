@@ -117,7 +117,10 @@ and 6 retain manual/urgent reservations; additional slots increase general capac
 With fewer than five replicas, general slots still handle every type of work.
 
 Deployment verification calls `sunday-edge-autoscale.py --reset-control` after
-Compose restores the baseline. Install the nightly/recovery hook once with
+Compose restores the baseline replica count. Reset fills missing logical slots
+1 and 2; any surviving high slot finishes its work before the controller removes
+it, so the physical count can temporarily exceed two. A changed lower-demand
+recommendation starts a new five-minute cooldown. Install the nightly/recovery hook once with
 `python3 scripts/install-grafana-maintenance-hooks.py --apply`; it backs up the
 Windows helper and resets controls after the Sunday Edge Compose recreation.
 Both paths already hold lifecycle locks/maintenance. A plain `docker restart`
