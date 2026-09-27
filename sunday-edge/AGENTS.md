@@ -100,6 +100,7 @@ aligned with the bounded controller policy. Manual lifecycle changes still use:
 ```sh
 cd /mnt/e/Docker/sunday-edge
 python3 ../scripts/grafana-maintenance.py run --reason planned-scaling -- docker compose up -d --wait
+python3 ../scripts/sunday-edge-autoscale.py --reset-control
 docker compose ps
 docker compose stats
 ```
@@ -124,12 +125,18 @@ n8n's encrypted credential store. Import it before activating the workflow; neve
 put a password in workflow JSON, `.env`, logs, or command arguments. Verify a real
 scheduled execution, controller freshness metrics, and 2/2 healthy workers.
 
-The defaults cap all eleven containers together at 10.6 CPU cores and 8.625 GiB
-memory, with no extra swap allowance. Each DFS replica is capped at 1 CPU/512 MiB;
+The two-worker baseline caps seven containers at 6.6 CPU cores and 6.625 GiB memory;
+maximum scale caps eleven at 10.6 CPU cores and 8.625 GiB, with no extra swap
+allowance. Each DFS replica is capped at 1 CPU/512 MiB;
 analytics at 2 CPUs/2 GiB; maintenance at 1 CPU/2 GiB; research at 0.5 CPU/512 MiB;
 the league monitor at 1 CPU/1 GiB; and checkpoint recovery at 0.1 CPU/128 MiB. These are ceilings, not reservations.
 Each added DFS replica adds its configured CPU/memory ceiling and twelve scheduled
 idle control-plane requests per hour. Edit the role limits in `.env` as needed.
+
+For rollback, deactivate `sundayEdgeAutoscale1` in n8n before restoring the prior
+reviewed Compose configuration and image pins. Keep the runtime/archive volumes.
+The previous fixed six-replica configuration restores every historical slot;
+leaving two old workers with a six-slot live target would cause false alerts.
 
 All containers run as UID/GID 10001 with dropped capabilities, no-new-privileges,
 read-only image files, bounded tmpfs/logs, and process limits. No host drives,
