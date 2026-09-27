@@ -6,6 +6,33 @@ database, exposed endpoint or second restart controller is added.
 
 ## Signals and dashboards
 
+- Windows Telegraf also calls a native Windows `session-stats` probe every five
+  seconds. It uses Windows Stopwatch timing and a three-second total deadline
+  across token negotiation, complete response reading and validation. It does
+  not use Docker exec or a guest clock. The installer copies the script beside
+  Telegraf on C: so execution does not require E: to respond. The process has a
+  separate four-second Telegraf timeout; a killed/missing process is missing
+  telemetry, not an RPC success. A global mutex prevents overlapping probes.
+  Current production RPC authentication is disabled; a future HTTP 401 is
+  reported as a failure, never bypassed by changing authentication settings.
+  The request is loopback-only, redirects/proxies are disabled, and bodies are
+  bounded to 64 KiB. No credentials, tokens, exception text or media identifiers
+  enter metrics.
+- `transmission_host_rpc` records `rpc_up`, `deadline_exceeded`, `slow` (successful
+  replies over one second), `attempt_seconds`, `observed_at`, and `failure_code`:
+  0 success, 1 transport/body transfer, 2 deadline, 3 HTTP status, 4 invalid JSON
+  or RPC result, 5 session-token negotiation. `rpc_seconds` exists only for
+  successful replies. Failed/censored durations never enter success percentiles.
+  UTC is correlation metadata, not the duration clock. Fresh PowerShell/HTTP
+  clients contribute fixed overhead; compare like-for-like host measurements,
+  not their absolute latency directly against the in-container Python probe.
+- The existing Transmission Stability dashboard shows host RPC results,
+  successful p95/p99, observation freshness and success percentage above the
+  guest panels. Host samples expire after 30 seconds. Windows missing-telemetry
+  and sustained functional-failure alerts reuse the existing contact/maintenance
+  routing and never initiate recovery. Five-second sampling can miss brief
+  stalls; successful-probe percentage is not wall-clock uptime.
+
 - `scripts/rpc-health.py` negotiates Transmission's HTTP 409 session token and
   validates a successful `session-stats` response. Merely returning 409 is not
   healthy. Docker checks every 30 seconds, allows two minutes for startup and
@@ -74,6 +101,8 @@ it is not an exact event counter.
    It backs up the existing configuration, manages only its marked block,
    validates the actual Windows inputs, then restarts Telegraf. The existing
    output and its token are preserved locally and never copied into this repo.
+   The host probe is backed up and rolled back with the managed configuration;
+   probe-only updates are installed even when the configuration is unchanged.
    This host service is outside the Compose deployment runner; rerun the script
    after changing `telegraf.conf`. No-op installs do not restart the service.
 4. Grafana dashboards hot-load; reload alert provisioning through the existing
@@ -86,6 +115,13 @@ Focused tests: `python3 -m unittest discover -s transmission/scripts -p test_rpc
 and `node --test n8n/scripts/self_heal_container.test.js`. Probe tests cover
 session renewal, malformed/incomplete RPC responses, listener-only failures,
 timeouts, aggregate inventory and read-only methods.
+
+Windows probe tests: `powershell.exe -NoProfile -NonInteractive -File
+transmission/scripts/test_host_rpc_health.ps1`. They use disposable Windows-loopback
+servers, including delayed/truncated bodies and a shared token-negotiation deadline;
+they never induce a production failure. After installing, verify fresh
+`transmission_host_rpc` samples before beginning a 24–48 hour unchanged Plan9
+baseline. WSL upgrades and VirtioFS activation remain separate maintenance work.
 
 ## Recovery evidence and remaining gaps
 

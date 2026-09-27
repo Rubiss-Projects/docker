@@ -202,3 +202,103 @@ groups:
     labels:
       service: transmission
       severity: warning
+  - uid: transmission_host_rpc_missing
+    title: Transmission Windows RPC telemetry missing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource:
+          type: influxdb
+          uid: ddvyigh44dblsd
+        rawQuery: true
+        query: SELECT count("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+    for: 2m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: Transmission Windows RPC telemetry missing
+      description: No Windows-native functional RPC samples for the evaluation window. Check
+        Windows Telegraf and InfluxDB. Missing telemetry is unknown, not a healthy service.
+        Does not restart Transmission.
+      __dashboardUid__: transmission-stability
+      __panelId__: '25'
+    labels:
+      service: transmission
+      severity: warning
+  - uid: transmission_host_rpc_failed
+    title: Transmission Windows functional RPC failing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 120
+        to: 0
+      datasourceUid: ddvyigh44dblsd
+      model:
+        datasource:
+          type: influxdb
+          uid: ddvyigh44dblsd
+        rawQuery: true
+        query: SELECT mean("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter
+        resultFormat: time_series
+        policy: default
+        alias: ''
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0.5
+            type: lt
+          operator:
+            type: and
+    for: 2m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Transmission Windows functional RPC failing
+      description: Most Windows-native session-stats probes fail their three-second deadline
+        or response validation. Compare Windows endpoint reachability, guest RPC and disk
+        latency. Kuma and n8n remain the recovery owners.
+      __dashboardUid__: transmission-stability
+      __panelId__: '21'
+    labels:
+      service: transmission
+      severity: warning

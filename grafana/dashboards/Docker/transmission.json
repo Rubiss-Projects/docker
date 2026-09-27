@@ -16,6 +16,339 @@
   },
   "panels": [
     {
+      "id": 21,
+      "title": "Windows functional RPC now",
+      "type": "stat",
+      "description": "Native Windows session-stats, including token negotiation and complete body validation. Three-second deadline; no Docker exec or guest clock. Missing samples are unknown.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE time > now() - 30s",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "RPC failed",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "RPC healthy",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 25,
+      "title": "Windows observer last sample",
+      "type": "stat",
+      "description": "UTC for correlation only. Native Windows Stopwatch measures durations. Five-second target cadence; missing collection is not RPC success.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"observed_at\") * 1000 FROM \"transmission_host_rpc\" WHERE time > now() - 30s",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 22,
+      "title": "Windows successful RPC latency",
+      "type": "timeseries",
+      "description": "Windows Stopwatch durations of successful calls only. Timeout/failure durations are censored and excluded. Percentiles below retain raw sample distribution.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_seconds\") FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1 GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Windows RPC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "Windows RPC result and deadline",
+      "type": "timeseries",
+      "description": "Five-second target cadence. Gaps remain gaps. Deadline exceeded indicates an unsuccessful call; existing Kuma/n8n recovery remains unchanged.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "RPC successful",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"deadline_exceeded\") FROM \"transmission_host_rpc\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "Deadline exceeded",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "title": "Windows successful RPC percentiles",
+      "type": "stat",
+      "description": "Raw successful probe samples over the selected range, measured with Windows Stopwatch. Excludes failed/censored calls; always compare failures and sample coverage.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT percentile(\"rpc_seconds\", 95) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "p95",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT percentile(\"rpc_seconds\", 99) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "p99",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 26,
+      "title": "Windows successful probes over selected range",
+      "type": "stat",
+      "description": "Sample success percentage, not wall-clock uptime. Missing collection is excluded, not counted as success. Check latest sample and telemetry alerts.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"rpc_up\") * 100 FROM \"transmission_host_rpc\" WHERE $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown / no fresh samples",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
       "id": 1,
       "title": "Functional RPC now",
       "type": "stat",
@@ -26,7 +359,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 16,
         "w": 12,
         "h": 4
       },
@@ -90,7 +423,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 16,
         "w": 12,
         "h": 4
       },
@@ -139,7 +472,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 20,
         "w": 12,
         "h": 8
       },
@@ -200,7 +533,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 20,
         "w": 12,
         "h": 8
       },
@@ -273,7 +606,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 28,
         "w": 12,
         "h": 8
       },
@@ -334,7 +667,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 12,
+        "y": 28,
         "w": 12,
         "h": 8
       },
@@ -455,7 +788,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 20,
+        "y": 36,
         "w": 12,
         "h": 8
       },
@@ -510,7 +843,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 20,
+        "y": 36,
         "w": 12,
         "h": 8
       },
@@ -565,7 +898,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 28,
+        "y": 44,
         "w": 12,
         "h": 8
       },
@@ -620,7 +953,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 28,
+        "y": 44,
         "w": 12,
         "h": 4
       },
@@ -669,7 +1002,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 52,
         "w": 12,
         "h": 4
       },
@@ -718,7 +1051,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 36,
+        "y": 52,
         "w": 12,
         "h": 4
       },
@@ -767,7 +1100,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 56,
         "w": 12,
         "h": 8
       },
@@ -816,7 +1149,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 40,
+        "y": 56,
         "w": 12,
         "h": 8
       },
