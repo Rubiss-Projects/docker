@@ -20,6 +20,12 @@ services:
     volumes:
       - ./config:/channels-dvr
       - ./recordings:/shares/DVR
+      # Keep frequently replaced live HLS files on Linux storage, outside Windows/9p.
+      - type: volume
+        source: streaming-sessions
+        target: /shares/DVR/Streaming/sessions
+        volume:
+          nocopy: true
       - ../../Media/channels-dvr:/shares/DVR/TV
       # Explicitly mount WSL NVIDIA driver paths
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
@@ -38,6 +44,10 @@ services:
       - swag.uptime-kuma.monitor.url=http://channels-dvr:8089
     networks:
       - proxynet
+
+volumes:
+  streaming-sessions:
+    name: channels-dvr-streaming-sessions
 
 networks:
   proxynet:

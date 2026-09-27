@@ -28,6 +28,20 @@ network_mode: host  # Recommended for device discovery
 - `config/logs/` - Application logs
 - `/recordings/` - Recorded TV shows and movies
 
+### Live streaming storage
+
+Live HLS sessions use the Docker volume `channels-dvr-streaming-sessions` at
+`/shares/DVR/Streaming/sessions`. This keeps rapidly replaced playlists and
+segments on Linux storage instead of the Windows/9p recording mount. The mount
+uses `nocopy` so old, inactive sessions are not copied into a new volume.
+Recordings and the persistent `Streaming/m3u8` indexes retain their existing
+bind mounts. Do not move the entire `Streaming` directory to temporary storage.
+
+Changing this mount requires recreating Channels and resets live playback
+buffers. Schedule that operation around active viewing and recordings. After
+deployment, verify the volume mount, GPU encoding, recording progress, and live
+browser playback; a healthy HTTP endpoint alone does not verify playback.
+
 ### Default Ports
 - 8089 - Web UI and API
 - 80 - HTTP streaming (if configured)
