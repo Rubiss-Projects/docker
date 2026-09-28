@@ -502,3 +502,24 @@ Rollback through a reviewed promotion of all six pins to `v0.2.21`, restoring
 `CODEX_MODEL=gpt-5.6-luna` and `CODEX_ESCALATION_MODEL=gpt-5.6-sol` together. The
 new web ingestion allowlists retain the prior versions, so worker rollback is
 compatible. Preserve observation receipts, spending ledgers and durable jobs.
+
+## Week 3 follow-up (v0.2.30)
+
+Deploy the matching web revision before all six image pins. Compute policy v6
+caps FINAL at 5,000 trials within the existing 15-minute snapshot window; T15
+retains 25,000. Older queued budgets remain frozen. Workers stay v39/protocol v7,
+with no schema, credential, volume or resource changes. Older images cannot
+parse new v6 policies, so a rollback requires a matching web/worker pair and
+inspection of queued policy versions.
+
+The maintenance construction CLI also accepts development protocol v2. Use the
+bounded nine-player fixture procedure above with a new unused input/report path
+and v2 input: expect 16 cells, `productionChangeSupported: false`, implementation
+hashes and at least one retained baseline. Verify a bounded 5,000-trial compute
+diagnostic and fresh worker registration on the deployed revision. These checks
+are operational diagnostics; the next pre-lock FINAL must establish prospective
+completion. Preserve missed checkpoints and all original/corrected result archives.
+
+The Week 3 field-context correction has already been applied and recalibrated;
+do not reapply it during deployment. Candidate and joint-field research remain
+unqualified. See the app's `docs/week3-follow-up.md` for evidence and decisions.
