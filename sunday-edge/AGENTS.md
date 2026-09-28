@@ -512,10 +512,26 @@ with no schema, credential, volume or resource changes. Older images cannot
 parse new v6 policies, so a rollback requires a matching web/worker pair and
 inspection of queued policy versions.
 
-The maintenance construction CLI also accepts development protocol v2. Use the
-bounded nine-player fixture procedure above with a new unused input/report path
-and v2 input: expect 16 cells, `productionChangeSupported: false`, implementation
-hashes and at least one retained baseline. Verify a bounded 5,000-trial compute
+The maintenance construction CLI also accepts development protocol v2. Prepare
+the bounded nine-player frozen fixture described above, set its `version` to
+`dfs-construction-development-v2`, and use these v2 commands instead of the
+v0.2.20 commands. Both paths must be unused before starting:
+
+```sh
+docker exec -i sunday-edge-maintenance node -e 'const fs=require("node:fs"),x=JSON.parse(fs.readFileSync(0,"utf8")); if(x.version!=="dfs-construction-development-v2"||x.phase!=="DEVELOPMENT"||x.players.length!==9||x.baseline.length!==1||x.supportSize!==20||x.trials!==100||x.fieldSeeds.length!==2) throw Error("Expected bounded v2 runtime fixture"); fs.writeFileSync("/tmp/construction-v030-input.json",JSON.stringify(x),{flag:"wx"})' < frozen-construction-v2-smoke.json
+docker exec sunday-edge-maintenance timeout 120 node --import tsx scripts/dfs-construction-research.mts /tmp/construction-v030-input.json /tmp/construction-v030-report.json
+docker exec sunday-edge-maintenance node -e 'const fs=require("node:fs"),a=require("node:assert/strict"),r=JSON.parse(fs.readFileSync("/tmp/construction-v030-report.json","utf8")); a.equal(r.phase,"DEVELOPMENT"); a.equal(r.productionChangeSupported,false); a.equal(r.cells.length,16); a.ok(r.coverage.expanded.lineups>=1); a.match(r.implementation["lib/dfs/research-random.ts"],/^[a-f0-9]{64}$/); a.match(r.implementation["package-lock.json"],/^[a-f0-9]{64}$/); console.log(JSON.stringify({status:"PASSED",cells:r.cells.length,candidates:r.coverage.expanded.lineups,hashedFiles:Object.keys(r.implementation).length}))'
+```
+
+Retain the verification summary with the deployed image revision. After a
+successful invocation, remove only its temporary input and report:
+
+```sh
+docker exec sunday-edge-maintenance node -e 'const fs=require("node:fs"); for(const p of ["/tmp/construction-v030-input.json","/tmp/construction-v030-report.json"]) fs.rmSync(p,{force:true})'
+```
+
+If verification fails, preserve the files and diagnose it before continuing.
+Verify a bounded 5,000-trial compute
 diagnostic and fresh worker registration on the deployed revision. These checks
 are operational diagnostics; the next pre-lock FINAL must establish prospective
 completion. Preserve missed checkpoints and all original/corrected result archives.
