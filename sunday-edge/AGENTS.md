@@ -561,3 +561,29 @@ completion. Preserve missed checkpoints and all original/corrected result archiv
 The Week 3 field-context correction has already been applied and recalibrated;
 do not reapply it during deployment. Candidate and joint-field research remain
 unqualified. See the app's `docs/week3-follow-up.md` for evidence and decisions.
+## Public analyst transcripts (v0.2.34)
+
+Deploy the matching web revision before promoting all six image references.
+Analytics v21 collects public English YouTube captions from the four registered
+DFS analyst channels; no private feed or new credential is required. Preserve
+`CODEX_EXTRACTION_CONCURRENCY=1`, durable extraction checkpoints and existing Jev
+observation limits. Due news sources complete a separate priority collection
+before transcript collection. Missing current-week public captions report partial
+coverage.
+
+Compute advances to `dfs-simulator-v40`; the web fences older workers until the
+matching images register. No database migration, volume or resource change is
+required. Verify all actual replicas' image revision and health, fresh v40
+registrations, and a completed analytics v21 collection report containing
+`dfs_neil_orfield`, `dfs_etr`, `dfs_stokastic` and `dfs_army`. Inspect each source's
+status, caption coverage and failure code rather than treating a heartbeat or
+zero accepted opinions as successful extraction. Verify fresh monitor success.
+
+Consensus affects bounded selection utility and candidate searches immediately;
+point/ownership/payout forecasts remain numeric. Analyst forecast changes and
+learned analyst reliability are deferred. Existing research reviews have an
+October 7, 2026 decision deadline; preserve their decision history and archives.
+
+Rollback requires matching web and worker code because v39 cannot execute the
+new v40 contract. Use reviewed deployment changes and preserve durable work,
+archives and credentials; do not patch running containers.
