@@ -530,6 +530,19 @@ successful invocation, remove only its temporary input and report:
 docker exec sunday-edge-maintenance node -e 'const fs=require("node:fs"); for(const p of ["/tmp/construction-v030-input.json","/tmp/construction-v030-report.json"]) fs.rmSync(p,{force:true})'
 ```
 
+## GPT-6.1 Sol (v0.2.31)
+
+All six image references move together after the app release publishes them.
+Analytics bundles Codex CLI/SDK 0.159.2, verified to support `gpt-6.1-sol` with
+`max` reasoning through the existing ChatGPT login. Public Compose settings
+select that model and effort for both extraction and mandatory escalation,
+overriding older secret-file values. Preserve the two-stage review process.
+
+There are no schema, protocol, volume, resource, scheduler, or credential changes.
+Jev remains an observer on its existing model and spending limits; preserve its
+ledger. Verify the deployed CLI version and all four Codex settings, then check
+a live structured-output request and fresh successful analytics ingestion.
+
 If verification fails, preserve the files and diagnose it before continuing.
 Verify a bounded 5,000-trial compute
 diagnostic and fresh worker registration on the deployed revision. These checks

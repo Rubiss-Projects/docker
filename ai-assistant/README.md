@@ -3,6 +3,10 @@
 The service runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
+Chat, scheduled responses, and the review helper use `gpt-6.1-sol` with `max`
+reasoning. `CODEX_MODEL` and `CODEX_REASONING_EFFORT` in the public `.env` configure
+both the assistant and reviewer through explicit Compose environment settings.
+
 GitHub contributions are enabled for everyone already allowed to chat with the
 bot. Users can ask for a draft PR in `Rubiss-Projects/ai-assistant` or
 `Rubiss-Projects/docker` and revise their own contribution in the same conversation.
@@ -99,7 +103,7 @@ from delivery and cooldown suppression.
 
 `TYPESAFE_API_KEY` is supplied through the git-crypt encrypted `.env.secret`
 overlay and is not passed to shared provider processes or the browser helper.
-Only the evaluator uses Jev; responses continue using the configured Codex/Astra
+Only the evaluator uses Jev; responses continue using the configured Codex
 conversation model. To use the existing provider login for evaluation instead,
 set `CHAT_PARTICIPATION_EVALUATOR=provider` and recreate the service. The
 participation mode can also be changed to `always` or `mentions-only`.

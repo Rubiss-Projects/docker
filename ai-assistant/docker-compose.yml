@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.0
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.1
     container_name: ai-assistant
     restart: unless-stopped
     # Let scheduled inference finish within its default 10-minute timeout, plus cleanup.
@@ -16,6 +16,8 @@ services:
       AI_ASSISTANT_CONFIG_DIR: /data
       AI_ASSISTANT_WORKSPACE_ROOT: /data/workspaces
       AI_ASSISTANT_BROWSER_URL: http://browser:3123
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-6.1-sol}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
       GITHUB_CONTRIBUTIONS_PUBLISH_LIMIT: ${GITHUB_CONTRIBUTIONS_PUBLISH_LIMIT:-20}
       CODEX_REVIEW_LIMIT: ${CODEX_REVIEW_LIMIT:-20}
     depends_on:
@@ -59,7 +61,7 @@ services:
       - browser-control
 
   browser:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.0
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.1
     container_name: ai-assistant-browser
     entrypoint: ["node", "/app/dist/src/browserWorker.js"]
     restart: unless-stopped
@@ -84,7 +86,7 @@ services:
       - browser-egress
 
   reviewer:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.0
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.25.1
     container_name: ai-assistant-reviewer
     entrypoint: ["node", "/app/dist/src/reviewWorker.js"]
     restart: unless-stopped
@@ -93,8 +95,8 @@ services:
     environment:
       HOME: /data
       CODEX_HOME: /data/.codex
-      CODEX_REVIEW_MODEL: gpt-6-astra
-      CODEX_REVIEW_REASONING_EFFORT: medium
+      CODEX_REVIEW_MODEL: ${CODEX_MODEL:-gpt-6.1-sol}
+      CODEX_REVIEW_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
       CODEX_REVIEW_LIMIT: ${CODEX_REVIEW_LIMIT:-20}
     # No bot env_file, GitHub credentials, assistant data, Docker socket, or exposed port.
     volumes:
