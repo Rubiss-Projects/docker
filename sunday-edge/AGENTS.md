@@ -196,6 +196,15 @@ skipped by automatic deployment until their first manual, verified migration.
 
 ## Data, backups, and recovery
 
+The analytics role pins `CODEX_EXTRACTION_CONCURRENCY=1` in Compose. Concurrent
+Codex 0.159.2 processes exhausted its 256-task cgroup limit during fresh news
+extraction (`ThreadPoolBuildError`, with `pids.events` reporting rejected tasks).
+Keep extraction serial within the existing CPU, memory and PID limits. The
+container's explicit setting overrides older encrypted concurrency settings.
+After rollout, require a successful real extraction and ingestion; a healthy
+supervisor or successful discovery alone does not establish recovery. Preserve
+the durable article checkpoint and let its bounded retries resume normally.
+
 The production database retains analysis results and durable jobs. Four named,
 external volumes hold local state, preserving Linux permissions on Docker Desktop:
 
