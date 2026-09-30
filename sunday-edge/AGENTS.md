@@ -587,3 +587,18 @@ October 7, 2026 decision deadline; preserve their decision history and archives.
 Rollback requires matching web and worker code because v39 cannot execute the
 new v40 contract. Use reviewed deployment changes and preserve durable work,
 archives and credentials; do not patch running containers.
+
+## Analyst interpretation correction (v0.2.35)
+
+Promote all six pins together after the matching app release. Analytics remains
+v21 and compute remains v40; no migration or resource change is needed. The
+worker queues one refresh of analyst sources after the interpretation upgrade,
+preserving active collection work and news priority. Transcript artifact hashes
+include their preceding contest context so stored evidence matches verification.
+
+Require a completed fresh source report and inspect accepted DFS_ANALYST records,
+not just fetched captions. Confirm applicable Week 4 evidence changes selection
+utility and candidate anchors; older weekly slates must remain unaffected.
+Preserve exact quotes, conditions and named-speaker attribution. The sole DFS
+owner's forecast/reliability decision is under a one-week review ending October 7;
+this does not delay live bounded analyst selection or activate forecast changes.
