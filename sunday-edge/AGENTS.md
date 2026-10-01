@@ -602,3 +602,27 @@ utility and candidate anchors; older weekly slates must remain unaffected.
 Preserve exact quotes, conditions and named-speaker attribution. The sole DFS
 owner's forecast/reliability decision is under a one-week review ending October 7;
 this does not delay live bounded analyst selection or activate forecast changes.
+## Public podcast fallback (v0.2.36)
+
+Promote all six image references after the matching app release. The analytics
+image packages its pinned speech model and dependencies: no runtime model
+download, new secret, volume or resource setting is needed. Retain its 2 CPU /
+2 GiB limits and serial extraction. Public RSS audio is used only when usable
+YouTube captions are absent; mirrored shows must not be counted twice.
+
+Versioned text cache and temporary audio use `/data/state/public-audio` on the
+existing analytics volume. Downloads are limited to 80 MiB, episodes to 90
+minutes and speech to eight minutes with two CPU threads. Worker runs use an
+18–22 minute budget; older shorter settings are clamped to the viable minimum.
+Audio is deleted
+after each attempt; abandoned partial files are cleaned on the next attempt.
+Do not mount another role's credentials or download media outside the registered
+public feed hosts. Missing episodes, missing captions and failed speech remain
+explicit partial source coverage.
+
+Verify a fresh public podcast collection, independently verified DFS_ANALYST
+evidence and a completed source report with application counts; fetched audio
+or a healthy supervisor alone is insufficient. All six analyst sources use the
+live consensus path with unchanged bounded weights. Named Orfield or
+SonicLibrarian attribution requires actual speaker evidence. Preserve active
+collection checkpoints, news priority and the October 7 reliability-review deadline.
