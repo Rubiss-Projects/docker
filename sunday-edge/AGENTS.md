@@ -626,3 +626,13 @@ or a healthy supervisor alone is insufficient. All six analyst sources use the
 live consensus path with unchanged bounded weights. Named Orfield or
 SonicLibrarian attribution requires actual speaker evidence. Preserve active
 collection checkpoints, news priority and the October 7 reliability-review deadline.
+
+## Bounded podcast speech processing (v0.2.37)
+
+Long podcast episodes use incremental decoding and five-minute transcription
+chunks within the existing 2 GiB limit. Episode timestamps remain absolute;
+contest context resets at chunk seams. Speech-version v2 replaces the cache;
+the web continues accepting verified v1 evidence during the compatible rollout.
+The interpretation upgrade queues a fresh source pass without discarding an
+active collection. Verify a complete long public episode and completed source
+report, including failures, model deferrals and applicable recommendation counts.
