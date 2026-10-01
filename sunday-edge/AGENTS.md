@@ -636,3 +636,12 @@ the web continues accepting verified v1 evidence during the compatible rollout.
 The interpretation upgrade queues a fresh source pass without discarding an
 active collection. Verify a complete long public episode and completed source
 report, including failures, model deferrals and applicable recommendation counts.
+
+## Speech timestamp boundary validation (v0.2.38)
+
+Speech version v3 discards model timestamps outside their actual decoded chunk.
+This prevents overshoot at a five-minute seam from invalidating a whole podcast.
+The web accepts verified v1/v2 evidence during rollout, while v3 owns newly
+transcribed caches. Require a fresh long-episode collector result, independent
+model verification and completed source report; transcription exit status alone
+is insufficient. Keep the existing resource limits and October 7 review deadline.
