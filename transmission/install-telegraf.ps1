@@ -13,6 +13,9 @@ $oldProbe = if ($probeExisted) { [IO.File]::ReadAllText($probePath) } else { $nu
 $block = $begin + "`r`n" + [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'telegraf.conf')) + "`r`n" + $end
 $pattern = '(?s)' + [regex]::Escape($begin) + '.*?' + [regex]::Escape($end)
 $updated = if ($original.Contains($begin)) { [regex]::Replace($original, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block }) } else { $original.TrimEnd() + "`r`n`r`n" + $block + "`r`n" }
+# Windows localhost can select an unreachable IPv6 listener after host updates.
+# Preserve the output credentials while selecting the working IPv4 listener.
+$updated = $updated.Replace('http://localhost:8086', 'http://127.0.0.1:8086')
 if ($updated -eq $original -and $probeSource -eq $oldProbe) { Write-Output 'Transmission Telegraf configuration and host probe are already installed.'; exit 0 }
 $backup = $Config + '.backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 Copy-Item -LiteralPath $Config -Destination $backup

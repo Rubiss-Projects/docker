@@ -1,0 +1,1 @@
+/command/with-contenv python3 /etc/s6-overlay/s6-rc.d/init-kuma-initial-info/patch.py
