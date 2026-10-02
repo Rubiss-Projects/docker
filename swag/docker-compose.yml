@@ -30,6 +30,9 @@ services:
       - UPTIME_KUMA_API_VERSION=2
     volumes:
       - ./config:/config
+      # Patch the reviewed Kuma client race before its mod attempts login.
+      - ./init/kuma-initial-info:/etc/s6-overlay/s6-rc.d/init-kuma-initial-info:ro
+      - ./init/kuma-required:/etc/s6-overlay/s6-rc.d/init-mod-swag-auto-uptime-kuma-install/dependencies.d/init-kuma-initial-info:ro
     ports:
       - "443:443"   # SWAG HTTPS port (standard)
       - "80:80"     # SWAG HTTP port (standard)
