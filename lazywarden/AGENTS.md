@@ -2,6 +2,19 @@
 
 Use this guidance when working on Lazywarden configuration for automated Bitwarden/Vaultwarden backup management.
 
+## Current deployment and database recovery
+
+The deployed stack mounts only its own `config/`, backup `data/` and secret
+environment file. It does not mount Bitwarden's PostgreSQL directory. Its backup
+files must be identified by format before choosing a restore procedure; they are
+not a certified physical backup of `bitwarden_postgres_data`.
+
+For the deployed server's database backup/restore, follow
+[Bitwarden guidance](../bitwarden/AGENTS.md#back-up-the-deployed-database). The old
+Windows `bitwarden/data/` is a retained migration snapshot, not current storage.
+The Vaultwarden filesystem/SQLite examples below are historical; do not add that
+snapshot mount or copy database files there for the current Bitwarden Lite stack.
+
 ## Service Overview
 Lazywarden is an automated backup solution specifically designed for Vaultwarden (self-hosted Bitwarden) installations. It handles scheduled backups, retention policies, compression, encryption, and optional cloud uploads to ensure password vault data is protected.
 
@@ -69,22 +82,12 @@ Get-ChildItem .\data | Sort-Object LastWriteTime -Descending
 ```
 
 ### Restore from Backup
-```powershell
-# 1. Stop Vaultwarden
-docker compose -f ..\bitwarden\docker-compose.yml stop
 
-# 2. Extract backup
-$BackupFile = ".\data\vaultwarden-backup-20250105-020000.tar.gz.enc"
-
-# If encrypted, decrypt first
-openssl enc -d -aes-256-cbc -in $BackupFile -out vaultwarden-backup.tar.gz -k "your-encryption-password"
-
-# 3. Extract to Vaultwarden data directory
-tar -xzf vaultwarden-backup.tar.gz -C ..\bitwarden\data\
-
-# 4. Restart Vaultwarden
-docker compose -f ..\bitwarden\docker-compose.yml start
-```
+Identify and verify the backup format in a protected location first. Vault
+exports and PostgreSQL physical backups use different recovery procedures. For
+the current server database, use the reviewed native-volume restore in Bitwarden's
+guidance with all writers stopped. Never extract into `../bitwarden/data` and
+restart: Compose does not use that historical directory after migration.
 
 ### Configure Retention Policy
 ```yaml
@@ -312,26 +315,23 @@ Typical Vaultwarden backup includes:
 ## Restore Procedures
 
 ### Full Restore
-1. Stop Vaultwarden
-2. Decrypt backup (if encrypted)
-3. Extract backup to data directory
-4. Verify file ownership/permissions
-5. Start Vaultwarden
-6. Test login and data access
+
+Use the procedure for the verified backup format and obtain a concrete recovery
+review before replacing current data. A full PostgreSQL recovery uses a new
+native volume and the pinned image as documented in Bitwarden's guidance; it
+does not copy files into the retired Windows directory.
 
 ### Selective Restore
-To restore specific items:
-1. Extract backup to temporary location
-2. Copy specific files to Vaultwarden data
-3. Restart Vaultwarden
+
+Use the application's restore/import procedure for supported vault exports.
+Do not copy individual PostgreSQL table files from an archive into a live cluster.
 
 ### Database-Only Restore
-```powershell
-# Extract just the database
-tar -xzf backup.tar.gz db.sqlite3
-# Copy to Vaultwarden
-Copy-Item db.sqlite3 ..\bitwarden\data\
-```
+
+The deployed Bitwarden server uses PostgreSQL, not `db.sqlite3`. Follow its
+consistent complete-cluster native-volume restore. Keep the previous current
+volume until recovery is accepted; backend rollback keeps that current volume
+and does not restore database contents.
 
 ## Backup Testing
 
