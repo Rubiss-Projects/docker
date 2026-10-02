@@ -5,6 +5,16 @@ Use this guidance when working on Prometheus time-series database and monitoring
 ## Service Overview
 Prometheus scrapes metrics from various exporters (cAdvisor, node-exporter) and stores them as time-series data. It's the core of the monitoring stack, feeding data to Grafana dashboards.
 
+## Deployed storage
+
+The external native Docker volume `prometheus_data` mounts at `/prometheus`.
+The existing TSDB is its **data/** child (`/prometheus/data`); copy the complete old
+`./data` contents without flattening this child. UID 65534 must retain ownership
+of private writable files such as `queries.active`. Windows VirtioFS owner mapping
+does not preserve that ownership. Populate and verify the volume before deployment;
+an existing empty volume is not a valid migration. See
+[`docs/virtiofs-storage-readiness.md`](../docs/virtiofs-storage-readiness.md).
+
 ## Technical Configuration
 
 ### Docker Compose Patterns
@@ -13,10 +23,10 @@ ports:
   - "9090:9090"
 volumes:
   - ./config:/etc/prometheus
-  - ./data:/prometheus
+  - prometheus_data:/prometheus
 command:
   - '--config.file=/etc/prometheus/prometheus.yml'
-  - '--storage.tsdb.path=/prometheus'
+  - '--storage.tsdb.path=/prometheus/data'
   - '--web.console.libraries=/usr/share/prometheus/console_libraries'
   - '--web.console.templates=/usr/share/prometheus/consoles'
   - '--storage.tsdb.retention.time=30d'
@@ -29,7 +39,8 @@ restart: unless-stopped
 ### Critical Files
 - `config/prometheus.yml` - Main configuration (scrape targets, jobs)
 - `config/alerts.yml` - Alert rules (optional)
-- `data/` - Time-series database (TSDB) storage
+- `prometheus_data` volume, `data/` child - current TSDB, blocks, WAL and head chunks
+- The retained Windows `data/` becomes a cold migration snapshot after cutover.
 
 ### Default Ports
 - 9090 - Web UI and API
@@ -208,7 +219,7 @@ rate(node_network_receive_bytes_total[5m]) / 1024^2
 4. Restart instead: `docker compose restart`
 
 ### High Disk Usage
-1. Check TSDB size: `du -sh ./data`
+1. Check TSDB size: `docker exec prometheus du -sh /prometheus/data`
 2. Reduce retention time: `--storage.tsdb.retention.time=15d`
 3. Reduce scrape frequency for high-cardinality metrics
 4. Consider metric relabeling to drop unused metrics
@@ -223,7 +234,7 @@ rate(node_network_receive_bytes_total[5m]) / 1024^2
 1. Reduce query time range
 2. Use recording rules for expensive queries
 3. Increase step interval in queries
-4. Check TSDB for corruption: `promtool tsdb analyze data/`
+4. Inspect a stopped, disposable copy with the matching `promtool`; do not treat analysis as a repair or run it against the live TSDB.
 
 ## Best Practices
 
@@ -351,16 +362,11 @@ curl http://localhost:9090/-/ready
 ## Backup and Restore
 
 ### Backup Prometheus Data
-```powershell
-# Stop Prometheus
-docker compose stop
-
-# Backup data directory
-tar -czf prometheus-backup-$(Get-Date -Format "yyyyMMdd").tar.gz data/
-
-# Start Prometheus
-docker compose start
-```
+Coordinate a clean Prometheus stop, then archive the complete `prometheus_data`
+volume read-only, preserving numeric ownership, modes and links. Include the
+`data/` child, WAL and head chunks; keep deployment config separately. Verify and
+store the archive outside Docker's disk before restarting. The retained Windows
+directory is not a current backup after the first native-volume write.
 
 ### Backup Configuration Only
 ```powershell
@@ -368,16 +374,10 @@ tar -czf prometheus-config-$(Get-Date -Format "yyyyMMdd").tar.gz config/
 ```
 
 ### Restore from Backup
-```powershell
-# Stop Prometheus
-docker compose stop
-
-# Restore data
-tar -xzf prometheus-backup-YYYYMMDD.tar.gz
-
-# Start Prometheus
-docker compose start
-```
+Restore a verified full archive to a new empty native volume with the service
+stopped, preserve its `data/` child and metadata, and validate before selecting
+that volume. Never overwrite a live volume or switch to the stale Windows tree.
+A Plan9/VirtioFS backout keeps the current native volume.
 
 ## Remote Write (Optional)
 
@@ -433,7 +433,7 @@ To scrape metrics from another Prometheus:
 
 ```bash
 --config.file=/etc/prometheus/prometheus.yml  # Config location
---storage.tsdb.path=/prometheus  # Data directory
+--storage.tsdb.path=/prometheus/data  # Current data directory
 --storage.tsdb.retention.time=30d  # How long to keep data
 --storage.tsdb.retention.size=50GB  # Max storage size
 --web.enable-lifecycle  # Allow config reload via HTTP

@@ -5,6 +5,16 @@ Use this guidance when working on Grafana visualization and dashboard creation f
 ## Service Overview
 Grafana provides visualization dashboards for metrics collected by Prometheus. It's the primary interface for monitoring container and system health across Windows and Raspberry Pi hosts.
 
+## Deployed storage
+
+The external native Docker volume `grafana_data` holds `/var/lib/grafana`, including
+SQLite state and plugins. The official image runs as UID 472; it does not consume
+LinuxServer-style PUID/PGID settings. Windows VirtioFS owner mapping can make its
+mode-640 database inaccessible. Populate and verify the volume before deploying;
+volume existence alone does not prove a successful migration. See
+[`docs/virtiofs-storage-readiness.md`](../docs/virtiofs-storage-readiness.md).
+Configuration, provisioning and dashboard sources remain read-only bind mounts.
+
 ## Technical Configuration
 
 ### Docker Compose Patterns
@@ -12,7 +22,7 @@ Grafana provides visualization dashboards for metrics collected by Prometheus. I
 ports:
   - "3000:3000"
 volumes:
-  - ./data:/var/lib/grafana
+  - grafana_data:/var/lib/grafana
 environment:
   - GF_SECURITY_ADMIN_USER=admin
   - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -25,9 +35,9 @@ restart: unless-stopped
 ```
 
 ### Critical Files
-- `data/grafana.db` - SQLite database (dashboards, users, settings)
-- `data/plugins/` - Installed plugins
-- `data/provisioning/` - Auto-provisioned data sources and dashboards
+- `grafana_data` volume: `grafana.db` and `plugins/` - current database and installed plugins
+- `provisioning/`, `dashboards/`, `grafana.ini` - read-only deployment sources
+- The retained old `data/` is a migration snapshot after cutover, not a current backup.
 
 ### Default Credentials
 - Username: `admin`
@@ -47,16 +57,11 @@ docker logs grafana -f
 ```
 
 ### Backup Grafana
-```powershell
-# Stop Grafana
-docker compose stop
-
-# Backup database and config
-tar -czf grafana-backup-$(Get-Date -Format "yyyyMMdd").tar.gz data/
-
-# Start Grafana
-docker compose start
-```
+Coordinate a clean Grafana stop, then archive the complete `grafana_data` volume
+read-only with numeric ownership, modes and links preserved. Include provisioning,
+dashboards, `grafana.ini` and protected environment overlays separately. Store and
+verify the archive outside Docker's disk before restarting Grafana. Follow the
+storage runbook linked above; copying the old Windows `data/` misses new state.
 
 ### Install Plugins
 ```powershell
@@ -458,16 +463,8 @@ For separating environments (prod, staging, dev):
 ## Backup and Restore
 
 ### Manual Backup
-```powershell
-# Stop Grafana
-docker compose stop
-
-# Backup data directory
-tar -czf grafana-backup-$(Get-Date -Format "yyyyMMdd").tar.gz data/
-
-# Start Grafana
-docker compose start
-```
+Use the named-volume procedure under **Backup Grafana** above. Dashboard exports
+alone do not include users, settings, data sources or the complete database.
 
 ### Export All Dashboards
 ```powershell
