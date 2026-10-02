@@ -23,7 +23,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-    - ./data/backup:/data/backup
+    - tracearr_backups:/data/backup
     - ./patch-seerr-books.mjs:/opt/tracearr/patch-seerr-books.mjs:ro
     restart: unless-stopped
     networks:
@@ -78,7 +78,7 @@ services:
     container_name: tracearr-redis
     command: redis-server --appendonly yes
     volumes:
-    - ./data/redis:/data
+    - tracearr_redis_data:/data
     healthcheck:
       test:
       - CMD
@@ -96,3 +96,10 @@ networks:
     name: proxynet
 volumes:
   tracearr_postgres: {}
+  # Populate both existing directories before deployment; never start with empty state.
+  tracearr_redis_data:
+    external: true
+    name: tracearr_redis_data
+  tracearr_backups:
+    external: true
+    name: tracearr_backups

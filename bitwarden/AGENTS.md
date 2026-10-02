@@ -4,6 +4,13 @@ Use this guidance when working on Vaultwarden, the lightweight Bitwarden-compati
 
 ## Current deployment and database storage
 
+The Lite application uses `PUID=1000` and `PGID=1000` to match its Windows-backed
+config, attachments, keys and logs. The image's default app user is 911; using
+that default leaves owner-only state unwritable when Windows files appear as
+1000. This setting applies to the application only; PostgreSQL retains its own
+user and native volume. Preserve identity keys and attachments during any
+recreation; never generate a replacement config directory to fix permissions.
+
 The deployed Compose stack uses Bitwarden Lite and PostgreSQL 14. The Vaultwarden
 examples below are historical examples, not the current deployment definition.
 

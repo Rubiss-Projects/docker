@@ -1,9 +1,10 @@
 services:
   prometheus:
-    image: prom/prometheus:v3.14.0
+    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
     container_name: prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus/data"
     ports:
       - 9090:9090
     restart: unless-stopped
@@ -13,7 +14,7 @@ services:
           memory: 2G
     volumes:
       - ./config:/etc/prometheus
-      - ./data:/prometheus
+      - prometheus_data:/prometheus
     labels:
       - homepage.group=Observability
       - homepage.name=Prometheus
@@ -32,3 +33,9 @@ services:
 networks:
   proxynet:
     name: proxynet
+
+volumes:
+  # Preserve the existing data/ child when copying the old ./data directory.
+  prometheus_data:
+    external: true
+    name: prometheus_data
