@@ -119,24 +119,35 @@ docker compose up -d
 3. Enter email address
 4. User receives invitation email
 
-### Backup Vaultwarden
-```powershell
-# Stop services
-docker compose stop
+### Back up the deployed database
 
-# Backup data and database
-tar -czf bitwarden-backup-$(Get-Date -Format "yyyyMMdd").tar.gz data/ db-data/
+Coordinate with the maintenance owner and settle consumers first. From Ubuntu,
+stop Bitwarden before PostgreSQL and require a clean database shutdown. Verify
+the stopped database mounts the existing `bitwarden_postgres_data` volume; do not
+create a missing volume or use the retained Windows snapshot as a current backup.
 
-# Start services
-docker compose start
+Run the archive command from Ubuntu Bash so binary output remains intact. Use a
+new filename in an existing protected backup directory, then verify the command
+exit, archive contents and SHA-256 before recording a successful backup:
+
+```bash
+docker compose stop --timeout -1 bitwarden db
+docker run --rm --pull never --network none --read-only --entrypoint tar --mount type=volume,src=bitwarden_postgres_data,dst=/database,readonly postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff --numeric-owner -C /database -cpf - . > /path/to/protected-backups/bitwarden-postgresql.tar
 ```
 
-### Restore from Backup
-```powershell
-docker compose stop
-tar -xzf bitwarden-backup-YYYYMMDD.tar.gz
-docker compose start
-```
+Also retain the current `config/`, deployment environment/secret files and the
+reviewed Compose definition privately. Start the database and verify readiness
+before starting Bitwarden and its consumers.
+
+### Restore from backup
+
+Use a reviewed maintenance window with consumers and database stopped. Extract
+the complete verified PostgreSQL archive into a new empty native volume,
+preserving numeric owners and modes. Verify the cluster and map Compose to that
+volume before starting the pinned database image and checking application
+readiness. Keep the previous volume until the recovery is accepted. Do not
+extract a database backup into a live volume or switch to the stale Windows
+`data/` directory. A Plan9/VirtioFS backend rollback does not restore database data.
 
 ### View Logs
 ```powershell
@@ -322,29 +333,12 @@ default_statistics_target = 100
 ```
 
 ### Backup Automation Script
-```powershell
-# backup-bitwarden.ps1
-$date = Get-Date -Format "yyyyMMdd-HHmmss"
-$backupDir = "..\..\Backups\Bitwarden"
-$composeDir = ".\"
 
-# Stop Vaultwarden (optional, for consistency)
-Set-Location $composeDir
-docker compose stop bitwarden
-
-# Backup
-tar -czf "$backupDir\bitwarden-$date.tar.gz" data/ db-data/
-
-# Start Vaultwarden
-docker compose start bitwarden
-
-# Keep only last 30 days of backups
-Get-ChildItem $backupDir -Filter "bitwarden-*.tar.gz" | 
-  Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } | 
-  Remove-Item
-```
-
-Schedule with Task Scheduler: Daily at 3 AM
+Scheduled backups must use the named-volume procedure above under the existing
+maintenance owner, with consumer coordination, clean database shutdown, protected
+output and verification before success. The old `data/ db-data/` archive script
+does not back up the current deployment. Do not schedule it or use its restore
+recipe. Retention/deletion is a separate policy; this procedure removes no backup.
 
 ## Monitoring and Maintenance
 
