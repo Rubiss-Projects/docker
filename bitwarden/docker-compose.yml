@@ -37,10 +37,10 @@ services:
       - path: db.env
       - path: db.env.secret
         required: false
-    image: postgres:14
+    image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
     restart: unless-stopped
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - proxynet
 
@@ -53,3 +53,7 @@ volumes:
   bitwarden:
   logs:
   data:
+  # Populate the existing cluster before deployment; a missing volume refuses startup.
+  postgres_data:
+    external: true
+    name: bitwarden_postgres_data

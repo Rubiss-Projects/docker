@@ -2,6 +2,23 @@
 
 Use this guidance when working on Vaultwarden, the lightweight Bitwarden-compatible password manager server.
 
+## Current deployment and database storage
+
+The deployed Compose stack uses Bitwarden Lite and PostgreSQL 14. The Vaultwarden
+examples below are historical examples, not the current deployment definition.
+
+PostgreSQL uses the external Docker volume `bitwarden_postgres_data` at
+`/var/lib/postgresql/data`. Native Linux storage preserves the database's required
+ownership and permissions when Windows mounts use VirtioFS. Provision this volume
+with the verified existing cluster before deploying; Compose refuses a missing
+external volume. Keep the pinned PostgreSQL image during the storage migration.
+
+Back up the current named volume with PostgreSQL cleanly stopped, preserving file
+owners and modes. The retained Windows `data/` directory is a migration snapshot;
+after cutover it is not the current database. A filesystem-backend rollback keeps
+the current named volume. Returning to Windows storage requires a fresh consistent
+copy of current data and a reviewed cutover, never mounting the stale snapshot.
+
 ## Service Overview
 Vaultwarden is an alternative implementation of the Bitwarden server API, optimized for self-hosted deployments. It's fully compatible with official Bitwarden clients while using significantly fewer resources.
 
