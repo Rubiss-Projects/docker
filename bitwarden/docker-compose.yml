@@ -6,7 +6,7 @@ services:
       - path: .env
       - path: .env.secret
         required: false
-    image: ghcr.io/bitwarden/lite:latest@sha256:616624bf9a2e1bae68a6a7735732339db41b831e38593846f0c2b4983af34bb9
+    image: ghcr.io/bitwarden/lite:latest@sha256:f42c5a256face5c59990d515e7d672ff4f029c6d03acb8f0cb0c5839cd27fe2a
     container_name: bitwarden
     # The image consumes these settings when creating its unprivileged app user.
     environment:
@@ -41,7 +41,7 @@ services:
       - path: db.env
       - path: db.env.secret
         required: false
-    image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+    image: postgres:14@sha256:c2427de38f998489d36de7ca3553db2134872c400f2b08be4b824e5c50e4d619
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
