@@ -21,6 +21,20 @@ in any worker. The deployment helper sends its token to Docker through stdin.
 
 Keep Sunday Edge operational documentation in this file.
 
+## Analytics source recovery (v0.2.40)
+
+Promote the matching web validator before analytics worker
+`sunday-edge-intelligence-v22`. Successful completed source reports retain model
+retry counters; missing current-week analyst episodes report `PENDING` without
+claiming a successful data refresh. No database migration or model-setting change
+is required. The web validator continues to accept older workers and reports.
+
+After the maintenance-wrapped deployment, verify fresh v22 source reports and
+collector success/backoff state, not just supervisor health. Recovered model
+attempts must no longer keep sources partial. Pending episodes use normal cadence;
+provider failures, quarantined evidence and overdue reports remain visible. GDELT
+rate limits are independent upstream failures and must not be relabeled healthy.
+
 ## Jev observation rollout (analytics v0.2.12)
 
 Only analytics moves to v0.2.12 for this rollout; the other roles remain at their
