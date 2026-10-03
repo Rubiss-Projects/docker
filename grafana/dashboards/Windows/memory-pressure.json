@@ -1,0 +1,498 @@
+{
+  "uid": "windows-wsl-memory",
+  "title": "Windows and WSL Memory",
+  "description": "Distinguish host file-cache growth, WSL residency, guest headroom and paging pressure. Telemetry only; no automated remediation.",
+  "tags": [
+    "windows",
+    "wsl",
+    "memory"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "editable": false,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "hostname",
+        "label": "Windows host",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "ddvyigh44dblsd"
+        },
+        "query": "SHOW TAG VALUES FROM \"win_system\" WITH KEY = \"host\"",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "options": [],
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Windows available memory and resident cache",
+      "description": "Available memory includes immediately reusable pages. Resident system cache is not the same as standby cache. Do not add Windows cache to the Linux cache or WSL working set as independent usage.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"Available_Bytes\") AS \"Available\", mean(\"System_Cache_Resident_Bytes\") AS \"Resident system cache\" FROM \"win_mem\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "WSL process on Windows",
+      "description": "Windows view of vmmemWSL. Working set is resident physical memory. Private bytes are committed private memory, not necessarily resident. Instance gaps during WSL shutdown are not zero usage.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"Working_Set\") AS \"Resident working set\", mean(\"Private_Bytes\") AS \"Private committed bytes\" FROM \"wsl_process\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval), \"instance\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_instance: $col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Windows commit and limit",
+      "description": "Commit is backing promised by RAM and pagefiles; it is not physical memory utilization. Compare to available RAM and page output before diagnosing exhaustion.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"Committed_Bytes\") AS \"Committed\", mean(\"Commit_Limit\") AS \"Commit limit\" FROM \"win_mem\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Windows paging traffic",
+      "description": "Page input includes executable and mapped-file reads, not only pagefile traffic. Sustained output with low available memory and slow applications is stronger pressure evidence than Pages/sec alone.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"Pages_Input_persec\") AS \"Pages read in\", mean(\"Pages_Output_persec\") AS \"Pages written out\" FROM \"win_mem\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:pages/s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Shared WSL kernel memory",
+      "description": "Read from the shared kernel through cAdvisor, not container memory limits. MemAvailable estimates usable headroom including reclaimable memory. Cached includes shared memory. These series overlap; they are intentionally not stacked.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"total_bytes\") AS \"Total\", mean(\"available_bytes\") AS \"Available\", mean(\"cached_bytes\") AS \"Cached\", mean(\"buffers_bytes\") AS \"Buffers\", mean(\"reclaimable_slab_bytes\") AS \"Reclaimable slab\" FROM \"wsl_memory\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter AND \"collect_up\" = 1 GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Linux memory pressure (PSI)",
+      "description": "Percentage of wall time stalled on memory, not percentage of RAM used. Some means at least one task; full means all non-idle tasks. A missing read is a gap, never a healthy zero.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"pressure_some_avg10\") AS \"Some tasks stalled (10s)\", mean(\"pressure_full_avg10\") AS \"All non-idle tasks stalled (10s)\", mean(\"pressure_some_avg60\") AS \"Some tasks stalled (60s)\", mean(\"pressure_full_avg60\") AS \"All non-idle tasks stalled (60s)\" FROM \"wsl_memory\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter AND \"collect_up\" = 1 GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Linux swap usage",
+      "description": "Guest swap is separate from the Windows pagefile. Used swap alone does not show active thrashing; correlate with PSI, host paging and application latency.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"swap_used_bytes\") AS \"Swap used\", mean(\"swap_total_bytes\") AS \"Swap total\" FROM \"wsl_memory\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter AND \"collect_up\" = 1 GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Guest memory collection",
+      "description": "1 = complete valid meminfo and PSI read; 0 = collection failed (for example Docker/cAdvisor stopped or a timeout). Missing points mean the Windows collector did not report. No automatic start, restart or cache flush occurs.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ddvyigh44dblsd"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT min(\"collect_up\") AS \"Collection success\" FROM \"wsl_memory\" WHERE \"host\" =~ /^$hostname$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "spanNulls": false
+          },
+          "max": 1,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}
