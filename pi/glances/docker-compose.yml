@@ -25,3 +25,8 @@ services:
       - homepage.widget.metric=info
     pid: host
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

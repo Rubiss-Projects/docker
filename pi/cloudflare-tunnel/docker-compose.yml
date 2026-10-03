@@ -3,6 +3,11 @@ services:
     image: cloudflare/cloudflared:2026.9.3
     container_name: cloudflared-pi
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     network_mode: host
     command: tunnel run
     environment:
