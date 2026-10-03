@@ -298,6 +298,12 @@ jobs:
       - name: Test host maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
+      - name: Test memory telemetry parsing and configuration
+        shell: pwsh
+        run: |
+          & ./scripts/host-memory/test-collector.ps1
+          & ./scripts/host-memory/test-install.ps1
+
       - name: Test Tracearr Seerr compatibility against the pinned image
         shell: bash
         run: |
