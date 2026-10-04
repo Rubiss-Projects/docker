@@ -15,7 +15,10 @@ LAN Plex app -------------------------------------> 192.168.50.40:32400
   `public.benlawson.dev`; the existing Cloudflare DUC maintains its IPv4 address.
   Do not orange-cloud it or put this traffic through Cloudflare Tunnel.
 - ASUS static TCP forward: external **18443**, destination **192.168.50.40:18443**.
-  Remove only the old public TCP 32400 rule after the new route is verified.
+  Keep the old route until the new one passes an outside-network TLS check.
+  Then remove the Plex 32400 entries from **both WAN port forwarding and Open
+  NAT**: the latter also has a `Plex Media Server@PC` TCP/UDP profile. Preserve
+  unrelated rules and verify public 32400 is closed while LAN 32400 still works.
 - Plex custom URLs: retain `http://192.168.50.40:32400` and append
   `https://plex-remote.benlawson.dev:18443`. Set `PublishServerOnPlexOnlineKey=0`.
   Preserve other Plex authentication, LAN, relay and bandwidth settings.
@@ -24,6 +27,15 @@ LAN Plex app -------------------------------------> 192.168.50.40:32400
   reduced-quality hardware transcoding, dashboard, Plex WAN classification and
   Tracearr's actual carrier IP worked. Cellular downloads were blocked by the
   app's Wi-Fi policy and remain unverified. LAN discovery is a separate concern.
+
+An ASUS Apply success/configuration readback does not prove forwarding is active.
+Check the router's active forwarding table and the public endpoint. During this
+rollout, a stuck `restart_letsencrypt` service request caused the router to save
+settings but skip firewall reloads and even the normal reboot request. If that
+recurs, stop cutover, restore saved routing and verify recovery before continuing;
+do not repeat Apply or infer a reboot from brief HTTP unavailability. The router's
+ASUS DDNS/OpenVPN/certificate features are separate from SWAG's wildcard renewal
+used by Caddy.
 
 ## Install/update
 
@@ -109,9 +121,10 @@ enable debug/access logging against real Plex traffic without token redaction.
 
 ## Backout
 
-Save exact current router/Plex settings privately before activation. If remote
-checks fail, first restore the original public TCP 32400 forwarding rule and
-original Plex custom URLs/public-endpoint setting, verifying discovery/access.
+Save exact current WAN forwarding, Open NAT and Plex settings privately before
+activation. If remote checks fail, first restore the saved Plex 32400 entries in
+both router lists and original Plex custom URLs/public-endpoint setting, verifying
+active forwarding and discovery/access. Do not overwrite unrelated concurrent edits.
 Then remove only the new 18443 rule and owned DNS alias. Preserve other rules.
 Disable Caddy (or set its hold) before stopping it. Remove/disable its owned Kuma
 monitor and revert monitoring configuration via PR. Restore the exact saved
