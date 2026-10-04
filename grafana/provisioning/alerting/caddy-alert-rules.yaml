@@ -98,7 +98,7 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: sum(increase(caddy_http_requests_total{job="caddy",handler="reverse_proxy",code=~"5.."}[5m]))
+        expr: sum(increase(caddy_http_request_duration_seconds_count{job="caddy",server="plex_remote",handler="subroute",code=~"5.."}[5m]))
           or vector(0)
     - refId: B
       datasourceUid: __expr__

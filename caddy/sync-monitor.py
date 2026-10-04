@@ -54,7 +54,7 @@ try:
     desired = {'name': 'caddy', 'type': 'http', 'url': 'https://plex-remote.benlawson.dev:18443/identity',
                'method': 'GET', 'interval': 60, 'retryInterval': 30, 'maxretries': 2, 'timeout': 10,
                'maxredirects': 0, 'accepted_statuscodes': ['200'], 'ignoreTls': False,
-               'expiryNotification': True, 'parent': parents[0]['id'], 'active': True,
+               'expiryNotification': True, 'parent': parents[0]['id'], 'active': True, 'conditions': [],
                'notificationIDList': notifications, 'description': 'Native Ubuntu Caddy -> Plex; TLS expiry alerts enabled. Caddy-only watchdog recovery.'}
     if existing:
         if existing[0].get('url') != desired['url']:
