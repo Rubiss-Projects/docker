@@ -21,13 +21,20 @@ import socketio
 sio = socketio.Client(logger=False, engineio_logger=False, request_timeout=10)
 info = threading.Event()
 ready = threading.Event()
+notifications_ready = threading.Event()
 monitors = {}
+notification_channels = []
 sio.on('info', lambda *_args: info.set())
 def receive(value):
     monitors.clear()
     monitors.update(value)
     ready.set()
 sio.on('monitorList', receive)
+def receive_notifications(value):
+    notification_channels.clear()
+    notification_channels.extend(value)
+    notifications_ready.set()
+sio.on('notificationList', receive_notifications)
 def call(event, data=None):
     result = sio.call(event, data, timeout=15)
     if isinstance(result, dict) and result.get('ok') is False:
@@ -40,17 +47,25 @@ try:
     call('login', {'username': os.environ.get('UPTIME_KUMA_USERNAME') or os.environ['UPTIME_KUMA_USER'],
                    'password': os.environ.get('UPTIME_KUMA_PASSWORD') or os.environ['UPTIME_KUMA_PASS'], 'token': ''})
     call('getMonitorList')
-    if not ready.wait(10):
-        raise RuntimeError('Kuma monitors missing')
+    if not ready.wait(10) or not notifications_ready.wait(10):
+        raise RuntimeError('Kuma monitors/notification channels missing')
     rows = list(monitors.values())
     parents = [m for m in rows if m.get('name') == 'Infrastructure' and m.get('type') == 'group']
     plex = [m for m in rows if m.get('url') == 'http://plex:32400/identity']
     existing = [m for m in rows if m.get('name') == 'caddy']
     if len(parents) != 1 or len(plex) != 1 or len(existing) > 1:
         raise RuntimeError('Monitor/parent/notification source not unique')
-    notifications = plex[0].get('notificationIDList')
-    if not notifications or not any(notifications.values()):
-        raise RuntimeError('Plex notification routing absent')
+    # The Plex monitor also invokes Docker self-heal through an n8n webhook.
+    # This native service uses its own watchdog; inherit only its Discord alerts.
+    assigned = plex[0].get('notificationIDList', {})
+    notifications = {}
+    for channel in notification_channels:
+        config = json.loads(channel['config']) if isinstance(channel.get('config'), str) else channel.get('config', {})
+        key = str(channel['id'])
+        if assigned.get(key) and config.get('type') == 'discord':
+            notifications[key] = True
+    if not notifications:
+        raise RuntimeError('Plex Discord notification routing absent')
     desired = {'name': 'caddy', 'type': 'http', 'url': 'https://plex-remote.benlawson.dev:18443/identity',
                'method': 'GET', 'interval': 60, 'retryInterval': 30, 'maxretries': 2, 'timeout': 10,
                'maxredirects': 0, 'accepted_statuscodes': ['200'], 'ignoreTls': False,

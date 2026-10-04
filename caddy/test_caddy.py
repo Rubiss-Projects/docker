@@ -248,7 +248,7 @@ class KumaPayloadTests(unittest.TestCase):
     def test_creation_and_update_supply_v2_conditions_and_routing(self):
         inner = module('sync-monitor').INNER
         rows = {1: {'id': 1, 'name': 'Infrastructure', 'type': 'group'},
-                2: {'id': 2, 'url': 'http://plex:32400/identity', 'notificationIDList': {'7': True}}}
+                2: {'id': 2, 'url': 'http://plex:32400/identity', 'notificationIDList': {'7': True, '8': True}}}
         actions = []
 
         class Client:
@@ -262,6 +262,10 @@ class KumaPayloadTests(unittest.TestCase):
                 self.events['info']({})
 
             def call(self, event, data, **_kwargs):
+                if event == 'login':
+                    self.events['notificationList']([
+                        {'id': 7, 'config': '{"type":"discord"}'},
+                        {'id': 8, 'config': '{"type":"webhook"}'}])
                 if event == 'getMonitorList':
                     self.events['monitorList'](rows)
                 if event in ('add', 'editMonitor'):
