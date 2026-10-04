@@ -68,7 +68,7 @@ class ChannelsProxyTests(unittest.TestCase):
         name = 'channels-swag-fixture-' + uuid.uuid4().hex[:10]
         created = subprocess.run(['docker', 'run', '--detach', '--pull=never', '--name', name,
                                   '--cidfile', str(cls.root / 'container.id'),
-                                  '--user', '1000:1000',
+                                  '--user', f'{os.getuid()}:{os.getgid()}',
                                   '--read-only', '--tmpfs', '/tmp:rw,size=16m', '--cap-drop=ALL',
                                   '--security-opt=no-new-privileges:true', '--memory=96m', '--pids-limit=32',
                                   '--restart=no', '--publish', f'127.0.0.1:{cls.tls_port}:8443',
@@ -149,7 +149,7 @@ class ChannelsProxyTests(unittest.TestCase):
         finally:
             connection.close()
 
-    def test_direct_relay_rejects_missing_wrong_and_duplicate_keys(self):
+    def test_direct_relay_rejects_missing_wrong_and_combined_keys(self):
         for key in (None, 'wrong', KEY.upper(), KEY + ', ' + KEY):
             headers = {} if key is None else {'X-Channels-Lan-Key': key}
             headers.update({'X-Forwarded-For': '192.168.50.10', 'X-DVR-SkipAuth': 'true'})

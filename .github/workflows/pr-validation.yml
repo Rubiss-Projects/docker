@@ -307,7 +307,10 @@ jobs:
           curl --fail --location --max-time 90 "$url" --output "$RUNNER_TEMP/caddy.tar.gz"
           printf '%s  %s\n' "$digest" "$RUNNER_TEMP/caddy.tar.gz" | sha256sum --check --status
           tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
-          CADDY_BINARY="$RUNNER_TEMP/caddy" python3 -m unittest discover -s caddy -p 'test_*.py'
+          # Only this disposable GitHub-hosted runner pulls the pinned fixture image.
+          image=$(python3 -c 'import yaml; print(yaml.safe_load(open("swag/docker-compose.yml"))["services"]["swag"]["image"])')
+          docker pull "$image"
+          CADDY_BINARY="$RUNNER_TEMP/caddy" NGINX_TEST_IMAGE="$image" python3 -m unittest discover -s caddy -p 'test_*.py'
 
       - name: Test memory telemetry parsing and configuration
         shell: pwsh
