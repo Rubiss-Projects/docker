@@ -31,7 +31,7 @@ def validate(directory):
     context.load_cert_chain(directory / FILES[0], directory / FILES[1])
 
 
-def sync(source=SOURCE, destination=DESTINATION):
+def sync(source=SOURCE, destination=DESTINATION, *, reload_active=True):
     content = {name: (source / name).read_bytes() for name in FILES}
     fingerprint = hashlib.sha256(b''.join(content.values())).hexdigest()
     current = destination / 'current'
@@ -64,13 +64,13 @@ def sync(source=SOURCE, destination=DESTINATION):
             link.replace(current)
             changed = True
         active = subprocess.run(['systemctl', 'is-active', '--quiet', 'caddy-plex.service']).returncode == 0
-        if active and (changed or not loaded.exists() or loaded.read_text() != fingerprint):
+        if reload_active and active and (changed or not loaded.exists() or loaded.read_text() != fingerprint):
             subprocess.run(['/usr/local/bin/caddy-plex', 'reload', '--force', '--config',
                             '/etc/caddy-plex/Caddyfile', '--adapter', 'caddyfile',
                             '--address', 'unix//run/caddy-plex/admin.sock'],
                            check=True, capture_output=True, timeout=20)
             loaded.write_text(fingerprint)
-        print('Caddy certificate ready' + ('; reloaded' if active and changed else ''))
+        print('Caddy certificate ready' + ('; reloaded' if reload_active and active and changed else ''))
     except Exception:
         if changed and previous is not None:
             link = destination / '.backout'

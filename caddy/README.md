@@ -41,6 +41,8 @@ replacement while Caddy is running: notice a Caddy-only interruption, disable an
 stop that unit, then run the installer to enable/start the reviewed new release.
 It never stops or recreates Plex/Docker. Protected installation originals live
 under `/var/lib/caddy-plex-control/install-*` for operator rollback.
+File publication, certificate validation and systemd reload share the helpers'
+operational lock. Unique atomic candidates make interrupted writes retryable.
 
 Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
 E:\Docker\caddy\install-watchdog.ps1 -Apply` from Windows. The installer holds
@@ -56,6 +58,9 @@ Three failed Caddy HTTPS checks permit one Caddy-only restart, with a ten-minute
 cooldown; pending transitions and bad configuration are not signalled. Never add
 Caddy to the Docker sentinel/daemon failure classification. Systemd also restarts
 unexpected process exits with a five-starts-per-five-minutes limit.
+If Caddy also hangs during a requested stop, systemd ends only its service after
+the 90-second graceful timeout so the replacement can bind its ports. Remote
+streams may reconnect; Plex and other services are not part of that stop.
 
 ## TLS, permissions and logs
 
