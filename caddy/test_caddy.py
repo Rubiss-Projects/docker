@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import socket
 import ssl
@@ -14,6 +15,7 @@ import subprocess
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -35,6 +37,10 @@ def free_port():
 
 class Plex(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/upstream-error':
+            self.send_response(503)
+            self.end_headers()
+            return
         if self.path == '/websocket':
             self.send_response(101)
             self.send_header('Connection', 'Upgrade')
@@ -159,6 +165,20 @@ class ProxyTests(unittest.TestCase):
             self.assertEqual(self.request(path, monitor=True)[0], 404)
         self.assertEqual(self.request('/reverse_proxy/upstreams', method='POST', monitor=True)[0], 404)
 
+    def test_error_alert_selects_an_emitted_status_counter(self):
+        self.assertEqual(self.request('/upstream-error')[0], 503)
+        metrics = self.request('/metrics', monitor=True)[2].decode()
+        rules = (HERE.parent / 'grafana/provisioning/alerting/caddy-alert-rules.yaml').read_text()
+        expression = rules.split('uid: caddy_http_errors', 1)[1]
+        metric = re.search(r'increase\((\w+)\{', expression).group(1)
+        handler = re.search(r'handler="([^"]+)"', expression).group(1)
+        server = re.search(r'server="([^"]+)"', expression).group(1)
+        samples = [line for line in metrics.splitlines() if line.startswith(metric + '{')
+                   and 'code="503"' in line and f'handler="{handler}"' in line
+                   and f'server="{server}"' in line]
+        self.assertTrue(samples, 'The alert must select the actual Caddy 5xx counter')
+        self.assertGreaterEqual(float(samples[0].rsplit(' ', 1)[1]), 1)
+
     def test_health_and_unknown_host(self):
         self.assertEqual(self.request('/healthz')[2], b'ok')
         self.assertEqual(self.request('/identity', {'Host': 'evil.example'})[0], 421)
@@ -222,6 +242,50 @@ class WatchdogTests(unittest.TestCase):
         self.probe.side_effect = [False, False, False, True]
         self.assertEqual(self.health.check(True), 0)
         self.assertEqual(self.mutations(), [['systemctl', 'restart', '--no-block', 'caddy-plex.service']])
+
+
+class KumaPayloadTests(unittest.TestCase):
+    def test_creation_and_update_supply_v2_conditions_and_routing(self):
+        inner = module('sync-monitor').INNER
+        rows = {1: {'id': 1, 'name': 'Infrastructure', 'type': 'group'},
+                2: {'id': 2, 'url': 'http://plex:32400/identity', 'notificationIDList': {'7': True}}}
+        actions = []
+
+        class Client:
+            def __init__(self, **_kwargs):
+                self.events = {}
+
+            def on(self, event, callback):
+                self.events[event] = callback
+
+            def connect(self, *_args, **_kwargs):
+                self.events['info']({})
+
+            def call(self, event, data, **_kwargs):
+                if event == 'getMonitorList':
+                    self.events['monitorList'](rows)
+                if event in ('add', 'editMonitor'):
+                    if data.get('conditions') != []:
+                        raise ValueError('Kuma v2 monitor.conditions is required')
+                    actions.append((event, data))
+                    rows[3] = {**data, 'id': 3}
+                    return {'ok': True, 'monitorID': 3}
+                return {'ok': True}
+
+            def disconnect(self):
+                pass
+
+        with patch.dict('sys.modules', {'socketio': SimpleNamespace(Client=Client)}), \
+             patch.dict(os.environ, {'UPTIME_KUMA_URL': 'http://fixture.invalid',
+                                    'UPTIME_KUMA_USERNAME': 'fixture', 'UPTIME_KUMA_PASSWORD': 'fixture'}):
+            exec(inner, {})
+            exec(inner, {})
+        self.assertEqual([action for action, _ in actions], ['add', 'editMonitor'])
+        for _, data in actions:
+            self.assertEqual(data['notificationIDList'], {'7': True})
+            self.assertEqual(data['parent'], 1)
+            self.assertFalse(data['ignoreTls'])
+            self.assertTrue(data['expiryNotification'])
 
 
 if __name__ == '__main__':

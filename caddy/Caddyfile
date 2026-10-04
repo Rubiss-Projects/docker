@@ -8,6 +8,11 @@
 		protocols h1 h2
 		strict_sni_host on
 	}
+	servers 192.168.50.40:18443 {
+		name plex_remote
+		protocols h1 h2
+		strict_sni_host on
+	}
 	# Plex credentials can occur in both URLs and headers. Keep request/error
 	# objects out of the journal; monitoring uses counters and health endpoints.
 	log default {
