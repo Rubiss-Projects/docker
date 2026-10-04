@@ -84,9 +84,14 @@ scrape_configs:
 
 ### Reload Configuration (Without Restart)
 ```powershell
-# Use web.enable-lifecycle flag
-curl -X POST http://localhost:9090/-/reload
+docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
+docker exec prometheus /bin/sh -c 'kill -HUP 1'
 ```
+
+Send HUP inside the container. Do not use `docker kill --signal=HUP`: Docker's
+kill API can mark the container manually stopped even when Prometheus only
+reloads, preventing automatic recovery with `unless-stopped` after a daemon
+restart. The deployed service does not enable the HTTP lifecycle endpoint.
 
 ### Restart Prometheus
 ```powershell
@@ -97,7 +102,7 @@ docker compose restart
 ### Validate Configuration
 ```powershell
 # Check syntax before reload
-docker run --rm -v ./config:/config prom/prometheus:latest promtool check config /config/prometheus.yml
+docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
 ```
 
 ### View Logs
