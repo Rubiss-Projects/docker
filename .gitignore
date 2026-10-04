@@ -6,6 +6,7 @@
 !homepage/config/
 !homepage/config/*
 !swag/config/**
+swag/config/nginx/channels-lan-private/
 
 bitwarden/data/
 **/data/*

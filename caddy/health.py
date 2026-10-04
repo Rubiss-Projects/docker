@@ -30,6 +30,18 @@ def healthy():
     try:
         connection.request('GET', '/healthz', headers={'Host': 'plex-remote.benlawson.dev:18443'})
         response = connection.getresponse()
+        if response.status != 200 or response.read(32) != b'ok':
+            return False
+    except (OSError, http.client.HTTPException):
+        return False
+    finally:
+        connection.close()
+    # Check the LAN listener itself, not Channels/SWAG. An upstream outage must
+    # not trigger a restart of a healthy native proxy or interrupt Plex streams.
+    connection = http.client.HTTPConnection('192.168.50.40', 18089, timeout=2)
+    try:
+        connection.request('GET', '/healthz')
+        response = connection.getresponse()
         return response.status == 200 and response.read(32) == b'ok'
     except (OSError, http.client.HTTPException):
         return False

@@ -1,4 +1,4 @@
-# Caddy Plex remote proxy
+# Caddy Plex remote and Channels LAN proxy
 
 Caddy is a **native Ubuntu systemd service**, deliberately outside Docker Desktop
 NAT. Plex remains in Docker Desktop. This narrow native-service exception is
@@ -7,7 +7,60 @@ necessary to see the incoming public IPv4 peer before forwarding to Plex.
 ```text
 Remote Plex app -> router TCP 18443 -> Ubuntu Caddy -> 127.0.0.1:32400 -> Plex
 LAN Plex app -------------------------------------> 192.168.50.40:32400
+LAN Channels app -> Caddy :18089 -> existing SWAG :443 -> channels-dvr:8089
 ```
+
+## Channels At Home
+
+Use **192.168.50.40:18089** in the Channels app's **Connect At Home** screen.
+The Apple TV trial played both IPTV and HDHomeRun TV; recording byte ranges
+and seeking transport also passed. Automatic mDNS discovery is separate and
+unchanged. The ordinary 8089/remote-auth route remains available and unchanged.
+
+No extra relay container is needed. Native Caddy accepts media requests only
+from the actual TCP peer in `192.168.50.0/24` with Host `192.168.50.40`, then uses
+verified HTTPS to the existing SWAG container on localhost:443. SWAG's exact
+`channels-lan-relay.benlawson.dev` virtual host requires a private 256-bit key
+on every request and forwards over `proxynet`. There is **no DNS alias or router
+forward** for this route or port 18089. The key is still essential: callers can
+select any SWAG virtual host through its existing public 443 endpoint.
+
+Both proxies strip supplied client-address/auth-bypass headers. SWAG removes
+the private key before contacting Channels and uses an ordinary internal request;
+it never sets `X-DVR-SkipAuth` or relaxes Channels' global authentication. Real
+LAN peers get the normal trusted-home access, including application write methods.
+Do not widen the peer matcher to all private networks or trust X-Forwarded-For.
+
+The shared key lives only in git-crypt's `caddy/channels-lan.env.secret` source
+and protected generated configuration. `install.py` validates its format,
+renders `/etc/caddy-plex/channels-lan.caddy` and SWAG's ignored
+`config/nginx/channels-lan-private/key.conf`, validates both servers, reloads
+SWAG, then reloads Caddy. Missing SWAG key material denies all relay requests;
+the installer refuses extra key includes. Never print the rendered configuration
+or use `nginx -T` against it. No access/error request logging is enabled here.
+
+Kuma checks the harmless GET `/healthz` on the LAN listener (private peers may
+read only that endpoint); the native watchdog checks both Caddy listeners. Caddy
+active health checks verify the keyed SWAG -> Channels `/status` route. Grafana
+alerts on that upstream failing or repeated Channels 5xx; the existing official
+Caddy dashboard/widget covers both proxies. An upstream failure does **not**
+restart healthy Caddy, Docker, SWAG or Channels.
+
+For a config-only rollout, use `[skip deploy]`, run the installer explicitly,
+sync the monitors and reload Grafana alert provisioning. No Compose recreation is
+needed. If an expiring trial still owns 18089, stop only its recorded user unit
+before the native reload; its owner removes only its temporary relay. Existing
+Channels streams through that trial may need reconnecting. Test the permanent
+route from a real LAN host and verify the private SWAG vhost refuses missing,
+wrong and spoofed keys. Public Plex and the original Channels route must retain
+their behavior. Both nginx and Caddy reload gracefully; long connections may
+reconnect and must not be treated as authorization to restart applications.
+
+To back out only Channels, restore the saved native Caddyfile, health helper and
+Channels include under the Caddy operation lock, validate and reload Caddy.
+Remove the owned SWAG relay vhost/key (or revert via PR), run `nginx -t` and reload.
+Disable the owned `caddy-channels-lan` monitor and revert its Grafana rules/link.
+Do not revert Plex, router settings, Channels data or any Docker container.
 
 ## Public route
 
@@ -51,7 +104,7 @@ The installer verifies the pinned official Linux amd64 archive against
 For configuration changes it reloads Caddy gracefully. It refuses a binary
 replacement while Caddy is running: notice a Caddy-only interruption, disable and
 stop that unit, then run the installer to enable/start the reviewed new release.
-It never stops or recreates Plex/Docker. Protected installation originals live
+It reloads the private SWAG hop but never stops or recreates containers. Protected installation originals live
 under `/var/lib/caddy-plex-control/install-*` for operator rollback.
 File publication, certificate validation and systemd reload share the helpers'
 operational lock. Unique atomic candidates make interrupted writes retryable.
@@ -134,7 +187,12 @@ installation never authorizes a Docker, WSL, Windows or network-service restart.
 ## Focused validation
 
 `CADDY_BINARY=/path/to/pinned/caddy python3 -m unittest discover -s caddy -p 'test_*.py'`
-runs the actual Caddyfile against a loopback fake Plex and synthetic TLS. It
+also requires `NGINX_TEST_IMAGE` set to the installed SWAG image ID (no pull).
+It runs the actual Caddyfile against a loopback fake Plex and synthetic TLS. It
 checks source-header replacement, Plex authentication propagation, byte ranges,
 WebSocket upgrades, TLS/Host matching, read-only monitoring, and watchdog
-maintenance/transient/cooldown behavior. These tests do not contact production.
+maintenance/transient/cooldown behavior. The Channels tests use one disposable
+nginx container with synthetic TLS/backend/key, no production mounts and a
+loopback-only port; both owned processes are stopped and the fixture removed.
+They exercise the actual Caddy/SWAG route, peer/Host/key rejection, forwarding
+header stripping, app methods, ranges and WebSockets. They do not contact production.

@@ -6,7 +6,7 @@ groups:
   interval: 1m
   rules:
   - uid: caddy_unavailable
-    title: Caddy Plex proxy unavailable
+    title: Caddy proxy unavailable
     condition: C
     data:
     - refId: A
@@ -38,7 +38,7 @@ groups:
     noDataState: Alerting
     execErrState: Error
     annotations:
-      summary: Caddy Plex proxy unavailable
+      summary: Caddy proxy unavailable
       description: Caddy metrics are unreachable. Check the native Ubuntu caddy-plex
         service, its HTTPS health, and the Windows watchdog. Caddy-only repair must
         never restart Docker Desktop.
@@ -46,6 +46,90 @@ groups:
       __panelId__: '2'
     labels:
       severity: critical
+      service: caddy
+      host: ben-server
+  - uid: caddy_channels_upstream_unavailable
+    title: Caddy cannot reach Channels through SWAG
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: min(caddy_reverse_proxy_upstreams_healthy{job="caddy",upstream="127.0.0.1:443"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params: [1]
+            type: lt
+          operator:
+            type: and
+    for: 3m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Caddy cannot reach Channels through SWAG
+      description: The keyed SWAG/Channels status check fails. Check SWAG TLS, the
+        private relay key and Channels readiness. Do not restart healthy Caddy or Docker.
+      __dashboardUid__: caddy-overview
+      __panelId__: '2'
+    labels:
+      severity: critical
+      service: caddy
+      host: ben-server
+  - uid: caddy_channels_http_errors
+    title: Channels LAN proxy returning server errors
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: sum(increase(caddy_http_request_duration_seconds_count{job="caddy",server="channels_lan",handler="subroute",code=~"5.."}[5m]))
+          or vector(0)
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params: [5]
+            type: gt
+          operator:
+            type: and
+    for: 3m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Channels LAN proxy returning server errors
+      description: More than five Channels LAN HTTP 5xx responses occurred in five
+        minutes. Compare the SWAG/Channels upstream and recording activity; no restart
+        is attached to this alert.
+      __dashboardUid__: caddy-overview
+      __panelId__: '7'
+    labels:
+      severity: warning
       service: caddy
       host: ben-server
   - uid: caddy_plex_upstream_unavailable
