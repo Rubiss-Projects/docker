@@ -10,6 +10,18 @@ policies:
     group_interval: 5m
     repeat_interval: 4h
     routes:
+      # Native Ubuntu Caddy shares the planned 05:00 host restart gap.
+      - receiver: Discord - Lawson
+        object_matchers:
+          - [service, =, caddy]
+        mute_time_intervals:
+          - transmission-windows-nightly
+        group_by:
+          - alertname
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+
       # Keep evaluating through planned host maintenance, resume delivery at 05:30 ET.
       - receiver: Discord - Lawson
         object_matchers:

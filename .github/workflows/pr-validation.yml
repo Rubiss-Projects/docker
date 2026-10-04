@@ -298,6 +298,17 @@ jobs:
       - name: Test host maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
+      - name: Test native Caddy proxy and watchdog
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          url=$(python3 -c 'import json; print(json.load(open("caddy/release.json"))["url"])')
+          digest=$(python3 -c 'import json; print(json.load(open("caddy/release.json"))["sha256"])')
+          curl --fail --location --max-time 90 "$url" --output "$RUNNER_TEMP/caddy.tar.gz"
+          printf '%s  %s\n' "$digest" "$RUNNER_TEMP/caddy.tar.gz" | sha256sum --check --status
+          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
+          CADDY_BINARY="$RUNNER_TEMP/caddy" python3 -m unittest discover -s caddy -p 'test_*.py'
+
       - name: Test memory telemetry parsing and configuration
         shell: pwsh
         run: |

@@ -1,0 +1,37 @@
+[Unit]
+Description=Caddy Plex remote IPv4 proxy
+Wants=network-online.target
+After=network-online.target caddy-plex-certificate.service
+Requires=caddy-plex-certificate.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=notify
+User=caddy-plex
+Group=caddy-plex
+UMask=0077
+RuntimeDirectory=caddy-plex
+RuntimeDirectoryMode=0700
+StateDirectory=caddy-plex
+Environment=XDG_DATA_HOME=/var/lib/caddy-plex
+Environment=XDG_CONFIG_HOME=/var/lib/caddy-plex
+ExecStart=/usr/local/bin/caddy-plex run --config /etc/caddy-plex/Caddyfile --adapter caddyfile
+ExecReload=/usr/local/bin/caddy-plex reload --force --config /etc/caddy-plex/Caddyfile --adapter caddyfile --address unix//run/caddy-plex/admin.sock
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+SendSIGKILL=no
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

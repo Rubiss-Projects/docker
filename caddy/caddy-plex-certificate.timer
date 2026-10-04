@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for renewed Plex proxy TLS certificate
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target
