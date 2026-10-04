@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import pwd
+import runpy
 import shutil
 import subprocess
 import tarfile
@@ -21,6 +22,49 @@ SOURCE = Path(__file__).resolve().parent
 
 def run(*args):
     return subprocess.run(args, check=True, capture_output=True, text=True, timeout=60)
+
+
+def install_file(destination, data, mode, group):
+    # Unique candidates let a new invocation recover after an interrupted write.
+    descriptor, name = tempfile.mkstemp(prefix=destination.name + '.', suffix='.new', dir=destination.parent)
+    candidate = Path(name)
+    try:
+        with os.fdopen(descriptor, 'wb') as out:
+            out.write(data)
+            out.flush()
+            os.fsync(out.fileno())
+            os.fchown(out.fileno(), 0, group)
+            os.fchmod(out.fileno(), mode)
+        candidate.replace(destination)
+    finally:
+        candidate.unlink(missing_ok=True)
+
+
+def publish(items, backup):
+    # Hold the same lock as certificate refresh and watchdog remediation until
+    # every file is installed, validated and known to systemd. Call sync in this
+    # process to avoid the certificate CLI trying to acquire our lock again.
+    with open('/run/lock/caddy-plex.lock', 'a') as operation:
+        fcntl.flock(operation, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        installed_binary = Path('/usr/local/bin/caddy-plex')
+        active = subprocess.run(['systemctl', 'is-active', '--quiet', 'caddy-plex.service']).returncode == 0
+        if active and installed_binary.read_bytes() != items[installed_binary][0]:
+            raise RuntimeError('Binary upgrade requires a noticed Caddy-only stop; no files changed')
+        originals = {}
+        for destination in items:
+            originals[str(destination)] = destination.exists()
+            if destination.exists():
+                shutil.copy2(destination, backup / destination.name)
+        (backup / 'files.json').write_text(json.dumps(originals, indent=2))
+        for destination, (data, mode, group) in items.items():
+            install_file(destination, data, mode, group)
+        certificate = runpy.run_path('/usr/local/lib/caddy-plex/certificate.py')
+        certificate['sync'](reload_active=False)
+        run('/usr/local/bin/caddy-plex', 'validate', '--config', '/etc/caddy-plex/Caddyfile', '--adapter', 'caddyfile')
+        run('systemctl', 'daemon-reload')
+        if subprocess.run(['systemctl', 'is-active', '--quiet', 'caddy-plex.service']).returncode == 0:
+            run('/usr/local/bin/caddy-plex', 'reload', '--force', '--config', '/etc/caddy-plex/Caddyfile',
+                '--adapter', 'caddyfile', '--address', 'unix//run/caddy-plex/admin.sock')
 
 
 def main():
@@ -45,10 +89,6 @@ def main():
             if not member.isfile():
                 raise SystemExit('Caddy archive member is not a regular file')
             binary = bundle.extractfile(member).read()
-        active = subprocess.run(['systemctl', 'is-active', '--quiet', 'caddy-plex.service']).returncode == 0
-        installed_binary = Path('/usr/local/bin/caddy-plex')
-        if active and installed_binary.read_bytes() != binary:
-            raise SystemExit('Binary upgrade requires a noticed Caddy-only stop; no files changed')
         try:
             pwd.getpwnam('caddy-plex')
         except KeyError:
@@ -73,27 +113,13 @@ def main():
             (SOURCE / 'caddy-plex-certificate.timer').read_bytes(), 0o644, 0)
         backup = Path('/var/lib/caddy-plex-control') / datetime.datetime.now(datetime.timezone.utc).strftime('install-%Y%m%dT%H%M%S%fZ')
         backup.mkdir(mode=0o700)
-        originals = {}
-        for destination, (data, mode, group) in items.items():
-            originals[str(destination)] = destination.exists()
-            if destination.exists():
-                shutil.copy2(destination, backup / destination.name)
-            candidate = destination.with_name(destination.name + '.new')
-            with candidate.open('xb') as out:
-                out.write(data)
-            os.chown(candidate, 0, group)
-            candidate.chmod(mode)
-            candidate.replace(destination)
-        (backup / 'files.json').write_text(json.dumps(originals, indent=2))
-        # Boot certificate creation is handled by the dependency; perform the
-        # initial copy here too so validation can happen before starting Caddy.
         try:
-            run('python3', '/usr/local/lib/caddy-plex/certificate.py')
-            run('/usr/local/bin/caddy-plex', 'validate', '--config', '/etc/caddy-plex/Caddyfile', '--adapter', 'caddyfile')
-            run('systemctl', 'daemon-reload')
+            publish(items, backup)
+            # Startup may activate the certificate dependency, so release the
+            # operational lock only after publication/validation/daemon-reload.
             run('systemctl', 'enable', 'caddy-plex.service', 'caddy-plex-certificate.timer')
             run('systemctl', 'start', 'caddy-plex-certificate.timer')
-            run('systemctl', 'reload' if active else 'start', 'caddy-plex.service')
+            run('systemctl', 'start', 'caddy-plex.service')
             run('python3', '/usr/local/lib/caddy-plex/health.py')
         except Exception:
             # Keep originals for a concrete rollback. Never restart Docker or

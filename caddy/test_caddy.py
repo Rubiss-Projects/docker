@@ -1,6 +1,8 @@
 """Exercise the actual Caddy config with local fake Plex and synthetic TLS only."""
 
 import contextlib
+import builtins
+import fcntl
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -290,6 +292,68 @@ class KumaPayloadTests(unittest.TestCase):
             self.assertEqual(data['parent'], 1)
             self.assertFalse(data['ignoreTls'])
             self.assertTrue(data['expiryNotification'])
+
+
+class InstallerTests(unittest.TestCase):
+    def setUp(self):
+        self.install = module('install')
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def test_interrupted_write_preserves_destination_and_next_install_succeeds(self):
+        destination = self.root / 'config'
+        destination.write_bytes(b'original')
+        stale = self.root / 'config.new'
+        stale.write_bytes(b'retained incomplete prior candidate')
+        with patch.object(self.install.os, 'fchown'), patch.object(Path, 'replace', side_effect=OSError('interrupted')):
+            with self.assertRaises(OSError):
+                self.install.install_file(destination, b'new', 0o640, 0)
+        self.assertEqual(destination.read_bytes(), b'original')
+        self.assertEqual(set(self.root.iterdir()), {destination, stale})
+        with patch.object(self.install.os, 'fchown'):
+            self.install.install_file(destination, b'new', 0o640, 0)
+        self.assertEqual(destination.read_bytes(), b'new')
+        self.assertEqual(stale.read_bytes(), b'retained incomplete prior candidate')
+        self.assertEqual(destination.stat().st_mode & 0o777, 0o640)
+
+    def test_publication_excludes_helpers_through_validation_and_daemon_reload(self):
+        destination = self.root / 'config'
+        destination.write_bytes(b'original')
+        backup = self.root / 'backup'
+        backup.mkdir()
+        lock_path = self.root / 'operation.lock'
+        phases = []
+        real_open = builtins.open
+
+        def open_lock(path, *args, **kwargs):
+            return real_open(lock_path if path == '/run/lock/caddy-plex.lock' else path, *args, **kwargs)
+
+        def assert_locked():
+            with real_open(lock_path, 'a') as other:
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.assertEqual(destination.read_bytes(), b'new')
+
+        def sync(**kwargs):
+            assert_locked()
+            self.assertEqual(kwargs, {'reload_active': False})
+            phases.append('certificate')
+
+        def run(*args):
+            assert_locked()
+            phases.append(args[1])
+
+        with patch.object(builtins, 'open', side_effect=open_lock), \
+             patch.object(self.install.os, 'fchown'), \
+             patch.object(self.install.subprocess, 'run', return_value=subprocess.CompletedProcess([], 3)), \
+             patch.object(self.install.runpy, 'run_path', return_value={'sync': sync}), \
+             patch.object(self.install, 'run', side_effect=run):
+            self.install.publish({destination: (b'new', 0o640, 0)}, backup)
+        self.assertEqual(phases, ['certificate', 'validate', 'daemon-reload'])
+        self.assertEqual((backup / 'config').read_bytes(), b'original')
+        with real_open(lock_path, 'a') as other:
+            fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 
 if __name__ == '__main__':
