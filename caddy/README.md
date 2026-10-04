@@ -47,9 +47,12 @@ operational lock. Unique atomic candidates make interrupted writes retryable.
 Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
 E:\Docker\caddy\install-watchdog.ps1 -Apply` from Windows. The installer holds
 the existing Docker operation lock, validates the exact insertion and parser,
-preserves access rules and backs up the old watchdog script. It copies only the
-DACL onto the empty candidate before writing script bytes, without assigning
-the old administrator owner to a new file. Schedules remain unchanged.
+preserves access rules/owner and backs up the old watchdog script. It copies the
+DACL and verifies ownership before writing script bytes. Run from a normally
+elevated PowerShell session when preserving administrator ownership requires it;
+an unelevated refusal leaves the watchdog unchanged. If Windows partially moves
+files during replacement, the installer retains the candidate and original backup
+for recovery rather than deleting the remaining replacement. Schedules remain unchanged.
 If another owner holds the lock, let it finish before installation.
 
 For planned manual stops, create `/run/caddy-plex.maintenance` **before** stopping

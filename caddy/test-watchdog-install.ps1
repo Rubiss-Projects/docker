@@ -18,8 +18,10 @@ try {
     $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', 'Allow'))
     Set-Acl -LiteralPath $path -AclObject $acl
     $before = (Get-Acl -LiteralPath $path).GetSecurityDescriptorSddlForm($access)
+    $ownerBefore = (Get-Acl -LiteralPath $path).Owner
     & $Installer -Apply -ScriptsDirectory $root
     Require ((Get-Acl -LiteralPath $path).GetSecurityDescriptorSddlForm($access) -ceq $before) 'DACL changed'
+    Require ((Get-Acl -LiteralPath $path).Owner -ceq $ownerBefore) 'Owner changed'
     $updated = [IO.File]::ReadAllText($path)
     Require ($updated.Contains('Invoke-CaddyPlexHealth -Repair')) 'Hook missing'
     $backups = @(Get-ChildItem -LiteralPath $root -Filter '*.before-caddy-*')
@@ -35,5 +37,21 @@ try {
     try { & $Installer -Apply -ScriptsDirectory $root } catch { $refused = $true }
     Require $refused 'Changed watchdog accepted'
     Require ([IO.File]::ReadAllText($path) -ceq '# unsupported watchdog') 'Refusal changed original'
-    Write-Output 'Passed: private DACL/backup, idempotence, changed-source refusal'
+    # Inject only the rare ReplaceFile partial-move failure; all surrounding file
+    # and ACL operations still execute against this disposable Windows directory.
+    $partialInstaller = Join-Path $root 'partial-install.ps1'
+    $source = [IO.File]::ReadAllText($Installer)
+    $replaceCall = '[IO.File]::Replace($candidate, $path, $backup)'
+    Require ([regex]::Matches($source, [regex]::Escape($replaceCall)).Count -eq 1) 'Replacement site changed'
+    [IO.File]::WriteAllText($partialInstaller, $source.Replace($replaceCall, '[IO.File]::Move($path, $backup); throw "Injected partial replacement"'))
+    [IO.File]::WriteAllText($path, $original)
+    $refused = $false
+    try { & $partialInstaller -Apply -ScriptsDirectory $root } catch { $refused = $true }
+    Require $refused 'Partial replacement accepted'
+    Require (-not (Test-Path -LiteralPath $path)) 'Partial fixture did not remove target'
+    $candidates = @(Get-ChildItem -LiteralPath $root -Filter '*.caddy-candidate-*')
+    Require ($candidates.Count -eq 1) 'Recovery candidate deleted'
+    Require ([IO.File]::ReadAllText($candidates[0].FullName).Contains('Invoke-CaddyPlexHealth -Repair')) 'Recovery candidate incomplete'
+    Require (@(Get-ChildItem -LiteralPath $root -Filter '*.before-caddy-*').Count -eq 2) 'Recovery backup missing'
+    Write-Output 'Passed: DACL/owner/backup, idempotence, changed-source refusal, partial-replacement retention'
 } finally { Remove-Item -LiteralPath $root -Recurse -Force }

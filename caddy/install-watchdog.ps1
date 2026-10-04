@@ -31,22 +31,38 @@ try {
     $candidate = $path + '.caddy-candidate-' + $suffix
     $backup = $path + '.before-caddy-' + $suffix
     try {
-        # Copy access rules only: copying an administrator owner requires elevation,
-        # even when the caller already has permission to replace this script.
+        # Access rules are installed before any potentially secret-bearing bytes.
+        # A different original owner also needs to be preserved, using normal UAC.
         $file = [IO.File]::Open($candidate, [IO.FileMode]::CreateNew); $file.Dispose()
         $access = [Security.AccessControl.AccessControlSections]::Access
-        $dacl = (Get-Acl -LiteralPath $path).GetSecurityDescriptorSddlForm($access)
+        $originalAcl = Get-Acl -LiteralPath $path
+        $dacl = $originalAcl.GetSecurityDescriptorSddlForm($access)
+        $owner = $originalAcl.GetOwner([Security.Principal.SecurityIdentifier])
         $candidateAcl = [Security.AccessControl.FileSecurity]::new()
         $candidateAcl.SetSecurityDescriptorSddlForm($dacl, $access)
         Set-Acl -LiteralPath $candidate -AclObject $candidateAcl
         if ((Get-Acl -LiteralPath $candidate).GetSecurityDescriptorSddlForm($access) -cne $dacl) {
             throw 'Candidate access rules differ; no script bytes written'
         }
+        $candidateAcl = Get-Acl -LiteralPath $candidate
+        if ($candidateAcl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $owner) {
+            $ownerAcl = [Security.AccessControl.FileSecurity]::new()
+            $ownerAcl.SetOwner($owner)
+            try { Set-Acl -LiteralPath $candidate -AclObject $ownerAcl }
+            catch { throw 'Preserving the watchdog owner requires an elevated PowerShell session; no script bytes written' }
+        }
+        if ((Get-Acl -LiteralPath $candidate).GetOwner([Security.Principal.SecurityIdentifier]) -ne $owner) {
+            throw 'Candidate owner differs; no script bytes written'
+        }
         [IO.File]::WriteAllText($candidate, $updated, [Text.UTF8Encoding]::new($false))
         # ReplaceFile preserves the target DACL and retains its original as backup.
         [IO.File]::Replace($candidate, $path, $backup)
     } finally {
-        if (Test-Path -LiteralPath $candidate) { Remove-Item -LiteralPath $candidate }
+        # ReplaceFile can move the original to backup before failing to move the
+        # candidate. Keep both recovery files when the scheduled path is absent.
+        if ((Test-Path -LiteralPath $path) -and (Test-Path -LiteralPath $candidate)) {
+            Remove-Item -LiteralPath $candidate
+        }
     }
     Write-Output "Caddy watchdog hook installed; original: $backup"
 } finally { $lock.Dispose() }
