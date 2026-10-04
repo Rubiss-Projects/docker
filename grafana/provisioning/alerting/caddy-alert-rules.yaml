@@ -43,6 +43,7 @@ groups:
         service, its HTTPS health, and the Windows watchdog. Caddy-only repair must
         never restart Docker Desktop.
       __dashboardUid__: caddy-overview
+      __panelId__: '2'
     labels:
       severity: critical
       service: caddy
@@ -84,6 +85,7 @@ groups:
       description: Caddy is running but Plex identity checks fail. Inspect Plex and
         its published endpoint; restarting the healthy proxy will not repair its upstream.
       __dashboardUid__: caddy-overview
+      __panelId__: '2'
     labels:
       severity: critical
       service: caddy
@@ -127,6 +129,7 @@ groups:
         minutes. Compare upstream health and active playback; no automatic Plex restart
         is attached to this alert.
       __dashboardUid__: caddy-overview
+      __panelId__: '7'
     labels:
       severity: warning
       service: caddy
