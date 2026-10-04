@@ -30,7 +30,6 @@ command:
   - '--web.console.libraries=/usr/share/prometheus/console_libraries'
   - '--web.console.templates=/usr/share/prometheus/consoles'
   - '--storage.tsdb.retention.time=30d'
-  - '--web.enable-lifecycle'
 networks:
   - proxynet
 restart: unless-stopped
@@ -103,6 +102,14 @@ docker compose restart
 ```powershell
 # Check syntax before reload
 docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
+```
+
+If Prometheus is stopped, validate using the Compose service's pinned image and
+mounted configuration without starting the server or publishing its ports:
+
+```bash
+cd /mnt/e/Docker/prometheus
+docker compose run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
 ```
 
 ### View Logs
@@ -220,8 +227,8 @@ rate(node_network_receive_bytes_total[5m]) / 1024^2
 ### Configuration Reload Fails
 1. Validate config: `promtool check config prometheus.yml`
 2. Check for YAML syntax errors
-3. Ensure web.enable-lifecycle flag is set
-4. Restart instead: `docker compose restart`
+3. Use the in-container HUP command above; HTTP lifecycle is disabled
+4. Check `docker logs prometheus` for the completed configuration reload or its error
 
 ### High Disk Usage
 1. Check TSDB size: `docker exec prometheus du -sh /prometheus/data`
