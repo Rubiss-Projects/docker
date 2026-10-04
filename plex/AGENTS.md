@@ -56,18 +56,24 @@ Requires:
 
 ## Direct Client Networking
 
-Plex clients must connect directly to port `32400`; do not advertise or restore a
-`plex.benlawson.dev` SWAG URL. Reverse-proxied playback hides the client behind the
-Docker gateway and makes high-bitrate LAN sessions subject to WAN bandwidth limits.
+LAN clients connect directly to port `32400`. Remote IPv4 clients use native
+Ubuntu Caddy at `https://plex-remote.benlawson.dev:18443`; see `../caddy/README.md`.
+Caddy observes the public TCP peer before Docker Desktop NAT and replaces the
+forwarding headers. Do not move this proxy behind Docker Desktop/SWAG or assume
+that it fixes LAN multicast discovery. The temporary native-iOS trial verified
+public client IPs, WAN classification, hardware transcoding and the dashboard.
 
 Persistent Plex settings under **Settings > Network > Show Advanced**:
 
 - **LAN Networks:** `192.168.50.0/24,172.30.0.0/16`
   - `192.168.50.0/24` is the physical LAN.
   - `172.30.0.0/16` is `proxynet`; Docker Desktop presents direct LAN clients to Plex as gateway `172.30.0.1`.
-- **Custom server access URLs:** `http://192.168.50.40:32400`
+- **Custom server access URLs:** `http://192.168.50.40:32400,https://plex-remote.benlawson.dev:18443`
   - Plex publishes this as a certificate-backed `plex.direct` LAN connection.
-  - Plex separately publishes its automatic public `plex.direct:32400` endpoint for remote clients.
+  - Automatic public endpoint publication (`PublishServerOnPlexOnlineKey`) is disabled.
+  - Router public TCP 18443 forwards to Ubuntu Caddy; public TCP 32400 forwarding
+    is removed after validation so native apps cannot bypass the proxy.
+  - Keep LAN port 32400 and the current authentication/bandwidth settings intact.
 
 Expected Apple TV behavior for UHD MKV files with TrueHD is **video copy/direct
 stream plus audio conversion**. Audio-only conversion is valid and must not be

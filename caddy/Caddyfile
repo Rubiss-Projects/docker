@@ -1,0 +1,68 @@
+{
+	# Configuration control is accessible only to root and the service account.
+	admin unix//run/caddy-plex/admin.sock
+	persist_config off
+	auto_https off
+	metrics
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+	}
+	# Plex credentials can occur in both URLs and headers. Keep request/error
+	# objects out of the journal; monitoring uses counters and health endpoints.
+	log default {
+		exclude http.log.access http.log.error
+	}
+}
+
+https://plex-remote.benlawson.dev:18443 {
+	bind 192.168.50.40
+	tls /etc/caddy-plex/tls/current/fullchain.pem /etc/caddy-plex/tls/current/privkey.pem
+	respond /healthz "ok" 200
+	reverse_proxy 127.0.0.1:32400 {
+		# Never trust a caller's claimed source address. Use the TCP peer observed
+		# by Ubuntu before Docker Desktop translates the upstream connection.
+		header_up -Forwarded
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host plex-remote.benlawson.dev:18443
+		header_up X-Forwarded-Port 18443
+		header_up -Proxy-Authorization
+		health_uri /identity
+		health_interval 30s
+		health_timeout 3s
+		health_status 200
+		health_fails 2
+		stream_close_delay 5m
+	}
+}
+
+# No router forwarding for this LAN-only, GET-only observability listener.
+# Homepage uses just the upstreams resource; the real admin socket stays private.
+http://192.168.50.40:19019 {
+	bind 192.168.50.40
+	@metrics {
+		remote_ip private_ranges
+		method GET
+		path /metrics
+	}
+	@upstreams {
+		remote_ip private_ranges
+		method GET
+		path /reverse_proxy/upstreams
+	}
+	@health {
+		remote_ip private_ranges
+		method GET
+		path /healthz
+	}
+	route {
+		metrics @metrics
+		reverse_proxy @upstreams unix//run/caddy-plex/admin.sock {
+			header_up Host localhost
+		}
+		respond @health "ok" 200
+		respond "Not found" 404
+	}
+}

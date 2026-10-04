@@ -79,6 +79,12 @@ Codex service traffic and its own ChatGPT login volume, never the assistant's
 data/credentials or a Docker socket. Retain its memory/swap, CPU, and PID limits.
 All three AI Assistant containers use the same immutable release version.
 
+**Narrow exception — Caddy Plex proxy:** `caddy/` is a native Ubuntu systemd
+service, outside Docker Desktop NAT so it can observe remote client IPs. It has
+no Compose stack or `proxynet` attachment. Use its explicit native installer,
+Homepage configuration and Kuma monitor; keep its admin Unix socket private.
+Read `caddy/README.md` for routing, watchdog recovery, deployment and backout.
+
 ### Port Management
 - **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
 - **Internal services**: Use non-standard ports to avoid conflicts

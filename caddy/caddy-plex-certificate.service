@@ -1,0 +1,15 @@
+[Unit]
+Description=Refresh Caddy's private copy of the SWAG wildcard certificate
+RequiresMountsFor=/mnt/e/Docker/swag/config/keys/letsencrypt
+Before=caddy-plex.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/lib/caddy-plex/certificate.py
+TimeoutStartSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/caddy-plex/tls /run/lock

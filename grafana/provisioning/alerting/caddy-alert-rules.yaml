@@ -1,0 +1,133 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: caddy-plex
+  folder: Infrastructure
+  interval: 1m
+  rules:
+  - uid: caddy_unavailable
+    title: Caddy Plex proxy unavailable
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: (max(up{job="caddy"}) or vector(0))
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+    for: 2m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: Caddy Plex proxy unavailable
+      description: Caddy metrics are unreachable. Check the native Ubuntu caddy-plex
+        service, its HTTPS health, and the Windows watchdog. Caddy-only repair must
+        never restart Docker Desktop.
+      __dashboardUid__: caddy-overview
+    labels:
+      severity: critical
+      service: caddy
+      host: ben-server
+  - uid: caddy_plex_upstream_unavailable
+    title: Caddy cannot reach Plex
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: min(caddy_reverse_proxy_upstreams_healthy{job="caddy",upstream="127.0.0.1:32400"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+    for: 3m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Caddy cannot reach Plex
+      description: Caddy is running but Plex identity checks fail. Inspect Plex and
+        its published endpoint; restarting the healthy proxy will not repair its upstream.
+      __dashboardUid__: caddy-overview
+    labels:
+      severity: critical
+      service: caddy
+      host: ben-server
+  - uid: caddy_http_errors
+    title: Plex remote proxy returning server errors
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: sum(increase(caddy_http_requests_total{job="caddy",handler="reverse_proxy",code=~"5.."}[5m]))
+          or vector(0)
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 5
+            type: gt
+          operator:
+            type: and
+    for: 3m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Plex remote proxy returning server errors
+      description: More than five reverse-proxy HTTP 5xx responses occurred in five
+        minutes. Compare upstream health and active playback; no automatic Plex restart
+        is attached to this alert.
+      __dashboardUid__: caddy-overview
+    labels:
+      severity: warning
+      service: caddy
+      host: ben-server
