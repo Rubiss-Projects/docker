@@ -69,7 +69,8 @@ Persistent Plex settings under **Settings > Network > Show Advanced**:
   - `192.168.50.0/24` is the physical LAN.
   - `172.30.0.0/16` is `proxynet`; Docker Desktop presents direct LAN clients to Plex as gateway `172.30.0.1`.
 - **Custom server access URLs:** `http://192.168.50.40:32400,https://plex-remote.benlawson.dev:18443`
-  - Plex publishes this as a certificate-backed `plex.direct` LAN connection.
+  - Plex publishes the LAN URL as a certificate-backed `plex.direct` connection;
+    the remote URL uses Caddy's wildcard certificate.
   - Automatic public endpoint publication (`PublishServerOnPlexOnlineKey`) is disabled.
   - Router public TCP 18443 forwards to Ubuntu Caddy; public TCP 32400 forwarding
     is removed after validation so native apps cannot bypass the proxy.
@@ -157,8 +158,9 @@ Get Plex token:
 4. Find `X-Plex-Token=XXXXX` in URL
 
 ### SWAG reverse proxy
-Plex intentionally has no active SWAG route. Use Plex's direct `plex.direct:32400`
-connections for apps and `https://app.plex.tv/desktop/` for browser access.
+Plex intentionally has no active SWAG route. Apps use direct `plex.direct:32400`
+connections on the LAN and the advertised Caddy URL remotely. Browser access
+remains `https://app.plex.tv/desktop/`.
 
 ### Tracearr (Stats & Monitoring)
 Tracearr tracks Plex usage:
@@ -191,11 +193,16 @@ Automatically updates Plex when new media added:
 5. Check Plex logs for scanner errors
 
 ### Remote Access Not Working
-1. Settings > Remote Access > Enable
-2. Ensure port 32400 is forwarded in router
-3. Check "Manually specify public port" if behind NAT
-4. Verify external access at https://app.plex.tv
-5. Do not add a SWAG custom server URL; diagnose the direct `plex.direct` route.
+1. Check native Ubuntu `caddy-plex.service` and its TLS `/healthz` endpoint.
+2. Check `https://plex-remote.benlawson.dev:18443/identity`; if only the upstream
+   fails, check Plex at `http://127.0.0.1:32400/identity` without restarting Caddy.
+3. Verify the DNS-only alias and router TCP 18443 -> `192.168.50.40:18443` rule.
+4. Verify Plex advertises the Caddy remote URL and retains the direct LAN URL.
+   Keep automatic public endpoint publication disabled; the built-in Remote
+   Access status is not the acceptance check for this custom route.
+5. Verify the native client and `https://app.plex.tv`. Public TCP 32400 forwarding
+   and publication are backout-only; follow the saved-setting reversal in
+   `../caddy/README.md`, rather than introducing a direct bypass or SWAG URL.
 
 ### Playback Buffering/Stuttering
 1. Check transcoding settings (reduce quality if needed)
@@ -230,7 +237,7 @@ docker run --rm -v ./config:/config `
 - **Plex Account**: Secure with strong password and 2FA
 - **Sharing**: Limit shares to trusted users
 - **Token Protection**: Keep Plex token secret (treat like password)
-- **Remote Access**: Use SSL (via SWAG or Plex SSL)
+- **Remote Access**: Use Caddy TLS remotely and Plex SSL on direct LAN connections
 - **Network Isolation**: Keep on proxynet
 - **Guest Access**: Disable if not needed (Settings > Network)
 
@@ -340,9 +347,10 @@ Install Plex exporter for Prometheus:
 ## Common Errors and Solutions
 
 ### "Indirect connection"
-- Port forwarding not working
-- Enable Settings > Network > Enable Relay
-- Verify the direct public `plex.direct:32400` connection and router port forward.
+- Verify the Caddy remote URL, certificate, router TCP 18443 rule and upstream.
+- Fully reopen the client after a route change to refresh server discovery.
+- Relay is intentionally disabled. Do not enable it or public TCP 32400 as an
+  automatic repair; use the explicit Caddy backout if the new route must be withdrawn.
 
 ### "Not authorized"
 - Token expired or invalid
@@ -350,9 +358,10 @@ Install Plex exporter for Prometheus:
 - Check Plex token in Homepage/integrations
 
 ### "Unable to connect securely"
-- SSL certificate issue
-- Settings > Network > Secure connections: Preferred (not Required)
-- Verify that the advertised `plex.direct` hostname resolves and its certificate is valid.
+- Verify the remote Caddy hostname resolves and its wildcard certificate is valid;
+  inspect `caddy-plex-certificate.service` if renewal has failed.
+- For direct LAN clients, verify the advertised `plex.direct` hostname and its
+  Plex certificate. Preserve the configured secure-connection/authentication settings.
 
 ### "Transcoder crashed"
 - GPU out of memory
@@ -410,20 +419,24 @@ tar -xzf plex-backup-YYYYMMDD.tar.gz
 docker compose start plex
 ```
 
-## External Access Options
+## External Access and Backout
 
-### Option 1: Plex Relay (No Configuration)
-- Automatic, but slower
-- Limited to 1 Mbps for free users
-- No port forwarding needed
+### Normal remote route
+- DNS-only `plex-remote.benlawson.dev`, TCP 18443 forwarded to Ubuntu Caddy.
+- Caddy forwards to Plex's existing local TCP 32400 endpoint with the observed
+  client address; LAN clients continue using TCP 32400 directly.
+- Retain the custom LAN/remote URLs and disabled automatic public publication.
 
-### Option 2: Direct Port Forwarding
-- Forward port 32400 on router
-- Settings > Remote Access > Enable
-- Fast, but requires router configuration
+### Explicit backout only
+- Restore the exact saved public TCP 32400 rule and Plex publication/custom URL
+  settings before removing the Caddy route, as described in `../caddy/README.md`.
+- The direct public path loses the remote-client IP preservation. Do not leave
+  both public routes advertised as a permanent configuration.
+- Plex Relay stays at its saved setting; it is not this deployment's recovery path.
 
 ### SWAG reverse proxy
 - Not used for Plex.
-- Do not recreate `swag/config/nginx/proxy-confs/plex.subdomain.conf` unless the direct-client design is intentionally being replaced.
+- Do not recreate `swag/config/nginx/proxy-confs/plex.subdomain.conf` unless this
+  LAN-direct/remote-Caddy design is intentionally being replaced.
 
 This configuration provides a robust, GPU-accelerated media server with optimal performance for transcoding multiple streams.
