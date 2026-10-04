@@ -18,7 +18,7 @@ x-worker: &worker
 services:
   dfs:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.43
     # No container_name: Compose must generate a name for each replica.
     scale: ${DFS_REPLICAS:-2}
     env_file:
@@ -56,7 +56,7 @@ services:
 
   checkpoint-recovery:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.43
     container_name: sunday-edge-checkpoint-recovery
     hostname: ben-server
     entrypoint: [node, --import, tsx]
@@ -92,7 +92,7 @@ services:
 
   analytics:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.43
     container_name: sunday-edge-analytics
     env_file:
       - path: analytics.env.secret
@@ -106,6 +106,7 @@ services:
       CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
       CODEX_ESCALATION_MODEL: ${CODEX_ESCALATION_MODEL:-gpt-6.1-sol}
       CODEX_ESCALATION_REASONING_EFFORT: ${CODEX_ESCALATION_REASONING_EFFORT:-max}
+      CODEX_BATCH_TIMEOUT_MS: ${CODEX_BATCH_TIMEOUT_MS:-480000}
       # Codex thread pools share this container's 256-task cgroup limit.
       CODEX_EXTRACTION_CONCURRENCY: "1"
       JEV_MODE: ${JEV_MODE:-off}
@@ -127,7 +128,7 @@ services:
 
   maintenance:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.43
     container_name: sunday-edge-maintenance
     env_file:
       - path: maintenance.env.secret
@@ -152,7 +153,7 @@ services:
 
   research:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-research:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-research:v0.2.43
     container_name: sunday-edge-research
     environment:
       TZ: ${TZ}
@@ -169,7 +170,7 @@ services:
 
   sunday-edge:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.42
+    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.43
     container_name: sunday-edge
     env_file:
       - path: watchdog.env.secret

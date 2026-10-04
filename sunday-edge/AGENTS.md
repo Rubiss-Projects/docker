@@ -695,3 +695,24 @@ baseline fix deployed. If a web rollback is also necessary, stop v24 producers
 first, preserve durable jobs/state, and repeat the queue handoff and verification.
 The v0.2.41 source revision is `221c56c4ab2eaf68ec371e786871e58c10845593`;
 its web code reintroduces the generation defect repaired by this release.
+
+## Configurable analytics deadlines and podcast redirects (v0.2.43)
+
+Analytics v25 accepts `CODEX_BATCH_TIMEOUT_MS` from the public `.env` through
+Compose, overriding the older encrypted-file setting. Production uses `480000`
+(eight minutes); supported values are 30000-600000. The worker reserves both
+extraction and adjudication plus initialization/shutdown, extending its run
+budget to at most 22 minutes under the unchanged 25-minute supervisor deadline.
+Model, reasoning, concurrency, resources and credentials remain unchanged.
+
+Publish all five v0.2.43 images before promoting all six Compose references.
+Verify the analytics container reports `CODEX_BATCH_TIMEOUT_MS=480000` and v25,
+then inspect a completed source collection and model retry counters. Preserve
+pending evidence, successful slices, original retries and quarantine records.
+DFS Army audio may redirect from `mcdn.podbean.com` to numbered Podbean servers;
+the worker still checks public DNS and enforces HTTPS/audio size limits.
+
+Rollback uses all six v0.2.42 images and `CODEX_BATCH_TIMEOUT_MS=240000` together.
+That restores the shorter extraction deadline while retaining the Week 4 lineup
+baseline fix. No schema, queue protocol or persistent-volume migration is needed.
+Keep the established web queue-cutover checks when the app revision changes.
