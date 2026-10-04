@@ -188,6 +188,8 @@ installation never authorizes a Docker, WSL, Windows or network-service restart.
 
 `CADDY_BINARY=/path/to/pinned/caddy python3 -m unittest discover -s caddy -p 'test_*.py'`
 also requires `NGINX_TEST_IMAGE` set to the installed SWAG image ID (no pull).
+The disposable GitHub-hosted validation runner first pulls the exact digest from
+`swag/docker-compose.yml`; it has no production credentials or mounts.
 It runs the actual Caddyfile against a loopback fake Plex and synthetic TLS. It
 checks source-header replacement, Plex authentication propagation, byte ranges,
 WebSocket upgrades, TLS/Host matching, read-only monitoring, and watchdog
