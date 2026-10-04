@@ -30,10 +30,23 @@ try {
     $suffix = [Guid]::NewGuid().ToString('N')
     $candidate = $path + '.caddy-candidate-' + $suffix
     $backup = $path + '.before-caddy-' + $suffix
-    # Preserve the original ACL before writing potentially secret-bearing script bytes.
-    $file = [IO.File]::Open($candidate, [IO.FileMode]::CreateNew); $file.Dispose()
-    Set-Acl -LiteralPath $candidate -AclObject (Get-Acl -LiteralPath $path)
-    [IO.File]::WriteAllText($candidate, $updated, [Text.UTF8Encoding]::new($false))
-    [IO.File]::Replace($candidate, $path, $backup)
+    try {
+        # Copy access rules only: copying an administrator owner requires elevation,
+        # even when the caller already has permission to replace this script.
+        $file = [IO.File]::Open($candidate, [IO.FileMode]::CreateNew); $file.Dispose()
+        $access = [Security.AccessControl.AccessControlSections]::Access
+        $dacl = (Get-Acl -LiteralPath $path).GetSecurityDescriptorSddlForm($access)
+        $candidateAcl = [Security.AccessControl.FileSecurity]::new()
+        $candidateAcl.SetSecurityDescriptorSddlForm($dacl, $access)
+        Set-Acl -LiteralPath $candidate -AclObject $candidateAcl
+        if ((Get-Acl -LiteralPath $candidate).GetSecurityDescriptorSddlForm($access) -cne $dacl) {
+            throw 'Candidate access rules differ; no script bytes written'
+        }
+        [IO.File]::WriteAllText($candidate, $updated, [Text.UTF8Encoding]::new($false))
+        # ReplaceFile preserves the target DACL and retains its original as backup.
+        [IO.File]::Replace($candidate, $path, $backup)
+    } finally {
+        if (Test-Path -LiteralPath $candidate) { Remove-Item -LiteralPath $candidate }
+    }
     Write-Output "Caddy watchdog hook installed; original: $backup"
 } finally { $lock.Dispose() }
