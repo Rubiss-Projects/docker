@@ -103,7 +103,7 @@ enable debug/access logging against real Plex traffic without token redaction.
   existing Plex Discord notification assignments. Its Docker self-heal webhook
   is excluded: Caddy recovery belongs to the native watchdog. TLS validation and
   expiry alerts stay enabled. No new credentials or notification channel is created.
-- Hot-reload Prometheus configuration and Grafana alerting provisioning, and
+- Validate Prometheus with `docker exec prometheus promtool check config /etc/prometheus/prometheus.yml`, then hot-reload using `docker exec prometheus /bin/sh -c 'kill -HUP 1'` (not Docker's kill API; see `../prometheus/AGENTS.md`). Reload Grafana alerting provisioning, and
   let the dashboard file provider/Homepage observe changed files. Verify actual
   scrapes, all three rules, the widget and fresh Kuma heartbeats after rollout.
 
