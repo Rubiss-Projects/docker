@@ -91,7 +91,13 @@ def main():
         raise SystemExit('Run as root in Ubuntu')
     if Path('/run/caddy-plex.maintenance').exists():
         raise SystemExit('Caddy maintenance hold present')
+    if SOURCE != Path('/mnt/e/Docker/caddy'):
+        raise SystemExit('Install the merged source from /mnt/e/Docker/caddy')
     os.umask(0o077)
+    # chmod/chown silently leave 1000:1000/777 on this host's VirtioFS mount.
+    # The fixed Windows helper protects just these key paths before publication.
+    run('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe', '-NoProfile',
+        '-ExecutionPolicy', 'Bypass', '-File', 'E:\\Docker\\caddy\\protect-channels-key.ps1')
     channels_native, channels_guard = channels_config()
     release = json.loads((SOURCE / 'release.json').read_text())
     with tempfile.TemporaryDirectory(prefix='caddy-install-') as temp:

@@ -32,7 +32,13 @@ LAN peers get the normal trusted-home access, including application write method
 Do not widen the peer matcher to all private networks or trust X-Forwarded-For.
 
 The shared key lives only in git-crypt's `caddy/channels-lan.env.secret` source
-and protected generated configuration. `install.py` validates its format,
+and protected generated configuration. VirtioFS does not enforce Linux ownership
+or mode changes on these Windows files. The installer first runs the fixed
+`protect-channels-key.ps1` helper to limit the source file and generated SWAG
+directory to the current Windows operator, SYSTEM and Administrators using NTFS
+ACLs. A permissions refusal stops installation; no elevation or ACL broadening
+is attempted. The native `/etc` copy retains root/service-group mode 640.
+`install.py` validates the key's format,
 renders `/etc/caddy-plex/channels-lan.caddy` and SWAG's ignored
 `config/nginx/channels-lan-private/key.conf`, validates both servers, reloads
 SWAG, then reloads Caddy. Missing SWAG key material denies all relay requests;
