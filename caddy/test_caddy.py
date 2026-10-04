@@ -86,6 +86,8 @@ class ProxyTests(unittest.TestCase):
                         '-addext', 'subjectAltName=DNS:plex-remote.benlawson.dev'],
                        check=True, capture_output=True)
         text = (HERE / 'Caddyfile').read_text()
+        # The separate Channels tests own its listener and actual SWAG fixture.
+        text = text.replace('import /etc/caddy-plex/channels-lan.caddy', '')
         for old, new in [('192.168.50.40', '127.0.0.1'), ('18443', str(cls.https)),
                          ('19019', str(cls.metrics)), ('127.0.0.1:32400', f'127.0.0.1:{cls.backend.server_port}'),
                          ('/run/caddy-plex/admin.sock', str(cls.root / 'admin.sock')),
@@ -274,8 +276,9 @@ class KumaPayloadTests(unittest.TestCase):
                     if data.get('conditions') != []:
                         raise ValueError('Kuma v2 monitor.conditions is required')
                     actions.append((event, data))
-                    rows[3] = {**data, 'id': 3}
-                    return {'ok': True, 'monitorID': 3}
+                    ident = data.get('id', max(rows) + 1)
+                    rows[ident] = {**data, 'id': ident}
+                    return {'ok': True, 'monitorID': ident}
                 return {'ok': True}
 
             def disconnect(self):
@@ -286,12 +289,12 @@ class KumaPayloadTests(unittest.TestCase):
                                     'UPTIME_KUMA_USERNAME': 'fixture', 'UPTIME_KUMA_PASSWORD': 'fixture'}):
             exec(inner, {})
             exec(inner, {})
-        self.assertEqual([action for action, _ in actions], ['add', 'editMonitor'])
+        self.assertEqual([action for action, _ in actions], ['add', 'add', 'editMonitor', 'editMonitor'])
         for _, data in actions:
             self.assertEqual(data['notificationIDList'], {'7': True})
             self.assertEqual(data['parent'], 1)
             self.assertFalse(data['ignoreTls'])
-            self.assertTrue(data['expiryNotification'])
+            self.assertEqual(data['expiryNotification'], data['name'] == 'caddy')
 
 
 class InstallerTests(unittest.TestCase):
@@ -350,7 +353,7 @@ class InstallerTests(unittest.TestCase):
              patch.object(self.install.runpy, 'run_path', return_value={'sync': sync}), \
              patch.object(self.install, 'run', side_effect=run):
             self.install.publish({destination: (b'new', 0o640, 0)}, backup)
-        self.assertEqual(phases, ['certificate', 'validate', 'daemon-reload'])
+        self.assertEqual(phases, ['certificate', 'validate', 'exec', 'exec', 'daemon-reload'])
         self.assertEqual((backup / 'config').read_bytes(), b'original')
         with real_open(lock_path, 'a') as other:
             fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)

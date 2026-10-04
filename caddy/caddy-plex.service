@@ -1,5 +1,5 @@
 [Unit]
-Description=Caddy Plex remote IPv4 proxy
+Description=Caddy Plex remote and Channels LAN proxy
 Wants=network-online.target
 After=network-online.target caddy-plex-certificate.service
 Requires=caddy-plex-certificate.service

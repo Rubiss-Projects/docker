@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the reviewed native Ubuntu proxy; no Plex/router/Docker changes."""
+"""Install native Caddy and reload its private SWAG hop; no container restarts."""
 
 import argparse
 import datetime
@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import pwd
+import re
 import runpy
 import shutil
 import subprocess
@@ -18,6 +19,19 @@ import tempfile
 import urllib.request
 
 SOURCE = Path(__file__).resolve().parent
+
+
+def channels_config():
+    # One encrypted source supplies both ends. Strict hex also prevents injecting
+    # directives into either configuration. Never print the generated material.
+    value = (SOURCE / 'channels-lan.env.secret').read_text().strip()
+    match = re.fullmatch(r'CHANNELS_LAN_KEY=([0-9a-f]{64})', value)
+    if not match:
+        raise ValueError('Missing/unusable decrypted Channels relay key')
+    key = match[1]
+    native = (SOURCE / 'channels-lan.caddy').read_text().replace('@CHANNELS_LAN_KEY@', key)
+    # Case-sensitive, anchored regex rather than nginx map's case-folded strings.
+    return native.encode(), f'~^{key}$ 1;\n'.encode()
 
 
 def run(*args):
@@ -61,6 +75,8 @@ def publish(items, backup):
         certificate = runpy.run_path('/usr/local/lib/caddy-plex/certificate.py')
         certificate['sync'](reload_active=False)
         run('/usr/local/bin/caddy-plex', 'validate', '--config', '/etc/caddy-plex/Caddyfile', '--adapter', 'caddyfile')
+        run('docker', 'exec', 'swag', 'nginx', '-t')
+        run('docker', 'exec', 'swag', 'nginx', '-s', 'reload')
         run('systemctl', 'daemon-reload')
         if subprocess.run(['systemctl', 'is-active', '--quiet', 'caddy-plex.service']).returncode == 0:
             run('/usr/local/bin/caddy-plex', 'reload', '--force', '--config', '/etc/caddy-plex/Caddyfile',
@@ -76,6 +92,7 @@ def main():
     if Path('/run/caddy-plex.maintenance').exists():
         raise SystemExit('Caddy maintenance hold present')
     os.umask(0o077)
+    channels_native, channels_guard = channels_config()
     release = json.loads((SOURCE / 'release.json').read_text())
     with tempfile.TemporaryDirectory(prefix='caddy-install-') as temp:
         archive = args.archive or Path(temp) / 'caddy.tar.gz'
@@ -105,6 +122,12 @@ def main():
             path.chmod(mode)
         items = {Path('/usr/local/bin/caddy-plex'): (binary, 0o755, 0)}
         items[Path('/etc/caddy-plex/Caddyfile')] = ((SOURCE / 'Caddyfile').read_bytes(), 0o640, gid)
+        items[Path('/etc/caddy-plex/channels-lan.caddy')] = (channels_native, 0o640, gid)
+        guard_dir = SOURCE.parent / 'swag/config/nginx/channels-lan-private'
+        guard_dir.mkdir(mode=0o700, exist_ok=True)
+        if any(path.name != 'key.conf' for path in guard_dir.glob('*.conf')):
+            raise RuntimeError('Unexpected Channels key include; refusing ambiguous authorization')
+        items[guard_dir / 'key.conf'] = (channels_guard, 0o600, 0)
         for name in ('certificate.py', 'health.py'):
             items[Path('/usr/local/lib/caddy-plex') / name] = ((SOURCE / name).read_bytes(), 0o644, 0)
         for path in SOURCE.glob('*.service'):

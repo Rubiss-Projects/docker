@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotently add Caddy's TLS/Plex monitor using the existing SWAG Kuma login."""
+"""Sync native Caddy's Plex and Channels listener monitors via the existing Kuma login."""
 
 import importlib.util
 from pathlib import Path
@@ -52,8 +52,7 @@ try:
     rows = list(monitors.values())
     parents = [m for m in rows if m.get('name') == 'Infrastructure' and m.get('type') == 'group']
     plex = [m for m in rows if m.get('url') == 'http://plex:32400/identity']
-    existing = [m for m in rows if m.get('name') == 'caddy']
-    if len(parents) != 1 or len(plex) != 1 or len(existing) > 1:
+    if len(parents) != 1 or len(plex) != 1:
         raise RuntimeError('Monitor/parent/notification source not unique')
     # The Plex monitor also invokes Docker self-heal through an n8n webhook.
     # This native service uses its own watchdog; inherit only its Discord alerts.
@@ -71,16 +70,24 @@ try:
                'maxredirects': 0, 'accepted_statuscodes': ['200'], 'ignoreTls': False,
                'expiryNotification': True, 'parent': parents[0]['id'], 'active': True, 'conditions': [],
                'notificationIDList': notifications, 'description': 'Native Ubuntu Caddy -> Plex; TLS expiry alerts enabled. Caddy-only watchdog recovery.'}
-    if existing:
-        if existing[0].get('url') != desired['url']:
-            raise RuntimeError('Existing caddy monitor has a different owner URL')
-        desired = {**existing[0], **desired}
-        result = call('editMonitor', desired)
-        monitor_id = existing[0]['id']
-    else:
-        result = call('add', desired)
-        monitor_id = result['monitorID']
-    print(json.dumps({'monitor_id': monitor_id, 'name': 'caddy', 'notification_count': len(notifications)}))
+    channels = {**desired, 'name': 'caddy-channels-lan', 'url': 'http://192.168.50.40:18089/healthz',
+                'expiryNotification': False,
+                'description': 'Native Channels LAN listener. Grafana separately checks SWAG/Channels upstream health. Caddy-only recovery.'}
+    plans = [desired, channels]
+    # Check ownership of both records before updating either one.
+    for plan in plans:
+        existing = [m for m in rows if m.get('name') == plan['name']]
+        if len(existing) > 1 or (existing and existing[0].get('url') != plan['url']):
+            raise RuntimeError('Existing Caddy monitor has ambiguous ownership')
+    for plan in plans:
+        existing = [m for m in rows if m.get('name') == plan['name']]
+        if existing:
+            result = call('editMonitor', {**existing[0], **plan})
+            monitor_id = existing[0]['id']
+        else:
+            result = call('add', plan)
+            monitor_id = result['monitorID']
+        print(json.dumps({'monitor_id': monitor_id, 'name': plan['name'], 'notification_count': len(notifications)}))
 finally:
     sio.disconnect()
 '''

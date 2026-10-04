@@ -13,12 +13,17 @@
 		protocols h1 h2
 		strict_sni_host on
 	}
+	servers 192.168.50.40:18089 {
+		name channels_lan
+	}
 	# Plex credentials can occur in both URLs and headers. Keep request/error
 	# objects out of the journal; monitoring uses counters and health endpoints.
 	log default {
 		exclude http.log.access http.log.error
 	}
 }
+
+import /etc/caddy-plex/channels-lan.caddy
 
 https://plex-remote.benlawson.dev:18443 {
 	bind 192.168.50.40

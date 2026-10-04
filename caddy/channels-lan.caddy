@@ -1,0 +1,44 @@
+# Native Ubuntu sees the LAN peer before Docker Desktop translates it. The
+# private SWAG hop reaches Channels on proxynet without trusting client headers.
+http://:18089 {
+	bind 192.168.50.40 127.0.0.1
+	@health {
+		remote_ip private_ranges
+		host 192.168.50.40
+		method GET
+		path /healthz
+	}
+	@lan {
+		remote_ip 192.168.50.0/24
+		host 192.168.50.40
+	}
+	route {
+		# This endpoint checks the listener only; upstream health has its own alert.
+		respond @health "ok" 200
+		reverse_proxy @lan https://127.0.0.1:443 {
+			header_up Host channels-lan-relay.benlawson.dev
+			header_up X-Channels-Lan-Key @CHANNELS_LAN_KEY@
+			header_up -Forwarded
+			header_up -X-Forwarded-*
+			header_up -X-Real-IP
+			header_up -X-DVR-SkipAuth
+			header_up -X-DVR-ForceAuth
+			header_up -Proxy-Authorization
+			transport http {
+				tls_server_name channels-lan-relay.benlawson.dev
+			}
+			health_uri /status
+			health_headers {
+				Host channels-lan-relay.benlawson.dev
+				X-Channels-Lan-Key @CHANNELS_LAN_KEY@
+			}
+			health_interval 30s
+			health_timeout 3s
+			health_status 200
+			health_fails 2
+			flush_interval -1
+			stream_close_delay 5m
+		}
+		respond "LAN access only" 403
+	}
+}

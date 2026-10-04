@@ -4,12 +4,19 @@
     - Caddy:
         icon: caddy.svg
         href: https://grafana.benlawson.dev/d/caddy-overview
-        description: Plex remote proxy · Ubuntu
+        description: Plex remote / Channels LAN · Ubuntu
         siteMonitor: http://192.168.50.40:19019/healthz
         widget:
           type: caddy
           url: http://192.168.50.40:19019
           fields: ["upstreams", "requests", "requests_failed"]
+
+- Media Consumption:
+    - Channels LAN:
+        icon: channels-dvr.png
+        href: http://192.168.50.40:18089
+        description: At Home · IPTV and HDHomeRun
+        siteMonitor: http://192.168.50.40:18089/healthz
 
 - Hardware:
     - NVIDIA GPU:
