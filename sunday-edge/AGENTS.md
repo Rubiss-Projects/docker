@@ -665,3 +665,33 @@ The web accepts verified v1/v2 evidence during rollout, while v3 owns newly
 transcribed caches. Require a fresh long-episode collector result, independent
 model verification and completed source report; transcription exit status alone
 is insufficient. Keep the existing resource limits and October 7 review deadline.
+
+## Week 4 generation and source recovery (v0.2.42)
+
+Deploy app revision `a9c0f2182558c25a0cf5f7f6484a4dfedc68440e` before promoting
+all six image references. It aligns automatic-generation baseline selection and
+accepts the new public-article provenance and analyst source keys. Analytics v24
+resumes saved model slices with fresh deadlines and retries transient model
+quarantines after 30 minutes when a game is within 24 hours. Preserve collection
+checkpoints, quarantine records and frozen prospective evidence. No migration,
+credential, resource or replica-setting change is required.
+
+Verify every running image's release/revision, a completed analytics v24 source
+report, recovery of retrievable quarantined evidence, and a successful automatic
+generation with current snapshot binding and legal selected lineups. Check the
+new Muck Rack and Stokastic Daily Fantasy source observations and DFS Army's
+podcast fallback. HTTP blocks and missing eligible content remain coverage gaps;
+captions are preferred to audio, and attribution still requires evidence.
+
+Queue handoff is part of the web rollout. The v0.2.42 deployment retired
+`dpl_FM6C4bwCtmx9stExq3M84nnA8TmP` and `dpl_m1eQdDGTKyfH89UBTLK2NnqpkTeY`
+after the current deployment processed simulation, reanalysis and checkpoint
+callbacks. Verify all production deployments through at least five minutes and
+the next watchdog interval; the production alias alone cannot prove cutover.
+
+Rollback all six worker pins together to `v0.2.41` through a reviewed promotion
+PR; those workers remain compatible with the fixed web contract. Keep the web
+baseline fix deployed. If a web rollback is also necessary, stop v24 producers
+first, preserve durable jobs/state, and repeat the queue handoff and verification.
+The v0.2.41 source revision is `221c56c4ab2eaf68ec371e786871e58c10845593`;
+its web code reintroduces the generation defect repaired by this release.
