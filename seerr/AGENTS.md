@@ -490,7 +490,7 @@ Seerr is a Jellyseerr fork with book/audiobook support. Provides request UI for 
 
 ## Docker Compose
 ```yaml
-image: ghcr.io/jabloink/jellyseerr:preview-books
+image: ghcr.io/rubiss/seerr:book-support  # Use the digest pinned in docker-compose.yml
 container_name: seerr
 ports:
   - "5056:5055"
@@ -523,6 +523,12 @@ Settings → Services → Readarr:
 Connect both for ebooks and audiobooks:
 - Bookshelf: `http://bookshelf:8787`
 - Bookshelf-Audio: `http://bookshelf-audio:8787`
+
+### Immediate Availability
+Both Bookshelf instances send import and upgrade webhooks to Seerr. Keep their
+Readarr Sync settings enabled. See [README.md](README.md) for the callback URLs,
+authentication, verification, and upgrade recovery steps. Do not increase scan
+frequency to compensate for a broken callback.
 
 ## Integration
 
@@ -563,10 +569,9 @@ labels:
 
 ## Preview Status Note
 
-Book support is from a draft PR:
-- May have occasional bugs
-- Regular backups recommended
-- Test updates before applying
+Book support is maintained on `Rubiss/seerr`'s `book-support` branch and is based
+on the official Seerr v3.5.0 release. Back up settings and the database before
+upgrades, test migrations on a copy, and deploy a reviewed image digest.
 
 ## Known Deviations from TRaSH Guides
 
