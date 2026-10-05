@@ -242,7 +242,6 @@ async function waitForRecovery(last, observationMs) {
       continue;
     }
     const observedAt = performance.now();
-    if (observedAt >= deadline) break;
     if (last.State.Status !== 'running') {
       healthySince = null;
       if (last.State.Status === 'restarting') {
@@ -280,6 +279,15 @@ async function waitForRecovery(last, observationMs) {
       deadline = performance.now() + verifyTimeoutMs;
       await sleep(pollIntervalMs);
       continue;
+    }
+    // An inspection admitted before expiry can still finish an owned late stop
+    // above, but a late healthy response cannot certify this verification window.
+    if (observedAt >= deadline) break;
+    if (!pending && !isCoolingDown() && last.State.Health?.Status === 'unhealthy') {
+      // Natural recovery relapsed: there is no admitted action left to finish.
+      // Release the lock so a subsequent trigger can apply the unhealthy grace.
+      actions.push({ action: 'unhealthy_without_pending_recovery' });
+      return { info: last, recovered: false };
     }
     if (isRecovered(last)) {
       if (healthySince === null || healthyStartedAt !== last.State.StartedAt) healthySince = observedAt;
