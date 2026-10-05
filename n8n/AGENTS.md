@@ -44,8 +44,14 @@ A timed-out restart is observed, not followed by another kill: Docker may still
 be completing its stop/start. Recovery intent is saved under
 `/root/.n8n/recovery` (host `n8n/config/recovery`) before mutation. The fallback
 starts an exited container only with matching saved container identity, so
-ordinary intentional stops and replacement containers stay stopped. Failed
-starts have a 15-minute cooldown. Healthy recovery clears the intent.
+ordinary intentional stops and replacement containers stay stopped. Starts and
+restarts retain a separate, identity-bound 15-minute cooldown even after recovery
+succeeds; that cooldown record alone never authorizes a watchdog start.
+Transmission must remain healthy with no failing health checks for two minutes
+in the same container lifecycle before recovery clears the intent. Unhealthy or
+unknown observations reset that interval. Expiring verification while the last
+sample is healthy still fails if the full healthy interval was not observed.
+The existing bounded late-stop start remains allowed with matching pending intent.
 
 Before an unhealthy Transmission restart, capture bounded Docker state/resource
 statistics and the structured health-probe diagnostics (Linux thread waits and

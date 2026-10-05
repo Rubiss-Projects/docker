@@ -5,6 +5,7 @@ const http = require('http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { performance } = require('node:perf_hooks');
 
 const CONTAINER_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/;
 const args = parseArgs(process.argv.slice(2));
@@ -16,14 +17,17 @@ const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', con
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
 const graceMs = numberArg(args.graceMs, 'UNHEALTHY_GRACE_MS', container === 'transmission' ? 180000 : 0, 0);
 const cooldownMs = numberArg(args.cooldownMs, 'RECOVERY_COOLDOWN_MS', 900000);
+const healthyWindowMs = numberArg(args.healthyWindowMs, 'HEALTHY_WINDOW_MS', container === 'transmission' ? 120000 : 0, 0);
 const stateDir = process.env.RECOVERY_STATE_DIR || '/root/.n8n/recovery';
 const lockDir = process.env.RECOVERY_LOCK_DIR || '/tmp/container-recovery-locks';
 const diagnosticsDir = process.env.RECOVERY_DIAGNOSTICS_DIR || '/tmp/container-recovery-diagnostics';
 const pendingPath = path.join(stateDir, `${container}.json`);
+const cooldownPath = path.join(stateDir, `${container}.cooldown.json`);
 const pausePath = path.join(stateDir, `${container}.paused`);
 const actions = [];
 let containerId;
 let pending;
+let cooldown;
 let originalStartedAt;
 
 if (!container) {
@@ -71,25 +75,29 @@ async function main() {
   fs.mkdirSync(stateDir, { recursive: true });
   pending = fs.existsSync(pendingPath) ? JSON.parse(fs.readFileSync(pendingPath, 'utf8')) : null;
   if (pending && pending.containerId !== containerId) clearPending();
+  cooldown = fs.existsSync(cooldownPath) ? JSON.parse(fs.readFileSync(cooldownPath, 'utf8')) : null;
+  if (cooldown && cooldown.containerId !== containerId) cooldown = null;
+  // Carry an older helper's intent into the separate cooldown without renewing it.
+  const pendingAttemptAt = Math.max(pending?.attemptedAt || 0, pending?.lastStartAt || 0);
+  if (pendingAttemptAt > (cooldown?.attemptedAt || 0)) saveCooldown(pendingAttemptAt);
   const beforeStatus = summarize(before);
 
-  if (isRecovered(before) || (isHealthy(before) && pending && Date.now() - pending.attemptedAt >= cooldownMs)) {
-    clearPending();
+  if (isHealthy(before) && !pending) {
     finish({ ok: true, container, before: beforeStatus, actions, result: 'no_action' });
   }
   if (args.watchdog === 'true' && isStopped(before) && !pending) {
     finish({ ok: true, container, before: beforeStatus, actions, result: 'stopped_without_recovery_intent' });
   }
   if (isStopped(before)) {
-    if (pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs) {
+    if ((pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs) || (!pending && isCoolingDown())) {
       finish({ ok: false, container, before: beforeStatus, actions, result: 'start_cooldown' }, 1);
     }
     actions.push({ action: 'start', reason: `container status is ${before.State.Status}` });
     await startContainer();
   } else if (before.State.Status === 'running' && before.State.Health?.Status === 'unhealthy') {
-    if (pending && Date.now() - pending.attemptedAt < cooldownMs) {
+    if (isCoolingDown()) {
       // A timed-out restart can still be stopping the container in Docker.
-      actions.push({ action: 'observe_pending_recovery' });
+      actions.push({ action: 'observe_recovery_cooldown' });
     } else {
       before = await waitForGrace(before);
       if (before.State.Status === 'running' && before.State.Health?.Status === 'unhealthy') {
@@ -98,9 +106,8 @@ async function main() {
     }
   }
 
-  const after = await waitForRecovery();
+  const { info: after, recovered: healthyEnough } = await waitForRecovery(before);
   const afterStatus = summarize(after);
-  const healthyEnough = isRecovered(after);
   if (healthyEnough) clearPending();
 
   finish({
@@ -117,7 +124,9 @@ async function recoverUnhealthy() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
   if (container === 'transmission') await captureDiagnostics();
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
-  savePending({ attemptedAt: Date.now(), lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
+  const attemptedAt = Date.now();
+  saveCooldown(attemptedAt);
+  savePending({ attemptedAt, lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
   actions.push({ action: 'restart', reason: 'container health is unhealthy' });
 
   try {
@@ -183,7 +192,9 @@ async function captureDiagnostics() {
 
 async function startContainer() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
-  savePending({ attemptedAt: pending?.attemptedAt ?? Date.now(), lastStartAt: Date.now(), kind: 'start' });
+  const lastStartAt = Date.now();
+  saveCooldown(lastStartAt);
+  savePending({ attemptedAt: pending?.attemptedAt ?? lastStartAt, lastStartAt, kind: 'start' });
   try {
     await docker('POST', `/containers/${containerId}/start`, {
       timeoutMs: requestTimeoutMs,
@@ -210,21 +221,26 @@ async function getContainer() {
   return result.json;
 }
 
-async function waitForRecovery() {
-  let deadline = Date.now() + verifyTimeoutMs;
-  let last = await getContainer();
+async function waitForRecovery(last) {
+  let deadline = performance.now() + verifyTimeoutMs;
+  let healthySince = null;
+  let healthyStartedAt = null;
   let startedDuringVerification = Boolean(pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs);
 
-  while (Date.now() < deadline) {
+  while (performance.now() < deadline) {
     if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
     try {
       last = await getContainer();
     } catch (error) {
+      healthySince = null;
       actions.push({ action: 'inspection_failed', message: error.message });
       await sleep(pollIntervalMs);
       continue;
     }
+    const observedAt = performance.now();
+    if (observedAt >= deadline) break;
     if (last.State.Status !== 'running') {
+      healthySince = null;
       if (last.State.Status === 'restarting') {
         await sleep(pollIntervalMs);
         continue;
@@ -234,18 +250,22 @@ async function waitForRecovery() {
           action: 'not_startable_during_verification',
           reason: `container entered non-startable status ${last.State.Status}`,
         });
-        return last;
+        return { info: last, recovered: false };
       }
       if (args.watchdog === 'true' && !pending) {
         actions.push({ action: 'stopped_without_recovery_intent' });
-        return last;
+        return { info: last, recovered: false };
+      }
+      if (!pending && isCoolingDown()) {
+        actions.push({ action: 'start_cooldown' });
+        return { info: last, recovered: false };
       }
       if (startedDuringVerification) {
         actions.push({
           action: 'stopped_after_verification_start',
           reason: `container became ${last.State.Status} after being started during verification`,
         });
-        return last;
+        return { info: last, recovered: false };
       }
       actions.push({
         action: 'start_during_verification',
@@ -253,19 +273,24 @@ async function waitForRecovery() {
       });
       await startContainer();
       startedDuringVerification = true;
-      deadline = Date.now() + verifyTimeoutMs;
+      deadline = performance.now() + verifyTimeoutMs;
       await sleep(pollIntervalMs);
       continue;
     }
     if (isRecovered(last)) {
-      return last;
-    }
+      if (healthySince === null || healthyStartedAt !== last.State.StartedAt) healthySince = observedAt;
+      healthyStartedAt = last.State.StartedAt;
+      if (observedAt - healthySince >= healthyWindowMs) {
+        if (healthyWindowMs > 0) actions.push({ action: 'stable_health', healthyForMs: Math.floor(observedAt - healthySince) });
+        return { info: last, recovered: true };
+      }
+    } else healthySince = null;
     await sleep(pollIntervalMs);
   }
 
   // Keep pending intent on disk so a later watchdog invocation can finish a
   // shutdown that outlasts this bounded verification window.
-  return last;
+  return { info: last, recovered: false };
 }
 
 async function waitForGrace(last) {
@@ -279,7 +304,8 @@ async function waitForGrace(last) {
 }
 
 function isHealthy(info) {
-  return info.State.Status === 'running' && (!info.State.Health || info.State.Health.Status === 'healthy');
+  return info.State.Status === 'running' && (!info.State.Health ||
+    (info.State.Health.Status === 'healthy' && !info.State.Health.FailingStreak));
 }
 
 function isRecovered(info) {
@@ -301,6 +327,18 @@ function savePending(values) {
 function clearPending() {
   fs.rmSync(pendingPath, { force: true });
   pending = null;
+}
+
+// Cooldown is rate limiting, never permission to start a stopped container.
+// Keep it after clearing completed intent so a short healthy flap cannot reset it.
+function isCoolingDown() {
+  return cooldown && Date.now() - cooldown.attemptedAt < cooldownMs;
+}
+
+function saveCooldown(attemptedAt) {
+  cooldown = { containerId, attemptedAt };
+  fs.writeFileSync(`${cooldownPath}.tmp`, JSON.stringify(cooldown));
+  fs.renameSync(`${cooldownPath}.tmp`, cooldownPath);
 }
 
 function docker(method, path, { timeoutMs, ok = [200, 204] } = {}) {

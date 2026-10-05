@@ -42,10 +42,11 @@ async function scenario(t, handler) {
     fs.rmSync(dir, { recursive: true, force: true });
   });
   const pendingPath = path.join(dir, 'transmission.json');
+  const cooldownPath = path.join(dir, 'transmission.cooldown.json');
   function run(extra = []) {
     const child = spawn(process.execPath, [script, '--container', 'transmission',
       '--requestTimeoutMs=1000', '--restartTimeoutSeconds=0.01', '--verifyTimeoutMs=500',
-      '--pollIntervalMs=15', '--graceMs=0', ...extra], {
+      '--pollIntervalMs=15', '--graceMs=0', '--healthyWindowMs=50', ...extra], {
       env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${server.address().port}`,
         RECOVERY_STATE_DIR: dir, RECOVERY_LOCK_DIR: path.join(dir, 'locks'),
         RECOVERY_DIAGNOSTICS_DIR: path.join(dir, 'diagnostics') },
@@ -62,8 +63,99 @@ async function scenario(t, handler) {
       });
     });
   }
-  return { run, actions, pendingPath, dir, set: (value) => { current = value; } };
+  return { run, actions, pendingPath, cooldownPath, dir, set: (value) => { current = value; } };
 }
+
+test('healthy recovery preserves the cooldown across flaps until its original expiry', async (t) => {
+  const s = await scenario(t, ({ action, response, set }) => {
+    if (action === 'restart') {
+      set(state('running', 'healthy', 'new'));
+      response.writeHead(204).end();
+      return true;
+    }
+  });
+  assert.equal((await s.run()).payload.result, 'recovered');
+  assert.ok(!fs.existsSync(s.pendingPath));
+  const cooldown = fs.readFileSync(s.cooldownPath, 'utf8');
+  assert.equal((await s.run(['--watchdog=true'])).payload.result, 'no_action');
+  s.set(state('running', 'unhealthy', 'new'));
+  assert.equal((await s.run()).payload.result, 'not_healthy_after_recovery');
+  assert.equal(s.actions.filter((a) => a === 'restart').length, 1);
+  assert.equal(fs.readFileSync(s.cooldownPath, 'utf8'), cooldown);
+
+  const expired = JSON.parse(cooldown);
+  expired.attemptedAt = Date.now() - 900001;
+  fs.writeFileSync(s.cooldownPath, JSON.stringify(expired));
+  // A further restart must produce another lifecycle before it can pass.
+  s.set(state('running', 'unhealthy', 'old'));
+  assert.equal((await s.run()).payload.result, 'recovered');
+  assert.equal(s.actions.filter((a) => a === 'restart').length, 2);
+});
+
+test('upgrades existing pending intent without renewing or losing its cooldown', async (t) => {
+  const s = await scenario(t);
+  const attemptedAt = Date.now() - 30000;
+  fs.writeFileSync(s.pendingPath, JSON.stringify({ containerId: 'container-1', attemptedAt,
+    kind: 'restart', startedAt: 'old' }));
+  s.set(state('running', 'healthy', 'new'));
+  assert.equal((await s.run(['--watchdog=true'])).payload.result, 'recovered');
+  assert.ok(!fs.existsSync(s.pendingPath));
+  assert.deepEqual(JSON.parse(fs.readFileSync(s.cooldownPath)), { containerId: 'container-1', attemptedAt });
+  assert.ok(s.actions.every((a) => a === 'inspect'));
+});
+
+test('completed cooldown neither authorizes a watchdog start nor applies to a replacement', async (t) => {
+  const s = await scenario(t);
+  s.set(state('exited'));
+  assert.equal((await s.run()).payload.result, 'recovered');
+  s.set(state('exited'));
+  assert.equal((await s.run(['--watchdog=true'])).payload.result, 'stopped_without_recovery_intent');
+  assert.equal((await s.run()).payload.result, 'start_cooldown');
+  assert.equal(s.actions.filter((a) => a === 'start').length, 1);
+  // This unrelated old ID must not rate-limit an explicitly requested new start.
+  fs.writeFileSync(s.cooldownPath, JSON.stringify({ containerId: 'replaced-container', attemptedAt: Date.now() }));
+  assert.equal((await s.run()).payload.result, 'recovered');
+  assert.equal(s.actions.filter((a) => a === 'start').length, 2);
+});
+
+test('a brief healthy observation does not complete recovery or discard intent', async (t) => {
+  const s = await scenario(t, ({ action, set }) => {
+    if (action === 'restart') set(state('running', 'healthy', 'new'));
+  });
+  const result = await s.run(['--verifyTimeoutMs=80', '--healthyWindowMs=200']);
+  assert.equal(result.code, 1);
+  assert.equal(result.payload.after.health, 'healthy');
+  assert.equal(result.payload.result, 'not_healthy_after_recovery');
+  assert.ok(fs.existsSync(s.pendingPath));
+});
+
+test('failed checks, unknown inspections and lifecycle changes reset the healthy interval', async (t) => {
+  for (const interruption of ['unhealthy', 'failed-check', 'inspection-error', 'lifecycle']) {
+    await t.test(interruption, async (t) => {
+      let observing = false;
+      let healthyInspections = 0;
+      const s = await scenario(t, ({ action, response, set }) => {
+        if (action === 'restart') { observing = true; set(state('running', 'healthy', 'new')); }
+        if (action === 'inspect' && observing) {
+          const n = ++healthyInspections;
+          // No healthy streak can exceed two polls, even if Docker still calls
+          // it healthy while its failing streak has not reached the retry limit.
+          const info = state('running', 'healthy', interruption === 'lifecycle' ? `start-${Math.floor(n / 3)}` : 'new');
+          if (n % 3 === 0) {
+            if (interruption === 'unhealthy') info.State.Health.Status = 'unhealthy';
+            if (interruption === 'failed-check') info.State.Health.FailingStreak = 1;
+            if (interruption === 'inspection-error') { response.writeHead(500).end('{}'); return true; }
+          }
+          set(info);
+        }
+      });
+      const result = await s.run(['--verifyTimeoutMs=160', '--healthyWindowMs=70']);
+      assert.equal(result.code, 1, JSON.stringify(result.payload));
+      assert.ok(fs.existsSync(s.pendingPath));
+      assert.ok(!result.payload.actions.some((a) => a.action === 'stable_health'));
+    });
+  }
+});
 
 test('starts a container that exits late after restart fails, without a competing kill', async (t) => {
   let restarted = false;
