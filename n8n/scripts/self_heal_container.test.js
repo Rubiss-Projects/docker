@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+const { performance } = require('node:perf_hooks');
 const test = require('node:test');
 const script = path.join(__dirname, 'self_heal_container.js');
 
@@ -102,6 +103,34 @@ test('upgrades existing pending intent without renewing or losing its cooldown',
   assert.ok(!fs.existsSync(s.pendingPath));
   assert.deepEqual(JSON.parse(fs.readFileSync(s.cooldownPath)), { containerId: 'container-1', attemptedAt });
   assert.ok(s.actions.every((a) => a === 'inspect'));
+});
+
+test('unfinished recovery uses only its intent and a failed intent write creates no cooldown', async (t) => {
+  const pending = await scenario(t);
+  assert.equal((await pending.run()).code, 1);
+  assert.ok(fs.existsSync(pending.pendingPath));
+  assert.ok(!fs.existsSync(pending.cooldownPath));
+  const failedWrite = await scenario(t);
+  fs.mkdirSync(`${failedWrite.pendingPath}.tmp`);
+  const result = await failedWrite.run();
+  assert.equal(result.code, 1);
+  assert.ok(!failedWrite.actions.includes('restart'));
+  assert.ok(!fs.existsSync(failedWrite.cooldownPath));
+});
+
+test('cooldown observation releases the lock at expiry without another full verification window', async (t) => {
+  for (const unfinished of [false, true]) {
+    const s = await scenario(t);
+    const receipt = { containerId: 'container-1', attemptedAt: Date.now(), kind: 'restart', startedAt: 'old' };
+    fs.writeFileSync(unfinished ? s.pendingPath : s.cooldownPath, JSON.stringify(receipt));
+    const began = performance.now();
+    const result = await s.run(['--cooldownMs=700', '--verifyTimeoutMs=3000']);
+    const elapsed = performance.now() - began;
+    assert.equal(result.code, 1);
+    assert.ok(result.payload.actions.some((a) => a.action === 'observe_recovery_cooldown'));
+    assert.ok(elapsed < 2200, `cooldown observation held the lock for ${elapsed}ms`);
+    assert.ok(s.actions.every((a) => a === 'inspect'));
+  }
 });
 
 test('completed cooldown neither authorizes a watchdog start nor applies to a replacement', async (t) => {

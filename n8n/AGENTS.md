@@ -47,6 +47,9 @@ starts an exited container only with matching saved container identity, so
 ordinary intentional stops and replacement containers stay stopped. Starts and
 restarts retain a separate, identity-bound 15-minute cooldown even after recovery
 succeeds; that cooldown record alone never authorizes a watchdog start.
+Pending intent supplies the cooldown until recovery succeeds, keeping the
+pre-mutation state write unchanged. Observation during cooldown releases the lock
+at expiry so the next watchdog run can act if the service is still unhealthy.
 Transmission must remain healthy with no failing health checks for two minutes
 in the same container lifecycle before recovery clears the intent. Unhealthy or
 unknown observations reset that interval. Expiring verification while the last

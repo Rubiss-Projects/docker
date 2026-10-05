@@ -77,10 +77,8 @@ async function main() {
   if (pending && pending.containerId !== containerId) clearPending();
   cooldown = fs.existsSync(cooldownPath) ? JSON.parse(fs.readFileSync(cooldownPath, 'utf8')) : null;
   if (cooldown && cooldown.containerId !== containerId) cooldown = null;
-  // Carry an older helper's intent into the separate cooldown without renewing it.
-  const pendingAttemptAt = Math.max(pending?.attemptedAt || 0, pending?.lastStartAt || 0);
-  if (pendingAttemptAt > (cooldown?.attemptedAt || 0)) saveCooldown(pendingAttemptAt);
   const beforeStatus = summarize(before);
+  let observationMs = verifyTimeoutMs;
 
   if (isHealthy(before) && !pending) {
     finish({ ok: true, container, before: beforeStatus, actions, result: 'no_action' });
@@ -98,6 +96,9 @@ async function main() {
     if (isCoolingDown()) {
       // A timed-out restart can still be stopping the container in Docker.
       actions.push({ action: 'observe_recovery_cooldown' });
+      // Release the flock at expiry so the next watchdog can evaluate recovery,
+      // rather than holding it for another full verification window.
+      observationMs = Math.min(observationMs, cooldownMs - (Date.now() - lastRecoveryAttemptAt()));
     } else {
       before = await waitForGrace(before);
       if (before.State.Status === 'running' && before.State.Health?.Status === 'unhealthy') {
@@ -106,9 +107,14 @@ async function main() {
     }
   }
 
-  const { info: after, recovered: healthyEnough } = await waitForRecovery(before);
+  const { info: after, recovered: healthyEnough } = await waitForRecovery(before, observationMs);
   const afterStatus = summarize(after);
-  if (healthyEnough) clearPending();
+  if (healthyEnough && pending) {
+    // Intent already rate-limits unfinished recovery. Materialize the separate
+    // cooldown only after success, before removing the original intent.
+    saveCooldown(lastRecoveryAttemptAt());
+    clearPending();
+  }
 
   finish({
     ok: healthyEnough,
@@ -125,7 +131,6 @@ async function recoverUnhealthy() {
   if (container === 'transmission') await captureDiagnostics();
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
   const attemptedAt = Date.now();
-  saveCooldown(attemptedAt);
   savePending({ attemptedAt, lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
   actions.push({ action: 'restart', reason: 'container health is unhealthy' });
 
@@ -193,7 +198,6 @@ async function captureDiagnostics() {
 async function startContainer() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
   const lastStartAt = Date.now();
-  saveCooldown(lastStartAt);
   savePending({ attemptedAt: pending?.attemptedAt ?? lastStartAt, lastStartAt, kind: 'start' });
   try {
     await docker('POST', `/containers/${containerId}/start`, {
@@ -221,8 +225,8 @@ async function getContainer() {
   return result.json;
 }
 
-async function waitForRecovery(last) {
-  let deadline = performance.now() + verifyTimeoutMs;
+async function waitForRecovery(last, observationMs) {
+  let deadline = performance.now() + observationMs;
   let healthySince = null;
   let healthyStartedAt = null;
   let startedDuringVerification = Boolean(pending?.lastStartAt && Date.now() - pending.lastStartAt < cooldownMs);
@@ -332,7 +336,11 @@ function clearPending() {
 // Cooldown is rate limiting, never permission to start a stopped container.
 // Keep it after clearing completed intent so a short healthy flap cannot reset it.
 function isCoolingDown() {
-  return cooldown && Date.now() - cooldown.attemptedAt < cooldownMs;
+  return Date.now() - lastRecoveryAttemptAt() < cooldownMs;
+}
+
+function lastRecoveryAttemptAt() {
+  return Math.max(pending?.attemptedAt || 0, pending?.lastStartAt || 0, cooldown?.attemptedAt || 0);
 }
 
 function saveCooldown(attemptedAt) {
