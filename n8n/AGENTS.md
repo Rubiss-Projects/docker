@@ -54,7 +54,10 @@ Transmission must remain healthy with no failing health checks for two minutes
 in the same container lifecycle before recovery clears the intent. Unhealthy or
 unknown observations reset that interval. Expiring verification while the last
 sample is healthy still fails if the full healthy interval was not observed.
-The existing bounded late-stop start remains allowed with matching pending intent.
+A natural recovery that relapses without pending intent or cooldown releases
+the lock for the next unhealthy admission. The existing bounded late-stop start
+remains allowed with matching pending intent, including an inspection admitted
+before expiry that returns the stopped state just afterward.
 
 Before an unhealthy Transmission restart, capture bounded Docker state/resource
 statistics and the structured health-probe diagnostics (Linux thread waits and

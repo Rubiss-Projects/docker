@@ -158,6 +158,52 @@ test('a brief healthy observation does not complete recovery or discard intent',
   assert.ok(fs.existsSync(s.pendingPath));
 });
 
+test('a relapse after natural recovery releases the lock for the next unhealthy admission', async (t) => {
+  let inspections = 0;
+  let restarted = false;
+  const s = await scenario(t, ({ action, response, set }) => {
+    if (action === 'inspect' && !restarted) {
+      const n = ++inspections;
+      set(state('running', n === 2 || n === 3 ? 'healthy' : 'unhealthy'));
+    }
+    if (action === 'restart') {
+      restarted = true;
+      set(state('running', 'healthy', 'new'));
+      response.writeHead(204).end();
+      return true;
+    }
+  });
+  const began = performance.now();
+  const result = await s.run(['--graceMs=200', '--verifyTimeoutMs=3000', '--healthyWindowMs=500']);
+  assert.equal(result.code, 1);
+  assert.ok(result.payload.actions.some((a) => a.action === 'unhealthy_without_pending_recovery'));
+  assert.ok(performance.now() - began < 2200);
+  assert.ok(!fs.existsSync(s.pendingPath));
+  assert.ok(s.actions.every((a) => a === 'inspect'));
+  assert.equal((await s.run(['--watchdog=true'])).payload.result, 'recovered');
+  assert.equal(s.actions.filter((a) => a === 'restart').length, 1);
+});
+
+test('an inspection crossing expiry can finish a late stop but cannot pass late health', async (t) => {
+  for (const stopped of [true, false]) {
+    let restartRequested = false;
+    let delayed = false;
+    const s = await scenario(t, ({ action, response, set }) => {
+      if (action === 'restart') restartRequested = true;
+      if (action === 'inspect' && restartRequested && !delayed) {
+        delayed = true;
+        const info = stopped ? state('exited') : state('running', 'healthy', 'new');
+        setTimeout(() => { set(info); response.end(JSON.stringify(info)); }, 230);
+        return true;
+      }
+    });
+    const result = await s.run(['--verifyTimeoutMs=160', '--healthyWindowMs=0']);
+    assert.equal(result.code, stopped ? 0 : 1, JSON.stringify(result.payload));
+    assert.equal(s.actions.filter((a) => a === 'start').length, stopped ? 1 : 0);
+    assert.equal(fs.existsSync(s.pendingPath), !stopped);
+  }
+});
+
 test('failed checks, unknown inspections and lifecycle changes reset the healthy interval', async (t) => {
   for (const interruption of ['unhealthy', 'failed-check', 'inspection-error', 'lifecycle']) {
     await t.test(interruption, async (t) => {
