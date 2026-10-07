@@ -19,8 +19,9 @@
     margin-bottom: 12px;
   }
 
-  /* Homepage's row layout (Downloads) spans the columns above the other groups. */
-  #layout-groups > .services-group:has(> div > .services-list.grid) {
+  /* Row layouts span the columns: Downloads above, GitHub below. */
+  #layout-groups > .services-group:has(> div > .services-list.grid),
+  #layout-groups > .bookmark-group:has(> div > ul.grid) {
     column-span: all;
   }
 
@@ -79,5 +80,57 @@
 @media (min-width: 1800px) {
   #layout-groups {
     columns: 5;
+  }
+}
+
+/* Give a 1440p desktop more readable type and breathing room. */
+@media (min-width: 2200px) and (min-height: 1320px) {
+  #information-widgets .text-xs {
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  #layout-groups {
+    column-gap: 16px;
+  }
+
+  .service-group-name {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .services-list {
+    margin-top: 6px;
+  }
+
+  .service-name {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .service-description {
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  .service-block {
+    padding: 3px;
+  }
+
+  .service-block > .text-sm {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .service-block > .uppercase {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .service-tags .text-\[8px\] {
+    font-size: 10px;
+    line-height: 14px;
   }
 }

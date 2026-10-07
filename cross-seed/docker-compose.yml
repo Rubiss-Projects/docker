@@ -17,6 +17,7 @@ services:
       - homepage.href=http://cross-seed:2468
       - homepage.siteMonitor=http://cross-seed:2468/api/ping
       - homepage.description=Automated cross-seeding
+      - homepage.showStats=true
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.parent=Downloads
       - swag.uptime-kuma.monitor.url=http://cross-seed:2468/api/ping
