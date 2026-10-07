@@ -1,19 +1,22 @@
 ---
 # For configuration options and examples, please see:
-# https://gethomepage.dev/latest/configs/settings
+# https://gethomepage.dev/configs/settings/
 
 base: https://homepage.benlawson.dev/
 headerStyle: clean
-maxGroupColumns: 8 # default is 4 for services, 6 for bookmarks, max 8
+fullWidth: true
+maxGroupColumns: 5
 layout:
   - Downloads:
       header: false
       style: row
+      columns: 3
   - Infrastructure:
   - Observability:
   - Media Management:
-  - Other:
-      header: false
-      Media Consumption:
-      AI & Automation:
+  - Media Consumption:
+  - AI & Automation:
+  - Hardware:
   - Gaming:
+  - Developer:
+      header: false

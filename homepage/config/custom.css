@@ -1,0 +1,83 @@
+/* Keep the desktop dashboard compact without hiding services or widget fields. */
+@media (min-width: 1440px) {
+  #information-widgets {
+    margin: 8px 24px 0;
+  }
+
+  #layout-groups {
+    display: block;
+    columns: 4;
+    column-gap: 12px;
+    margin: 8px 24px 0;
+  }
+
+  #layout-groups > .services-group,
+  #layout-groups > .bookmark-group {
+    break-inside: avoid;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 12px;
+  }
+
+  /* Homepage's row layout (Downloads) spans the columns above the other groups. */
+  #layout-groups > .services-group:has(> div > .services-list.grid) {
+    column-span: all;
+  }
+
+  .service-group-name {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .services-list {
+    margin-top: 4px;
+  }
+
+  .service-card {
+    margin-bottom: 4px;
+    padding: 3px;
+  }
+
+  .service-name {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    line-height: 18px;
+  }
+
+  .service-description {
+    line-height: 14px;
+  }
+
+  .service-block {
+    margin: 2px;
+    padding: 2px;
+  }
+
+  .service-block > .text-sm {
+    line-height: 18px;
+  }
+
+  .service-block > .uppercase {
+    font-size: 10px;
+    line-height: 12px;
+  }
+
+  #footer {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 24px;
+  }
+
+  #footer > #version {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 1800px) {
+  #layout-groups {
+    columns: 5;
+  }
+}
