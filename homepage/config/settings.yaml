@@ -20,3 +20,5 @@ layout:
   - Gaming:
   - Developer:
       header: false
+      style: row
+      columns: 1
