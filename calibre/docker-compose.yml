@@ -1,6 +1,6 @@
 services:
   calibre:
-    image: lscr.io/linuxserver/calibre:version-v9.15.0@sha256:c97f86a5acc3372d5e25e75b4c98d1bffa64e70d4c413554beb1e554ae109187
+    image: lscr.io/linuxserver/calibre:version-v9.16.0@sha256:4b1673b28f18c170e8d6c48c791e67520df44dc4f9b9e8f63fef21d23910abab
     container_name: calibre
     security_opt:
       - seccomp:unconfined # Required for GUI apps
