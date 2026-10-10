@@ -2,7 +2,7 @@ services:
   # Bazarr is used to download and categorize subtitles
   # https://www.bazarr.media/
   bazarr:
-    image: lscr.io/linuxserver/bazarr:version-v1.6.2@sha256:8b30e81c4aec2991f469e78fae8afaa89ecc9b21a80e3897f50427216b55470c
+    image: lscr.io/linuxserver/bazarr:version-v1.6.2@sha256:c1673816321156b904af9b7e6415ea547ae9622e4acc375358f1e1eb9ed1e904
     container_name: bazarr
     volumes:
       - ../../Media/tv:/data/tv
