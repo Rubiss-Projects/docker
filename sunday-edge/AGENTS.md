@@ -3,8 +3,8 @@
 All roles live in this one Compose project. The `dfs` service uses replicas;
 never add `container_name` to it. The user explicitly requested this arrangement
 instead of one directory per container. `DFS_REPLICAS=2` in `.env` is the startup
-baseline; `DFS_MAX_WORKER_SLOTS=6` is independent allocation capacity. The n8n
-controller changes the live target between two and six without rewriting `.env`.
+baseline; `DFS_MAX_WORKER_SLOTS=8` is independent allocation capacity. The n8n
+controller changes the live target between two and eight without rewriting `.env`.
 
 Private named volumes preserve Linux permissions for credentials and archives on
 Docker Desktop. Do not replace them with NTFS mounts, attach another role's
@@ -87,7 +87,7 @@ resource-limit change is required. Image rollback to analytics v0.2.11 with
 ## Service overview
 
 [docker-compose.yml](docker-compose.yml) is one stack with six service roles. `dfs` is a
-replicated service: two baseline instances (up to six), with five other containers for
+replicated service: two baseline instances (up to eight), with five other containers for
 analytics, maintenance, checkpoint recovery, league monitoring, and archival.
 The app repository publishes five private, release-versioned GHCR images. Recovery
 uses the compute image with its own entrypoint. The web app stays on Vercel.
@@ -98,7 +98,14 @@ The n8n `Sunday Edge Worker Autoscaling` workflow invokes
 `scripts/sunday-edge-autoscale.ps1` over SSH every 30 seconds. The Windows wrapper
 takes the existing Docker Desktop operation lock; the Python helper shares the
 deployment lock. It reads signed application demand, wakes workers, and reconciles
-Compose scale-up. After five minutes of sustained lower demand, excess logical
+Compose scale-up. Fresh Windows and WSL CPU/memory samples admit at most two
+additional replicas per pass. Each admission budgets its full configured CPU and
+memory ceiling, leaving CPU at or below 85% and at least 2 GiB available on both systems.
+Missing, invalid or older-than-60-second resource samples block additions, including
+replacement of missing slots, while existing work and safe drains continue. This
+admission check does not evict work when load rises later; resource ceilings are
+not reservations, so sustained pressure still requires investigation.
+After five minutes of sustained lower demand, excess logical
 slots finish their work and acknowledge draining before removal. Unavailable
 metrics, stale demand, incompatible workers, and API failures hold capacity.
 
@@ -114,7 +121,7 @@ powershell -NoProfile -File E:\Docker\scripts\sunday-edge-autoscale.ps1 -DryRun
 ```
 
 Pause the controller by creating `sunday-edge/autoscaling.paused` (ignored by Git).
-Remove that file to resume. `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=6` must remain
+Remove that file to resume. `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=8` must remain
 aligned with the bounded controller policy. To manually restore the baseline,
 hold both lifecycle locks across Compose and the control reset. Run on Windows:
 
@@ -129,7 +136,7 @@ try {
 }
 ```
 
-The allocator supports 1–32 slots, but this controller deliberately supports 2–6.
+The allocator supports 1–32 slots, but this controller deliberately supports 2–8.
 Do not use ad-hoc scale overrides while it is active.
 Compose generates replica names because a fixed `container_name` prevents scaling.
 Each replica exclusively locks a logical slot without a Docker socket. Slots 5
@@ -145,6 +152,8 @@ recommendation starts a new five-minute cooldown. Install the nightly/recovery h
 Windows helper and resets controls after the Sunday Edge Compose recreation.
 Both paths already hold lifecycle locks/maintenance. A plain `docker restart`
 does not reset replica count or the live target.
+Under those locks, `--reset-control` may restore missing baseline slots 1 and 2
+without resource admission; every ordinary autoscaler addition still requires it.
 
 Provision n8n credential `sundayEdgeHostSsh` / `Sunday Edge Host SSH` as type
 `sshPrivateKey` with a dedicated key restricted server-side to the autoscaler
@@ -153,18 +162,44 @@ credential store. Import it before activating the workflow; never put the key
 in workflow JSON, `.env`, logs, or command arguments. Verify a real
 scheduled execution, controller freshness metrics, and 2/2 healthy workers.
 
-The two-worker baseline caps seven containers at 6.6 CPU cores and 6.625 GiB memory;
-maximum scale caps eleven at 10.6 CPU cores and 8.625 GiB, with no extra swap
-allowance. Each DFS replica is capped at 1 CPU/512 MiB;
+The two-worker baseline caps seven containers at 8.6 CPU cores and 7.625 GiB memory;
+maximum scale caps thirteen at 20.6 CPU cores and 13.625 GiB, with no extra swap
+allowance. Each DFS replica is capped at 2 CPUs/1 GiB;
 analytics at 2 CPUs/2 GiB; maintenance at 1 CPU/2 GiB; research at 0.5 CPU/512 MiB;
 the league monitor at 1 CPU/1 GiB; and checkpoint recovery at 0.1 CPU/128 MiB. These are ceilings, not reservations.
 Each added DFS replica adds its configured CPU/memory ceiling and twelve scheduled
 idle control-plane requests per hour. Edit the role limits in `.env` as needed.
+`DFS_CANDIDATE_CONCURRENCY=2` runs independent candidate searches on two threads
+inside the generation's worker; those threads exit before field construction and
+simulation. Other compute phases remain single-threaded. The host resource guard
+accounts for the full two-core quota when adding a worker.
+Compose explicitly clears DFS `NODE_OPTIONS`, including any secret-file value:
+an old-space override inherits into worker threads and defeats their heap limits. Candidate threads
+use 192 MiB and the compute task uses 320 MiB; the control process uses Node's
+container-aware default, with the whole replica still bounded by its 1 GiB cgroup.
 
-For rollback, deactivate `sundayEdgeAutoscale1` in n8n before restoring the prior
-reviewed Compose configuration and image pins. Keep the runtime/archive volumes.
-The previous fixed six-replica configuration restores every historical slot;
-leaving two old workers with a six-slot live target would cause false alerts.
+The controller opts into the eight-slot app policy with `?maxSlots=8`; old
+controllers retain the six-slot response during the app-first rollout. Inspect
+`resourceGuard` in the dry-run result to distinguish insufficient headroom from
+missing telemetry. Verify real n8n executions, eight-slot allocation/reporting,
+fresh candidate timing and successful completion after promoting the worker images.
+
+For rollback to v0.2.44, first pause the controller with `autoscaling.paused` and
+acquire both lifecycle locks. While the current v0.2.45 checkpoint container is
+still running, use its supported atomic writer from Ubuntu:
+
+```sh
+docker exec sunday-edge-checkpoint-recovery node --input-type=module -e 'import { writePoolControl } from "/runtime/pool-control.mjs"; import { randomUUID } from "node:crypto"; await writePoolControl({protocolVersion:1,desiredSlots:2,maxSlots:6,wakeToken:randomUUID(),updatedAt:Date.now(),lowSince:null,lowDesired:null});'
+```
+
+Do this before starting old images: the v0.2.44 checkpoint reports unhealthy when
+the saved pool has `maxSlots:8`, so a plain image rollback stalls before its reset
+can repair the state. Release the locks but keep the controller paused while the
+reviewed maintenance-wrapped deployment restores all six v0.2.44 image references,
+the six-slot `.env`/Compose settings, and the matching six-slot controller together.
+The deployment workflow acquires its own lifecycle locks. Verify healthy workers,
+checkpoint health and `maxSlots:6`/`desiredSlots:2`, then remove the pause file.
+Keep all runtime/archive volumes, jobs, leases and completed trials.
 
 All containers run as UID/GID 10001 with dropped capabilities, no-new-privileges,
 read-only image files, bounded tmpfs/logs, and process limits. No host drives,
