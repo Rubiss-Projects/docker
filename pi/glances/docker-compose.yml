@@ -3,7 +3,7 @@
 services:
   glances:
     container_name: glances-pi
-    image: nicolargo/glances:latest-full@sha256:2a7f42503f165c5a50fc3f88f820517e2bd905447ddf578e44bee7db3b52821c
+    image: nicolargo/glances:latest-full@sha256:411fb0d71198c414d82756dac2b9c330a6ff490e3722227d583374c33f7370f8
     ports:
       - "61208:61208"
     environment:

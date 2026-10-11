@@ -47,7 +47,7 @@ services:
     - homepage.widget.key=${TRACEARR_API_KEY}
     - homepage.widget.view=summary
   timescale:
-    image: timescale/timescaledb-ha:pg18.4-ts2.29.1@sha256:26a7598a17939878a388864a8faea56f4b90558163b28cfa0e73600091689c82
+    image: timescale/timescaledb-ha:pg18@sha256:7d352e92884862549363b96d2b791c31fcd941e570308780890b27ae1449c829
     container_name: tracearr-db
     shm_size: 512mb
     ulimits:
