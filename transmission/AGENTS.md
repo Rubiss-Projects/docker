@@ -45,8 +45,8 @@ ports:
   - "51413:51413"  # Peer connections (TCP)
   - "51413:51413/udp"  # Peer connections (UDP)
 volumes:
-  - ./data:/config
-  - ./data/downloads:/downloads
+  - transmission_config:/config
+  - ../../Media:/data
   - ./watch:/watch  # Auto-add torrents from this folder
 environment:
   - PUID=1000
@@ -60,10 +60,10 @@ restart: unless-stopped
 ```
 
 ### Critical Directories
-- `data/` - Configuration and session data
-- `data/downloads/` - Downloaded files
-- `data/downloads/complete/` - Finished downloads (shared with *arr services)
-- `data/downloads/incomplete/` - In-progress downloads
+- Docker volume `transmission_config` - Active configuration and session data at `/config`
+- `data/` - Retained Windows migration snapshot; not current state
+- `../../Media/downloads/` - Downloaded files, shared with *arr services at `/data/downloads`
+- `../../Media/downloads/incomplete/` - In-progress downloads
 - `watch/` - Drop .torrent files here for auto-add
 
 ### Default Port
@@ -280,7 +280,7 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
 ## Advanced Configuration
 
 ### Settings.json Configuration
-Located in `data/settings.json`:
+Located in the `transmission_config` volume at `/config/settings.json`:
 ```json
 {
   "download-dir": "/downloads/complete",
@@ -486,16 +486,56 @@ Web UI > Statistics:
 ## Backup and Restore
 
 ### Backup Configuration
-```powershell
-tar -czf transmission-backup-$(Get-Date -Format "yyyyMMdd").tar.gz data/
+
+Use WSL Bash for binary archive redirection. Pause both n8n recovery paths and
+hold the deployment lock before stopping. Choose a new archive path in an existing
+protected backup directory; the archive contains credentials and private tracker
+metadata. Never archive the stale Windows `data/`.
+
+```bash
+set -euo pipefail
+backup="/path/to/protected-backups/transmission-$(date +%Y%m%d-%H%M%S).tar"
+test ! -e "$backup"
+image=$(docker inspect transmission --format '{{.Image}}')
+docker volume inspect transmission_config >/dev/null
+docker stop --time 120 transmission
+test "$(docker inspect transmission --format '{{.State.ExitCode}}')" = 0
+docker run --rm --pull never --network none --read-only --entrypoint tar --mount type=volume,src=transmission_config,dst=/config,readonly "$image" --numeric-owner -C /config -cpf - . > "$backup"
+tar -tf "$backup" >/dev/null
+sha256sum "$backup" > "$backup.sha256"
+docker start transmission
 ```
 
-### Restore
-```powershell
-docker compose stop
-tar -xzf transmission-backup-YYYYMMDD.tar.gz
-docker compose start
+Verify functional health before resuming recovery. If any command fails, retain
+the original volume and inspect the failure; do not record an incomplete archive
+as a successful backup. Copy verified archives to your separate backup destination.
+
+### Restore Configuration
+
+Verify the recorded archive SHA-256, pause recovery, and stop Transmission cleanly.
+Restore into a **new empty volume**, preserving the current volume and the media.
+Use the same pinned Transmission image as the current deployment:
+
+```bash
+set -euo pipefail
+backup="/path/to/protected-backups/transmission-YYYYMMDD-HHMMSS.tar"
+sha256sum -c "$backup.sha256"
+image=$(docker inspect transmission --format '{{.Image}}')
+docker stop --time 120 transmission
+test "$(docker inspect transmission --format '{{.State.ExitCode}}')" = 0
+restored="transmission_config_restore_$(date +%Y%m%d-%H%M%S)"
+if docker volume inspect "$restored" >/dev/null 2>&1; then exit 1; fi
+docker volume create "$restored"
+docker run --rm -i --pull never --network none --read-only --entrypoint tar --mount "type=volume,src=$restored,dst=/restore" "$image" --numeric-owner -C /restore -xpf - < "$backup"
 ```
+
+Verify the restored files, then change the external volume name in Compose through
+a reviewed PR and recreate Transmission. Confirm `/config` uses the restored volume
+and every expected torrent is present before resuming recovery. The old/current
+volumes remain recoverable; never delete them as part of restore or point Compose
+at an empty volume. An older backup necessarily lacks changes made after that
+backup, so prefer a fresh consistent copy for a storage rollback. Downloaded media
+stays on Windows throughout.
 
 ## VPN Integration (Optional)
 
