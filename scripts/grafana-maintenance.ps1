@@ -48,9 +48,9 @@ function Start-GrafanaMaintenance {
 }
 
 function Stop-GrafanaMaintenance {
-    if (-not (Test-Path $DockerGrafanaMaintenanceIdPath)) { return }
+    if (-not (Test-Path $DockerGrafanaMaintenanceIdPath)) { return $true }
     $remaining = @()
-    foreach ($token in @(Get-Content -LiteralPath $DockerGrafanaMaintenanceIdPath)) {
+    foreach ($token in @(Get-Content -LiteralPath $DockerGrafanaMaintenanceIdPath -ErrorAction Stop)) {
         if ($token -notmatch '^[0-9a-f-]{36}:[0-9a-f-]{36}$') { continue }
         $command = "cd /mnt/e/Docker && python3 scripts/grafana-maintenance.py stop $token"
         $result = Invoke-WslCommand -Command $command -TimeoutSeconds 75 -MaxAttempts 1
@@ -62,4 +62,5 @@ function Stop-GrafanaMaintenance {
         }
     }
     Set-DockerMaintenanceTokens -Path $DockerGrafanaMaintenanceIdPath -Tokens $remaining
+    return ($remaining.Count -eq 0)
 }

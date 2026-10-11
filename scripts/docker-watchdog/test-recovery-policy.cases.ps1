@@ -627,3 +627,26 @@ Run-Test 'maintenance first established during critical startup is closed by the
     Assert-True (Restart-DockerDesktop) 'Recovery failed'
     Assert-True (($script:events -join ',') -eq 'maintenance-stop') 'Maintenance established during startup was orphaned'
 }
+
+Run-Test 'interruption before restart issuance cannot authorize bind recreation' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex','homepage')
+    function Write-DockerLog { param($Message) if ($Message -eq '=== RESTARTING DOCKER DESKTOP ===') { throw 'interrupted before restart' } }
+    function Invoke-DockerCliWithTimeout { throw 'Restart should not have been reached' }
+    $interrupted = $false
+    try { Restart-DockerDesktopClean | Out-Null } catch { $interrupted = $true }
+    Assert-True ($interrupted) 'Did not exercise pre-command interruption'
+    Assert-True (@(Get-DockerRecoveryInventory -PendingBindRepair).Count -eq 0) 'Working stacks were marked for recreation before restart issuance'
+}
+
+Run-Test 'Grafana cleanup failure cannot skip Kuma cleanup or escape the recovery result' {
+    Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '123'
+    function Stop-GrafanaMaintenance { throw 'Grafana ID file cannot be rewritten' }
+    function Invoke-WslCommand { param($Command) $script:events += $Command; [pscustomobject]@{ExitCode=0;Output=''} }
+    Assert-True (-not (Stop-UptimeKumaMaintenance)) 'Partial cleanup falsely reported complete'
+    Assert-True ($script:events.Count -eq 1 -and $script:events[0].EndsWith('--strict stop 123')) 'Grafana failure prevented Kuma cleanup'
+    Assert-True (-not (Test-Path $DockerKumaMaintenanceIdPath)) 'Successful Kuma cleanup retained its marker'
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '456'
+    function Invoke-WslCommand { throw 'Kuma transport failed' }
+    Assert-True (-not (Stop-UptimeKumaMaintenance)) 'Kuma failure was not contained'
+}
