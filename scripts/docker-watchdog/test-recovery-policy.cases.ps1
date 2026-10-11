@@ -296,5 +296,74 @@ Run-Test 'resuming after saved maintenance expires opens a fresh window' {
     function Test-DockerContainerReady { $true }
     function Get-ConfirmedDockerHealth { Health }
     Assert-True (Restart-DockerDesktop -ResumeOnly) 'Resume after expiry failed'
-    Assert-True (($script:events -join ',') -eq 'maintenance-stop,maintenance-start,maintenance-stop') 'Expired IDs prevented fresh maintenance'
+    Assert-True (($script:events -join ',') -eq 'maintenance-start,maintenance-stop') 'Expired IDs prevented fresh maintenance'
+}
+Run-Test 'SWAG dependency failure cannot restart a responding proxy' {
+    Set-Item Function:Test-DockerServiceOutage $realOutage
+    function Test-DockerDaemon { $true }
+    function Test-RequiredDockerNetwork { $true }
+    function Start-DockerContainerIfPresent { $true }
+    function Wait-DockerContainerReady { $true }
+    function Wait-ContainerUrl { $true }
+    function Repair-PlexHostPort { $true }
+    function Test-SwagDependencyEndpoints { $false }
+    $script:proxyResponding = $true
+    function Get-DockerServiceAvailability {
+        param($ServiceNames)
+        Assert-True (($ServiceNames -join ',') -eq 'swag-http,swag-https') 'SWAG must check its own exposed ports'
+        $script:calls++
+        foreach ($address in @('127.0.0.1','192.168.50.40')) {
+            foreach ($name in $ServiceNames) {
+                [pscustomobject]@{Name=$name;Address=$address;State=$(if ($script:proxyResponding) {'Responding'} else {'Unavailable'})}
+            }
+        }
+    }
+    function Start-Sleep {}
+    function Restart-DockerContainerAndWait { $script:events += 'swag-restart'; $false }
+    Assert-True (-not (Start-CriticalDockerServices)) 'Dependency failure falsely reported fixed'
+    Assert-True ($script:events.Count -eq 0) 'Restarted a working proxy'
+    $script:proxyResponding = $false
+    Assert-True (-not (Start-CriticalDockerServices)) 'Failed proxy restart reported fixed'
+    Assert-True ($script:calls -eq 4 -and ($script:events -join ',') -eq 'swag-restart') 'Proxy restart lacked repeated independent failures'
+}
+Run-Test 'near-expiry maintenance is overlapped and every old and new window is closed' {
+    Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
+    Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    $oldGrafana = '11111111-1111-1111-1111-111111111111:22222222-2222-2222-2222-222222222222'
+    $newGrafana = '33333333-3333-3333-3333-333333333333:44444444-4444-4444-4444-444444444444'
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '123'
+    Add-DockerMaintenanceToken -Path $DockerGrafanaMaintenanceIdPath -Token $oldGrafana
+    foreach ($path in @($DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath)) {
+        [IO.File]::SetLastWriteTimeUtc($path, [DateTime]::UtcNow.AddMinutes(-120))
+    }
+    function Invoke-WslCommand {
+        param($Command)
+        $script:events += $Command
+        $output = if ($Command -match 'grafana-maintenance.py start') { $newGrafana } elseif ($Command -match 'kuma-maintenance.py start') { '456' } else { '' }
+        [pscustomobject]@{ExitCode=0;Output=$output}
+    }
+    function Start-CriticalDockerServices { $true }
+    function Get-DockerPendingRecoveryTargets { [pscustomobject]@{Valid=$true;Services=@()} }
+    function Repair-WslComposeBindServices { $true }
+    function Test-DockerContainerReady { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop -ResumeOnly) 'Near-expiry resume failed'
+    Assert-True ($script:events.Count -eq 6 -and $script:events[0] -match 'grafana-maintenance.py start' -and $script:events[1] -match 'kuma-maintenance.py start') 'Old maintenance closed before new windows existed'
+    foreach ($id in @('123','456',$oldGrafana,$newGrafana)) {
+        Assert-True (@($script:events | Where-Object { $_.EndsWith('stop ' + $id) }).Count -eq 1) 'An overlapping window was orphaned'
+    }
+    Assert-True (-not (Test-Path -LiteralPath $DockerKumaMaintenanceIdPath)) 'Kuma IDs remained after cleanup'
+    Assert-True (-not (Test-Path -LiteralPath $DockerGrafanaMaintenanceIdPath)) 'Grafana IDs remained after cleanup'
+}
+Run-Test 'failed maintenance cleanup retains only the failed IDs for retry' {
+    Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '123'
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '456'
+    function Invoke-WslCommand { param($Command) [pscustomobject]@{ExitCode=$(if ($Command.EndsWith('stop 123')) {1} else {0});Output=''} }
+    Assert-True (-not (Stop-UptimeKumaMaintenance)) 'Failed cleanup reported success'
+    Assert-True ((Get-Content -LiteralPath $DockerKumaMaintenanceIdPath) -eq '123') 'Failed cleanup lost its retry ID'
+    function Invoke-WslCommand { [pscustomobject]@{ExitCode=0;Output=''} }
+    Assert-True (Stop-UptimeKumaMaintenance) 'Cleanup retry failed'
+    Assert-True (-not (Test-Path -LiteralPath $DockerKumaMaintenanceIdPath)) 'Successful retry left stale IDs'
 }

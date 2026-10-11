@@ -19,6 +19,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
         & {
             . (Join-Path $suiteRoot 'docker-desktop-common.ps1') -ProjectRoot $ProjectRoot
             $realMaintenanceStart = ${function:Start-UptimeKumaMaintenance}
+            $realMaintenanceStop = ${function:Stop-UptimeKumaMaintenance}
             $realHealthyInventorySave = ${function:Save-DockerHealthyInventory}
             $tokens = $null; $errors = $null
             $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $suiteRoot 'start-docker-desktop.ps1'), [ref]$tokens, [ref]$errors)
