@@ -113,11 +113,11 @@ function Exit-HealthMonitorLock {
 }
 
 function Repair-ConfirmedDockerServiceHealth {
-    param ([Parameter(Mandatory = $true)]$Health)
+    param ([Parameter(Mandatory = $true)]$Health, [hashtable]$MaintenanceState)
     if (-not $Health.Confirmed) { return $false }
     if ($Health.Kind -eq 'CriticalService') {
         Write-Log 'Critical service failure persisted; attempting ordered service repair.'
-        return Start-CriticalDockerServices -TimeoutSeconds 480
+        return Start-CriticalDockerServices -TimeoutSeconds 480 -MaintenanceState $MaintenanceState
     }
     if ($Health.Kind -eq 'Sentinel' -and $Health.FailedServices.Count -gt 0) {
         Write-Log "Confirmed sentinel failures; repairing only: $($Health.FailedServices -join ', ')."
@@ -160,7 +160,7 @@ function Restart-DockerDesktop {
             Write-Log 'Docker Desktop restart did not reach daemon readiness.'
             return $false
         }
-        if (-not (Start-CriticalDockerServices -TimeoutSeconds 480)) { return $false }
+        if (-not (Start-CriticalDockerServices -TimeoutSeconds 480 -MaintenanceState $maintenanceState)) { return $false }
         if (-not ($maintenanceState.Kuma -and $maintenanceState.Grafana)) {
             $maintenanceStarted = (Start-UptimeKumaMaintenance -Reason 'watchdog-bind-recovery' -State $maintenanceState) -or $maintenanceStarted
         }
@@ -178,7 +178,7 @@ function Restart-DockerDesktop {
         if (-not $ResumeOnly -or -not (Test-DockerContainerReady -Name 'cadvisor' -Quiet)) {
             if (-not (Repair-WindowsComposeServices -ServiceNames @('cadvisor'))) { return $false }
         }
-        if (-not (Start-CriticalDockerServices -TimeoutSeconds 480)) { return $false }
+        if (-not (Start-CriticalDockerServices -TimeoutSeconds 480 -MaintenanceState $maintenanceState)) { return $false }
         if ((Get-ConfirmedDockerHealth).Kind -ne 'Healthy') {
             Write-Log 'Docker Desktop restarted, but final health checks failed.'
             return $false
@@ -187,6 +187,7 @@ function Restart-DockerDesktop {
         Remove-Item -LiteralPath $DockerRecoveryInventoryPath -Force -ErrorAction SilentlyContinue
         return $true
     } finally {
+        $maintenanceStarted = $maintenanceStarted -or $maintenanceState.Kuma -or $maintenanceState.Grafana
         if ($maintenanceStarted -and -not $script:DockerHostRebootRequested) { Stop-UptimeKumaMaintenance | Out-Null }
         elseif ($maintenanceStarted) { Write-Log 'Leaving auto-expiring maintenance active while a Windows reboot may be pending.' }
     }
@@ -260,12 +261,13 @@ function Invoke-DockerHealthMonitor {
         $maintenanceState = @{}
         $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-service-repair' -State $maintenanceState
         try {
-            if (-not ($maintenanceState.Kuma -and $maintenanceState.Grafana)) {
+            if ($health.Kind -eq 'Sentinel' -and -not ($maintenanceState.Kuma -and $maintenanceState.Grafana)) {
                 $maintenanceStarted = (Start-UptimeKumaMaintenance -Reason 'watchdog-service-repair' -State $maintenanceState) -or $maintenanceStarted
             }
-            Repair-ConfirmedDockerServiceHealth -Health $health | Out-Null
+            Repair-ConfirmedDockerServiceHealth -Health $health -MaintenanceState $maintenanceState | Out-Null
             $health = Get-ConfirmedDockerHealth
         } finally {
+            $maintenanceStarted = $maintenanceStarted -or $maintenanceState.Kuma -or $maintenanceState.Grafana
             if ($maintenanceStarted) { Stop-UptimeKumaMaintenance | Out-Null }
         }
         if ($health.Kind -eq 'Healthy') {

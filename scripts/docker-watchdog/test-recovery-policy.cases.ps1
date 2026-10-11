@@ -592,3 +592,38 @@ Run-Test 'unexpected maintenance setup exceptions preserve existing partial clea
     Assert-True (Start-UptimeKumaMaintenance -State $state) 'Setup exception discarded existing Grafana cleanup'
     Assert-True (-not $state.Kuma) 'Failed Kuma setup was marked ready'
 }
+
+Run-Test 'critical repair retries Kuma maintenance after readiness and before Plex startup' {
+    $state = @{Grafana=$true}
+    $script:kumaReady = $false
+    function Test-DockerDaemon { $true }
+    function Test-RequiredDockerNetwork { $true }
+    function Start-DockerContainerIfPresent { param($Name) $script:events += $Name; $true }
+    function Wait-DockerContainerReady { $true }
+    function Wait-ContainerUrl { param($ContainerName) if ($ContainerName -eq 'uptime-kuma') { $script:kumaReady=$true }; $true }
+    function Start-UptimeKumaMaintenance {
+        param($State)
+        Assert-True ($script:kumaReady) 'Retried before Kuma became reachable'
+        $script:events += 'maintenance'
+        $State.Kuma=$true
+        $true
+    }
+    function Repair-PlexHostPort { $true }
+    function Test-SwagDependencyEndpoints { $true }
+    function Wait-TcpPort { $true }
+    Assert-True (Repair-ConfirmedDockerServiceHealth -Health (Health 'CriticalService') -MaintenanceState $state) 'Critical repair failed'
+    Assert-True (($script:events -join ',') -eq 'socket-proxy,uptime-kuma,maintenance,plex,swag') 'Maintenance did not precede later service mutations'
+    Assert-True ($state.Kuma) 'Caller lost maintenance cleanup state'
+}
+
+Run-Test 'maintenance first established during critical startup is closed by the recovery caller' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    function Start-UptimeKumaMaintenance { $false }
+    function Restart-DockerDesktopClean { $true }
+    function Start-CriticalDockerServices { param($MaintenanceState) $MaintenanceState.Kuma=$true; $MaintenanceState.Grafana=$true; $true }
+    function Repair-WslComposeBindServices { $true }
+    function Repair-WindowsComposeServices { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop) 'Recovery failed'
+    Assert-True (($script:events -join ',') -eq 'maintenance-stop') 'Maintenance established during startup was orphaned'
+}

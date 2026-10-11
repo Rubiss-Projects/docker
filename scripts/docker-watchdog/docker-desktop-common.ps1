@@ -1241,7 +1241,7 @@ function Test-SwagDependencyEndpoints {
 }
 
 function Start-CriticalDockerServices {
-    param ([int]$TimeoutSeconds = 480)
+    param ([int]$TimeoutSeconds = 480, [hashtable]$MaintenanceState)
     $DockerCriticalTimer = [Diagnostics.Stopwatch]::StartNew()
     $DockerCriticalBudgetSeconds = $TimeoutSeconds
     try { return Start-CriticalDockerServicesCore }
@@ -1267,6 +1267,12 @@ function Start-CriticalDockerServicesCore {
     if (-not (Wait-DockerContainerReady -Name "uptime-kuma" -TimeoutSeconds 180)) { return $false }
     if (-not (Wait-ContainerUrl -ContainerName "uptime-kuma" -Url "http://localhost:3001/" -TimeoutSeconds 180)) { return $false }
     if (-not (Wait-ContainerUrl -ContainerName "uptime-kuma" -Url "http://uptime-kuma:3001/" -TimeoutSeconds 60)) { return $false }
+
+    # Retry at the first useful point when Kuma was initially offline, before
+    # later service mutations. The caller retains this state for final cleanup.
+    if ($null -ne $MaintenanceState -and -not ($MaintenanceState.Kuma -and $MaintenanceState.Grafana)) {
+        Start-UptimeKumaMaintenance -Reason 'watchdog-critical-recovery' -State $MaintenanceState | Out-Null
+    }
 
     if (-not (Start-DockerContainerIfPresent -Name "plex")) { return $false }
     if (-not (Wait-DockerContainerReady -Name "plex" -TimeoutSeconds 240)) { return $false }
