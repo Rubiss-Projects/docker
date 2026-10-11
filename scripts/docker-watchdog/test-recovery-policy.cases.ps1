@@ -351,6 +351,8 @@ Run-Test 'broken optional notifications do not disable the health monitor' {
 Run-Test 'scheduled reboot retains maintenance and resumed recovery refreshes coverage before cleanup' {
     Save-DockerRecoveryInventory -ServiceNames @('plex')
     function Start-UptimeKumaMaintenance {
+        param($State)
+        $State.Kuma=$true; $State.Grafana=$true
         $script:events += 'maintenance-start'
         Set-Content -LiteralPath $DockerKumaMaintenanceIdPath -Value '123'
         Set-Content -LiteralPath $DockerGrafanaMaintenanceIdPath -Value 'test-window'
@@ -453,4 +455,54 @@ Run-Test 'failed maintenance cleanup retains only the failed IDs for retry' {
     function Invoke-WslCommand { [pscustomobject]@{ExitCode=0;Output=''} }
     Assert-True (Stop-UptimeKumaMaintenance) 'Cleanup retry failed'
     Assert-True (-not (Test-Path -LiteralPath $DockerKumaMaintenanceIdPath)) 'Successful retry left stale IDs'
+}
+
+foreach ($failedChannel in @('Kuma','Grafana')) {
+    Run-Test "partial $failedChannel maintenance is retried after readiness without duplicating the successful channel" {
+        Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
+        Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
+        Save-DockerRecoveryInventory -ServiceNames @('plex')
+        $script:maintenancePhase = 'before'
+        function Invoke-WslCommand {
+            param($Command)
+            $script:events += $Command
+            $isGrafana = $Command -match 'grafana-maintenance.py'
+            $isStart = $Command -match '.py start '
+            $channel = if ($isGrafana) { 'Grafana' } else { 'Kuma' }
+            if ($isStart -and $channel -eq $failedChannel -and $script:maintenancePhase -eq 'before') {
+                return [pscustomobject]@{ExitCode=1;Output='unavailable'}
+            }
+            $token = if ($isGrafana) { '11111111-1111-1111-1111-111111111111:22222222-2222-2222-2222-222222222222' } else { '123' }
+            [pscustomobject]@{ExitCode=0;Output=$(if ($isStart) {$token} else {''})}
+        }
+        function Restart-DockerDesktopClean { $true }
+        function Start-CriticalDockerServices { $script:maintenancePhase='ready'; $true }
+        function Repair-WslComposeBindServices {
+            Assert-True ($maintenanceState.Kuma -and $maintenanceState.Grafana) 'Bind repair skipped missing maintenance channel retry'
+            $true
+        }
+        function Repair-WindowsComposeServices { $true }
+        function Get-ConfirmedDockerHealth { Health }
+        Assert-True (Restart-DockerDesktop) 'Recovery failed after maintenance retry'
+        foreach ($channel in @('Kuma','Grafana')) {
+            $expected = if ($channel -eq $failedChannel) {2} else {1}
+            $pattern = $channel.ToLower() + '-maintenance.py start'
+            Assert-True (@($script:events | Where-Object { $_ -match $pattern }).Count -eq $expected) 'Missing channel not retried or successful channel duplicated'
+        }
+        Assert-True (-not (Test-Path $DockerKumaMaintenanceIdPath) -and -not (Test-Path $DockerGrafanaMaintenanceIdPath)) 'Partial maintenance cleanup was lost'
+    }
+}
+
+Run-Test 'Discord transport failures have a bounded request and do not escape into recovery' {
+    Set-Item Function:Send-DiscordAlert $realDiscordAlert
+    $discordWebhookUrl = 'https://notification.invalid/test-secret'
+    function Invoke-RestMethod {
+        param($TimeoutSec,[switch]$UseBasicParsing)
+        Assert-True ($TimeoutSec -gt 0 -and $TimeoutSec -le 15 -and $UseBasicParsing) 'Notification request is unbounded'
+        $script:calls++
+        throw 'notification timed out at https://notification.invalid/test-secret'
+    }
+    function Write-Log { param($Message) Assert-True ($Message -notmatch 'test-secret') 'Notification credential leaked' }
+    Send-DiscordAlert -title 'test' -description 'test'
+    Assert-True ($script:calls -eq 1) 'Notification failure prevented return to recovery'
 }

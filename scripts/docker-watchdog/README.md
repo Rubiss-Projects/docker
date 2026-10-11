@@ -70,8 +70,12 @@ disable notifications only, with a log entry; health monitoring continues.
 Tradeoff: a partial outage with another service still responding can require
 operator intervention. The watchdog logs a degraded condition and returns a
 nonzero exit code instead of sacrificing working services to repair its probes.
+Running critical containers are not restarted solely for unhealthy metadata or
+failed dependency probes. Without independent evidence of their own outage,
+these remain operator-visible degraded conditions.
 The existing notification integration only announces admitted recovery attempts;
-withheld attempts are recorded in the watchdog log.
+withheld attempts are recorded in the watchdog log. Notification HTTP requests
+have a 15-second timeout and cannot throw into the recovery path.
 
 ## Validate and install
 

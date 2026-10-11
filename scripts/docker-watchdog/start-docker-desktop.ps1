@@ -70,7 +70,7 @@ function Send-DiscordAlert {
             )
         } | ConvertTo-Json -Depth 4 -Compress
 
-        $response = Invoke-RestMethod -Uri $discordWebhookUrl -Method Post -Body $payload -ContentType "application/json"
+        $response = Invoke-RestMethod -Uri $discordWebhookUrl -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 15 -UseBasicParsing
         Write-Log "Discord alert sent successfully: $title"
     } catch {
         Write-Log 'Failed to send Discord alert; notification credentials are omitted.'
@@ -153,15 +153,16 @@ function Restart-DockerDesktop {
 
     # Remote expiry cannot be inferred from local ID-file timestamps. Every
     # attempt opens fresh overlapping windows; retain all old IDs for cleanup.
-    $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery'
+    $maintenanceState = @{}
+    $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery' -State $maintenanceState
     try {
         if (-not $ResumeOnly -and -not (Restart-DockerDesktopClean -TimeoutSeconds 600 -ShutdownWslOnFallback)) {
             Write-Log 'Docker Desktop restart did not reach daemon readiness.'
             return $false
         }
         if (-not (Start-CriticalDockerServices -TimeoutSeconds 480)) { return $false }
-        if (-not $maintenanceStarted) {
-            $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-bind-recovery'
+        if (-not ($maintenanceState.Kuma -and $maintenanceState.Grafana)) {
+            $maintenanceStarted = (Start-UptimeKumaMaintenance -Reason 'watchdog-bind-recovery' -State $maintenanceState) -or $maintenanceStarted
         }
         # Resume unfinished repairs from an admitted restart, plus projects
         # independently confirmed missing, stopped, or suffering bad mounts.

@@ -26,6 +26,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             foreach ($definition in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $false)) {
                 . ([scriptblock]::Create($definition.Extent.Text))
             }
+            $realDiscordAlert = ${function:Send-DiscordAlert}
             $DockerLogFilePath = Join-Path $scratch 'test.log'
             $logFilePath = Join-Path $scratch 'restart-test.log'
             $DockerOperationLockPath = Join-Path $scratch 'operation.lock'
@@ -46,7 +47,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             function Save-DockerHealthyInventory {}
             function Test-MaintenanceWindow { $false }
             function Send-DiscordAlert { param($title,$description,$color) $script:events += 'alert' }
-            function Start-UptimeKumaMaintenance { param($Reason) $script:events += 'maintenance-start'; $true }
+            function Start-UptimeKumaMaintenance { param($Reason,$State) if ($null -ne $State) { $State.Kuma=$true; $State.Grafana=$true }; $script:events += 'maintenance-start'; $true }
             function Stop-UptimeKumaMaintenance { $script:events += 'maintenance-stop'; $true }
             function Invoke-WslDockerCompose { throw 'Unexpected real Compose mutation in test' }
             $realIntegrationProbe = ${function:Test-WslDockerIntegration}
