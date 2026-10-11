@@ -27,15 +27,17 @@ services:
     environment:
       TZ: ${TZ}
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
-      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-6}
+      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-8}
       DFS_POOL_CONTROL_PATH: /data/pool.json
       DFS_WORKER_POOL_ID: ${DFS_WORKER_POOL_ID:-ben-server}
       DFS_METRICS_PORT: 9460
       DFS_WORK_SIGNAL_PATH: /data/work-available
-      NODE_OPTIONS: --max-old-space-size=384
-    cpus: ${DFS_CPUS:-1.0}
-    mem_limit: ${DFS_MEMORY:-512m}
-    memswap_limit: ${DFS_MEMORY:-512m}
+      DFS_CANDIDATE_CONCURRENCY: ${DFS_CANDIDATE_CONCURRENCY:-2}
+      # Global old-space overrides would defeat the thread-specific heap limits.
+      NODE_OPTIONS: ""
+    cpus: ${DFS_CPUS:-2.0}
+    mem_limit: ${DFS_MEMORY:-1g}
+    memswap_limit: ${DFS_MEMORY:-1g}
     pids_limit: 128
     # Preserve the legacy research archive in this volume, but expose only the
     # new runtime subdirectory (slot locks and local wakeups) to compute replicas.
@@ -68,7 +70,7 @@ services:
       TZ: ${TZ}
       SUNDAY_EDGE_URL: ${SUNDAY_EDGE_URL}
       DFS_WORKER_COUNT: ${DFS_REPLICAS:-2}
-      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-6}
+      DFS_MAX_WORKER_SLOTS: ${DFS_MAX_WORKER_SLOTS:-8}
       DFS_POOL_CONTROL_PATH: /data/pool.json
       DFS_CHECKPOINT_METRICS_PORT: 9460
       WORKER_HEALTH_URL: http://127.0.0.1:9460/metrics
