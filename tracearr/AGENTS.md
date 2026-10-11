@@ -19,6 +19,8 @@ Tracearr is the Plex monitoring and playback-history service. The previous monit
 - The active **No 4K transcodes** built-in policy preserves the former video-transcode stopper and its viewer-facing message. Existing notification automations remain unchanged.
 - Tracearr 2.5.1 includes the upstream fix for refreshing historical aggregates after stream-detail enrichment. The manual **Full aggregate rebuild** workaround was needed on 2.4.0. Do not enqueue a duplicate maintenance task.
 
+When the database is stopped, the upgrade helper starts its existing image for the logical backup. If its container was removed, the helper first archives the existing PostgreSQL 18 volume without starting PostgreSQL, then creates the database container. Missing or empty database volumes fail closed; restoring or bootstrapping this existing service requires deliberate state preparation.
+
 ## Seerr books-fork compatibility
 
 Our Seerr fork returns book requests alongside movie/TV requests. Tracearr 2.5.1 still rejects the entire response when it encounters a book. `patch-seerr-books.mjs` skips explicit book/audiobook rows and preserves the raw page length so mixed or all-book pages do not truncate movie/TV synchronization. Books themselves are not imported. Missing-request cleanup stays conservative when the remote total includes books.

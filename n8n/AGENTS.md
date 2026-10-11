@@ -4,7 +4,7 @@
 n8n is a fair-code licensed workflow automation tool that allows you to connect various services and automate tasks through visual workflows.
 
 ## Container Configuration
-- **Image**: `docker.n8n.io/n8nio/n8n`
+- **Image**: `n8nio/n8n:<stable-version>@sha256:<digest>` (publisher's direct Docker Hub repository; weekly Dependabot checks previously failed with HTTP 429 through `docker.n8n.io`)
 - **Container Name**: `n8n`
 - **Port**: `5678:5678`
 - **Network**: `proxynet`
