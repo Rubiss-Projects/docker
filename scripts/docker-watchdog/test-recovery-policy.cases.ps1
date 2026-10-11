@@ -179,6 +179,7 @@ Run-Test 'healthy inventory preserves non-restarting stacks during daemon failur
     Assert-True (Restart-DockerDesktop) 'Recovery using healthy inventory failed'
 }
 Run-Test 'missing or corrupt fallback inventory withholds broad recovery' {
+    function Write-Log { param($Message) Add-Content -LiteralPath $logFilePath -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message" }
     function Get-RunningWslComposeServiceNames { throw 'daemon unavailable' }
     function Restart-DockerDesktopClean { throw 'Restarted without inventory' }
     Assert-True (-not (Restart-DockerDesktop)) 'Missing inventory accepted'
@@ -187,6 +188,50 @@ Run-Test 'missing or corrupt fallback inventory withholds broad recovery' {
     @{Services=@('plex');CapturedAt=[DateTimeOffset]::UtcNow.AddHours(-1).ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath $DockerHealthyInventoryPath
     Assert-True (-not (Restart-DockerDesktop)) 'Stale snapshot restarted possibly intentionally stopped services'
     Assert-True ($script:events.Count -eq 0) 'Withheld recovery changed maintenance'
+    Assert-True (Test-DockerRestartAllowed) 'Preflight failures consumed restart cooldown or hourly limit'
+}
+
+Run-Test 'restart cooldown begins only after the final availability veto' {
+    function Write-DockerLog { param($Message) Add-Content -LiteralPath $logFilePath -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message" }
+    function Test-DockerServiceOutage { $false }
+    function Invoke-DockerCliWithTimeout { throw 'Restarted a responding service' }
+    Assert-True (-not (Restart-DockerDesktopClean)) 'Service veto ignored'
+    Assert-True (Test-DockerRestartAllowed) 'Service veto consumed cooldown'
+    function Test-DockerServiceOutage { $true }
+    function Invoke-DockerCliWithTimeout { [pscustomobject]@{ExitCode=0;Output=''} }
+    function Wait-DockerDesktopReady { $true }
+    Assert-True (Restart-DockerDesktopClean) 'Admitted restart failed'
+    Assert-True (-not (Test-DockerRestartAllowed)) 'Actual restart did not consume cooldown'
+}
+
+Run-Test 'resumed recovery recreates coverage when either maintenance channel is missing or empty' {
+    function Start-CriticalDockerServices { $true }
+    function Get-DockerPendingRecoveryTargets { [pscustomobject]@{Valid=$true;Services=@()} }
+    function Repair-WslComposeBindServices { $true }
+    function Test-DockerContainerReady { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    foreach ($present in @($DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath)) {
+        foreach ($emptyPeer in @($false,$true)) {
+            Remove-Item -LiteralPath $DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath -ErrorAction SilentlyContinue
+            Save-DockerRecoveryInventory -ServiceNames @('plex')
+            Set-Content -LiteralPath $present -Value 'saved-window'
+            if ($emptyPeer) {
+                $peer = if ($present -eq $DockerKumaMaintenanceIdPath) { $DockerGrafanaMaintenanceIdPath } else { $DockerKumaMaintenanceIdPath }
+                Set-Content -LiteralPath $peer -Value ''
+            }
+            $script:events = @()
+            Assert-True (Restart-DockerDesktop -ResumeOnly) 'Resume failed'
+            Assert-True (($script:events -join ',') -eq 'maintenance-start,maintenance-stop') 'Partial maintenance coverage was reused'
+        }
+    }
+}
+
+Run-Test 'responding services veto a second WSL shutdown after the first times out' {
+    function Test-DockerServiceOutage { $script:calls++; $script:calls -eq 1 }
+    function Invoke-ProcessWithTimeout { param($Arguments) $script:events += ($Arguments -join ' '); [pscustomobject]@{ExitCode=124;Output='timeout'} }
+    function Request-DockerHostRecoveryReboot { throw 'Rebooted after services recovered' }
+    Assert-True (-not (Stop-DockerWslForRecovery)) 'Reported successful recovery'
+    Assert-True (($script:events -join ',') -eq '--shutdown') 'Repeated shutdown despite responding services'
 }
 Run-Test 'healthy snapshots update atomically and retain the previous inventory on query failure' {
     Set-Item Function:Save-DockerHealthyInventory $realHealthyInventorySave

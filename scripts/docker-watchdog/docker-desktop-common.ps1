@@ -391,13 +391,14 @@ function Stop-DockerWslForRecovery {
     }
     $shutdown = Invoke-ProcessWithTimeout -FilePath 'wsl.exe' -Arguments @('--shutdown') -TimeoutSeconds 90
     if ($shutdown.ExitCode -eq 124) {
-        Write-DockerLog 'Normal WSL shutdown timed out; attempting one bounded forced WSL shutdown.'
-        $shutdown = Invoke-ProcessWithTimeout -FilePath 'wsl.exe' -Arguments @('--shutdown', '--force') -TimeoutSeconds 60
+        if (-not (Test-DockerServiceOutage -Attempts 1)) { return $false }
+        Write-DockerLog 'WSL shutdown timed out; retrying the supported shutdown command once.'
+        $shutdown = Invoke-ProcessWithTimeout -FilePath 'wsl.exe' -Arguments @('--shutdown') -TimeoutSeconds 60
     }
     if ($shutdown.ExitCode -ne 0) {
         Write-DockerLog "WSL shutdown failed; Docker will not be launched against the stuck VM. $($shutdown.Output)"
         if ($shutdown.ExitCode -eq 124) {
-            Request-DockerHostRecoveryReboot -Reason 'Normal and forced WSL shutdown both timed out' | Out-Null
+            Request-DockerHostRecoveryReboot -Reason 'Both bounded WSL shutdown attempts timed out' | Out-Null
         }
         return $false
     }
@@ -1267,10 +1268,10 @@ function Restart-DockerDesktopClean {
         Write-DockerLog 'Desktop restart withheld: service availability changed before recovery.'
         return $false
     }
-    Write-DockerLog "Restarting Docker Desktop with Docker Desktop CLI."
     $cliRestartSeconds = [Math]::Min($TimeoutSeconds, 180)
     $cliTimeoutSeconds = $cliRestartSeconds + 30
     $readinessTimeoutSeconds = $TimeoutSeconds
+    Write-DockerLog '=== RESTARTING DOCKER DESKTOP ==='
     $restart = Invoke-DockerCliWithTimeout -Arguments @("desktop", "restart", "--timeout", $cliRestartSeconds.ToString()) -TimeoutSeconds $cliTimeoutSeconds
     # A CLI error can still leave a healthy engine. Observe before escalating.
     if (Wait-DockerDesktopReady -TimeoutSeconds $readinessTimeoutSeconds) {
