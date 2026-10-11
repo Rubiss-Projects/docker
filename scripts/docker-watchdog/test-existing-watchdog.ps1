@@ -19,6 +19,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
         & {
             . (Join-Path $suiteRoot 'docker-desktop-common.ps1') -ProjectRoot $ProjectRoot
             $realMaintenanceStart = ${function:Start-UptimeKumaMaintenance}
+            $realHealthyInventorySave = ${function:Save-DockerHealthyInventory}
             $tokens = $null; $errors = $null
             $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $suiteRoot 'start-docker-desktop.ps1'), [ref]$tokens, [ref]$errors)
             foreach ($definition in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $false)) {
@@ -28,8 +29,9 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             $logFilePath = Join-Path $scratch 'restart-test.log'
             $DockerOperationLockPath = Join-Path $scratch 'operation.lock'
             $DockerRecoveryInventoryPath = Join-Path $scratch 'recovery-services.json'
+            $DockerHealthyInventoryPath = Join-Path $scratch 'healthy-services.json'
             $DockerHostRebootPath = Join-Path $scratch 'host-reboot.json'
-            Remove-Item -LiteralPath $DockerRecoveryInventoryPath,$DockerHostRebootPath -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $DockerRecoveryInventoryPath,$DockerHostRebootPath,$DockerHealthyInventoryPath -ErrorAction SilentlyContinue
             $DockerProjectRoot = Join-Path $scratch 'projects'
             $maxRestartAttempts = 3; $restartCooldownMinutes = 10; $restartWindowMinutes = 60
             $script:events = @(); $script:calls = 0
@@ -37,6 +39,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             function Write-DockerLog { param($Message) }
             function Write-Log { param($message) }
             function Clean-LogFile {}
+            function Save-DockerHealthyInventory {}
             function Test-MaintenanceWindow { $false }
             function Send-DiscordAlert { param($title,$description,$color) $script:events += 'alert' }
             function Start-UptimeKumaMaintenance { param($Reason) $script:events += 'maintenance-start'; $true }

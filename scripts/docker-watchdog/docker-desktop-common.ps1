@@ -14,6 +14,7 @@ $DockerKumaMaintenanceIdPath = "E:\Scripts\Logs\docker-kuma-maintenance.id"
 $DockerKumaMaintenanceTtlMinutes = 150
 $DockerOperationLockPath = "E:\Scripts\Logs\docker-health-monitor.lock"
 $DockerRecoveryInventoryPath = "E:\Scripts\Logs\docker-recovery-services.json"
+$DockerHealthyInventoryPath = "E:\Scripts\Logs\docker-last-healthy-services.json"
 $DockerHostRebootPath = "E:\Scripts\Logs\docker-host-reboot.json"
 $DockerProjectRoot = $ProjectRoot
 $DockerDesktopProcessNames = @("Docker Desktop", "com.docker.backend", "com.docker.build", "docker-agent")
@@ -132,6 +133,23 @@ function ConvertTo-WindowsProcessArgument {
     return '"' + $escaped + '"'
 }
 
+function Get-DockerTimeoutSeconds {
+    param ([int]$Requested)
+    # PowerShell's caller scope carries the critical-startup budget through all
+    # nested probes/Compose calls without resetting it for each operation.
+    if ($null -ne $DockerCriticalTimer) {
+        $remaining = [Math]::Floor($DockerCriticalBudgetSeconds - $DockerCriticalTimer.Elapsed.TotalSeconds)
+        if ($remaining -lt 1) { throw [TimeoutException]::new('Critical startup deadline exceeded.') }
+        return [int][Math]::Min($Requested, $remaining)
+    }
+    return $Requested
+}
+
+function Start-DockerRetrySleep {
+    param ([int]$Seconds)
+    Start-Sleep -Seconds (Get-DockerTimeoutSeconds -Requested $Seconds)
+}
+
 function Invoke-ProcessWithTimeout {
     param (
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -140,12 +158,13 @@ function Invoke-ProcessWithTimeout {
         [switch]$Quiet
     )
 
+    $TimeoutSeconds = Get-DockerTimeoutSeconds -Requested $TimeoutSeconds
     $stdoutPath = [System.IO.Path]::GetTempFileName()
     $stderrPath = [System.IO.Path]::GetTempFileName()
 
     $process = $null
     try {
-        $startArgs = @{ FilePath = $FilePath; NoNewWindow = $true; PassThru = $true; RedirectStandardOutput = $stdoutPath; RedirectStandardError = $stderrPath; ErrorAction = 'Stop' }
+        $startArgs = @{ FilePath = $FilePath; WindowStyle = 'Hidden'; PassThru = $true; RedirectStandardOutput = $stdoutPath; RedirectStandardError = $stderrPath; ErrorAction = 'Stop' }
         if ($Arguments.Count -gt 0) {
             $startArgs.ArgumentList = ($Arguments | ForEach-Object { ConvertTo-WindowsProcessArgument $_ }) -join ' '
         }
@@ -248,7 +267,7 @@ function Stop-DockerDesktopProcessTree {
         }
     }
 
-    Start-Sleep -Seconds 5
+    Start-DockerRetrySleep -Seconds 5
     return $allStopped
 }
 
@@ -284,12 +303,34 @@ function Save-DockerRecoveryInventory {
 }
 
 function Get-DockerRecoveryInventory {
-    if (-not (Test-Path -LiteralPath $DockerRecoveryInventoryPath)) { return @() }
-    $state = Get-Content -LiteralPath $DockerRecoveryInventoryPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    param ([string]$Path = $DockerRecoveryInventoryPath, [switch]$RequireRecent)
+    if (-not (Test-Path -LiteralPath $Path)) { return @() }
+    $state = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     if ($null -eq $state.Services) { throw 'The saved Docker recovery inventory is invalid.' }
+    if ($RequireRecent) {
+        $captured = [DateTimeOffset]::Parse($state.CapturedAt)
+        $age = [DateTimeOffset]::UtcNow - $captured
+        if ($age.TotalMinutes -gt 30 -or $age.TotalMinutes -lt -1) { throw 'The healthy inventory snapshot is stale or has an invalid timestamp.' }
+    }
     foreach ($name in $state.Services) {
         if ($name -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$') { throw 'The saved Docker recovery inventory contains an invalid service.' }
         $name
+    }
+}
+
+function Save-DockerHealthyInventory {
+    # Refresh only during a fully healthy observation, never from a partially
+    # restarted engine. Atomic replacement preserves the prior snapshot on error.
+    $names = @(Get-RunningWslComposeServiceNames)
+    $temporary = $DockerHealthyInventoryPath + ".$PID.tmp"
+    try {
+        @{ Services = $names; CapturedAt = [DateTimeOffset]::UtcNow.ToString('o') } |
+            ConvertTo-Json | Set-Content -LiteralPath $temporary -ErrorAction Stop
+        if (Test-Path -LiteralPath $DockerHealthyInventoryPath) {
+            [IO.File]::Replace($temporary, $DockerHealthyInventoryPath, [NullString]::Value)
+        } else { [IO.File]::Move($temporary, $DockerHealthyInventoryPath) }
+    } finally {
+        Remove-Item -LiteralPath $temporary -ErrorAction SilentlyContinue
     }
 }
 
@@ -373,7 +414,7 @@ function Invoke-DockerDesktopHardRecovery {
         Write-DockerLog "Terminating docker-desktop WSL distro after stopping stale Docker Desktop processes."
         $terminate = Invoke-ProcessWithTimeout -FilePath 'wsl.exe' -Arguments @('--terminate', 'docker-desktop') -TimeoutSeconds 90
         if ($terminate.ExitCode -ne 0) { return $false }
-        Start-Sleep -Seconds 5
+        Start-DockerRetrySleep -Seconds 5
     }
 
     Start-DockerDesktopServiceIfAvailable | Out-Null
@@ -404,7 +445,7 @@ function Invoke-WslCommand {
         $transportFailure = $result.ExitCode -ne 0 -and $result.Output -match 'Wsl/Service/(0x8007274c|0x800705b4|HCS_E_CONNECTION_TIMEOUT)'
         if (-not $transportFailure -or $attempt -eq $MaxAttempts) { break }
         Write-DockerLog "WSL transport failed on attempt $attempt/$MaxAttempts; retrying in $RetryDelaySeconds seconds."
-        Start-Sleep -Seconds $RetryDelaySeconds
+        Start-DockerRetrySleep -Seconds $RetryDelaySeconds
     }
     if ($result.ExitCode -ne 0 -and -not $Quiet) {
         Write-DockerLog "WSL command failed with exit code $($result.ExitCode). Output: $($result.Output)"
@@ -531,7 +572,7 @@ function Repair-WslComposeBindServices {
         $orderedNames.Add($name)
     }
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     foreach ($name in $orderedNames) {
         if ((Get-Date) -ge $deadline) {
             Write-DockerLog "Timed out before WSL bind repair completed."
@@ -740,7 +781,7 @@ function Wait-DockerDaemon {
         [int]$IntervalSeconds = 5
     )
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     Write-DockerLog "Waiting up to $TimeoutSeconds seconds for Docker Desktop and daemon readiness."
 
     while ((Get-Date) -lt $deadline) {
@@ -748,7 +789,7 @@ function Wait-DockerDaemon {
             Write-DockerLog "Docker daemon is ready."
             return $true
         }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     }
 
     Write-DockerLog "Timed out waiting for Docker daemon readiness."
@@ -765,7 +806,7 @@ function Test-WslDockerIntegration {
 
 function Wait-WslDockerIntegration {
     param ([int]$TimeoutSeconds = 120, [int]$IntervalSeconds = 5)
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     Write-DockerLog "Waiting up to $TimeoutSeconds seconds for native WSL Docker integration."
     do {
         if (Test-WslDockerIntegration) {
@@ -773,7 +814,7 @@ function Wait-WslDockerIntegration {
             return $true
         }
         if ((Get-Date) -ge $deadline) { break }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     } while ((Get-Date) -lt $deadline)
     Write-DockerLog 'Native WSL Docker integration did not become ready; services will not be started.'
     return $false
@@ -835,13 +876,13 @@ function Wait-DockerContainerReady {
         [int]$IntervalSeconds = 5
     )
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     while ((Get-Date) -lt $deadline) {
         if (Test-DockerContainerReady -Name $Name -Quiet) {
             Write-DockerLog "Container '$Name' is ready."
             return $true
         }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     }
 
     Test-DockerContainerReady -Name $Name | Out-Null
@@ -974,13 +1015,13 @@ function Wait-ContainerUrl {
         [int]$IntervalSeconds = 5
     )
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     while ((Get-Date) -lt $deadline) {
         if (Test-ContainerUrl -ContainerName $ContainerName -Url $Url -Quiet) {
             Write-DockerLog "Container probe succeeded from '$ContainerName' to '$Url'."
             return $true
         }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     }
 
     Test-ContainerUrl -ContainerName $ContainerName -Url $Url | Out-Null
@@ -994,6 +1035,7 @@ function Test-HostUrl {
         [switch]$Quiet
     )
 
+    $TimeoutSeconds = Get-DockerTimeoutSeconds -Requested $TimeoutSeconds
     try {
         Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSeconds | Out-Null
         return $true
@@ -1012,13 +1054,13 @@ function Wait-HostUrl {
         [int]$IntervalSeconds = 5
     )
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     while ((Get-Date) -lt $deadline) {
         if (Test-HostUrl -Url $Url -Quiet) {
             Write-DockerLog "Host probe succeeded for '$Url'."
             return $true
         }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     }
 
     Test-HostUrl -Url $Url | Out-Null
@@ -1033,6 +1075,7 @@ function Test-TcpPort {
         [switch]$Quiet
     )
 
+    $TimeoutMilliseconds = [Math]::Min($TimeoutMilliseconds, 1000 * (Get-DockerTimeoutSeconds -Requested ([int][Math]::Ceiling($TimeoutMilliseconds / 1000))))
     $client = [System.Net.Sockets.TcpClient]::new()
     try {
         $async = $client.BeginConnect($HostName, $Port, $null, $null)
@@ -1058,13 +1101,13 @@ function Wait-TcpPort {
         [int]$IntervalSeconds = 5
     )
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     while ((Get-Date) -lt $deadline) {
         if (Test-TcpPort -HostName $HostName -Port $Port -Quiet) {
             Write-DockerLog "TCP probe succeeded for $HostName`:$Port."
             return $true
         }
-        Start-Sleep -Seconds $IntervalSeconds
+        Start-DockerRetrySleep -Seconds $IntervalSeconds
     }
 
     Test-TcpPort -HostName $HostName -Port $Port | Out-Null
@@ -1128,6 +1171,16 @@ function Test-SwagDependencyEndpoints {
 
 function Start-CriticalDockerServices {
     param ([int]$TimeoutSeconds = 480)
+    $DockerCriticalTimer = [Diagnostics.Stopwatch]::StartNew()
+    $DockerCriticalBudgetSeconds = $TimeoutSeconds
+    try { return Start-CriticalDockerServicesCore }
+    catch [TimeoutException] {
+        Write-DockerLog "Critical startup exceeded its $TimeoutSeconds-second budget; deferring remaining work."
+        return $false
+    }
+}
+
+function Start-CriticalDockerServicesCore {
 
     if (-not (Test-DockerDaemon)) { return $false }
     if (-not (Wait-WslDockerIntegration)) { return $false }

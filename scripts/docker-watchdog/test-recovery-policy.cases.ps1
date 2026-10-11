@@ -162,3 +162,66 @@ Run-Test 'maintenance covers the task execution limit in both Kuma and Grafana' 
     }
     Assert-True (Start-UptimeKumaMaintenance) 'Maintenance could not start'
 }
+Run-Test 'healthy inventory preserves non-restarting stacks during daemon failure' {
+    Set-Item Function:Save-DockerHealthyInventory $realHealthyInventorySave
+    function Get-RunningWslComposeServiceNames { @('plex','ark-ascended') }
+    Save-DockerHealthyInventory
+    function Get-RunningWslComposeServiceNames { throw 'daemon unavailable' }
+    function Restart-DockerDesktopClean { $true }
+    function Start-CriticalDockerServices { $true }
+    function Repair-WslComposeBindServices {
+        param($ServiceNames)
+        Assert-True ($ServiceNames -contains 'ark-ascended') 'Lost non-restarting stack'
+        $true
+    }
+    function Repair-WindowsComposeServices { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop) 'Recovery using healthy inventory failed'
+}
+Run-Test 'missing or corrupt fallback inventory withholds broad recovery' {
+    function Get-RunningWslComposeServiceNames { throw 'daemon unavailable' }
+    function Restart-DockerDesktopClean { throw 'Restarted without inventory' }
+    Assert-True (-not (Restart-DockerDesktop)) 'Missing inventory accepted'
+    Set-Content -LiteralPath $DockerHealthyInventoryPath -Value '{}'
+    Assert-True (-not (Restart-DockerDesktop)) 'Invalid inventory accepted'
+    @{Services=@('plex');CapturedAt=[DateTimeOffset]::UtcNow.AddHours(-1).ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath $DockerHealthyInventoryPath
+    Assert-True (-not (Restart-DockerDesktop)) 'Stale snapshot restarted possibly intentionally stopped services'
+    Assert-True ($script:events.Count -eq 0) 'Withheld recovery changed maintenance'
+}
+Run-Test 'healthy snapshots update atomically and retain the previous inventory on query failure' {
+    Set-Item Function:Save-DockerHealthyInventory $realHealthyInventorySave
+    function Get-RunningWslComposeServiceNames { @('plex','ark-ascended') }
+    Save-DockerHealthyInventory
+    function Get-RunningWslComposeServiceNames { @('plex') }
+    Save-DockerHealthyInventory
+    function Get-RunningWslComposeServiceNames { throw 'query failed' }
+    try { Save-DockerHealthyInventory } catch { }
+    Assert-True ((@(Get-DockerRecoveryInventory -Path $DockerHealthyInventoryPath) -join ',') -eq 'plex') 'Failed query corrupted last snapshot'
+}
+Run-Test 'saved missing project is restored but failed inspection is deferred' {
+    Set-Item Function:Get-DockerPendingRecoveryTargets $realPendingTargets
+    function Get-StatefulServiceSentinelResult { [pscustomobject]@{Healthy=$true;ExitCode=0;FailedServices=@()} }
+    function Get-WslComposeContainers { @() }
+    $targets = Get-DockerPendingRecoveryTargets -ServiceNames @('plex')
+    Assert-True ($targets.Valid -and ($targets.Services -join ',') -eq 'plex') 'Missing project not restored'
+    function Get-WslComposeContainers { throw 'Docker query failed' }
+    Assert-True (-not (Get-DockerPendingRecoveryTargets -ServiceNames @('plex')).Valid) 'Query error treated as absence'
+}
+Run-Test 'critical startup clamps nested process timeouts and releases its budget afterward' {
+    function Start-CriticalDockerServicesCore {
+        $result = Invoke-ProcessWithTimeout -FilePath powershell.exe -Arguments @('-NoProfile','-Command','Start-Sleep -Seconds 10') -TimeoutSeconds 30 -Quiet
+        Assert-True ($result.ExitCode -eq 124) 'Nested process ignored the shared budget'
+        $false
+    }
+    $elapsed = [Diagnostics.Stopwatch]::StartNew()
+    Assert-True (-not (Start-CriticalDockerServices -TimeoutSeconds 3)) 'Timed out startup reported success'
+    Assert-True ($elapsed.Elapsed.TotalSeconds -lt 8) 'Critical startup exceeded budget plus process cleanup'
+    Assert-True ((Get-DockerTimeoutSeconds -Requested 120) -eq 120) 'Budget leaked into later operations'
+}
+Run-Test 'critical startup clamps readiness waits to the same budget' {
+    function Test-DockerContainerReady { $false }
+    function Start-CriticalDockerServicesCore { Wait-DockerContainerReady -Name plex -TimeoutSeconds 180 -IntervalSeconds 1 }
+    $elapsed = [Diagnostics.Stopwatch]::StartNew()
+    Assert-True (-not (Start-CriticalDockerServices -TimeoutSeconds 3)) 'Timed out wait reported success'
+    Assert-True ($elapsed.Elapsed.TotalSeconds -lt 5) 'Readiness reset the critical-startup budget'
+}
