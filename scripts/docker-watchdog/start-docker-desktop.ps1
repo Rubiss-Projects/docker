@@ -130,7 +130,15 @@ function Restart-DockerDesktop {
             Save-DockerRecoveryInventory -ServiceNames $runningWslComposeServices
             Write-Log "Captured $($runningWslComposeServices.Count) running WSL compose service(s) through the Windows Docker CLI."
         } catch {
-            Write-Log "Pre-restart inventory unavailable; will query again after daemon recovery. $($_.Exception.Message)"
+            try {
+                if (-not (Test-Path -LiteralPath $DockerHealthyInventoryPath)) { throw 'No healthy inventory snapshot exists.' }
+                $runningWslComposeServices = @(Get-DockerRecoveryInventory -Path $DockerHealthyInventoryPath -RequireRecent)
+                Save-DockerRecoveryInventory -ServiceNames $runningWslComposeServices
+                Write-Log "Live inventory unavailable; preserving $($runningWslComposeServices.Count) projects from the last healthy observation."
+            } catch {
+                Write-Log 'Recovery withheld: neither live nor saved healthy service inventory is available.'
+                return $false
+            }
         }
     }
 
@@ -223,6 +231,8 @@ function Invoke-DockerHealthMonitor {
     }
     $health = Get-ConfirmedDockerHealth
     if ($health.Kind -eq 'Healthy') {
+        try { Save-DockerHealthyInventory }
+        catch { Write-Log 'Could not refresh the healthy service inventory; retaining the previous snapshot.' }
         Write-Log 'Docker and critical services are running and functional.'
         return 0
     }

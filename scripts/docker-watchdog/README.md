@@ -30,6 +30,9 @@ shutdown and Windows reboot each recheck availability too. Existing shared locks
 recovery inventory, and six-hour Windows reboot cooldown remain in place.
 Kuma/Grafana maintenance covers the two-hour task deadline plus 30 minutes of
 cleanup grace, and still closes immediately when recovery finishes.
+Critical startup shares one 480-second budget across its nested waits, probes,
+and Compose commands (plus bounded process cleanup), rather than resetting the
+allowance for each step.
 
 The unconditional 05:00 restart is retired. Installation disables that task and
 replaces its entry point with a compatibility wrapper for the normal watchdog,
@@ -44,6 +47,13 @@ Projects are discovered through Compose working-directory labels, including
 generated container names and multiple containers per project. Plex's separate
 host-port repair also requires repeated failures on both host addresses, so a
 localhost-only problem cannot restart a working LAN stream.
+Healthy observations save an atomic inventory snapshot, so a later Docker API
+failure cannot lose stacks without an automatic restart policy. If both live and
+saved inventory are unavailable, recovery is withheld. Fallback snapshots must
+be at most 30 minutes old; an admitted recovery journal remains durable across
+long retries and reboots. A journaled project with
+no remaining containers is restored after a successful all-container query;
+failed queries still defer repair.
 
 Tradeoff: a partial outage with another service still responding can require
 operator intervention. The watchdog logs a degraded condition and returns a

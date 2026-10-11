@@ -54,7 +54,7 @@ function Test-DockerServiceOutage {
             Write-DockerLog 'Recovery withheld: at least one service responds or a probe is inconclusive.'
             return $false
         }
-        if ($attempt -lt $Attempts) { Start-Sleep -Seconds $RetryDelaySeconds }
+        if ($attempt -lt $Attempts) { Start-DockerRetrySleep -Seconds $RetryDelaySeconds }
     }
     return $true
 }
@@ -90,8 +90,11 @@ function Get-DockerPendingRecoveryTargets {
         # Query failures must not be interpreted as permission to recreate a stack.
         $members = @($containers | Where-Object Project -eq $name)
         if ($members.Count -eq 0) {
-            Write-DockerLog "Pending recovery deferred: cannot inspect $name."
-            return [pscustomobject]@{ Valid = $false; Services = @() }
+            # The successful all-container query distinguishes absence from a
+            # failed inspection. Compose may have been interrupted after removal.
+            Write-DockerLog "Pending recovery will restore missing project $name from its saved inventory."
+            $targets += $name
+            continue
         }
         if (@($members | Where-Object Status -eq 'running').Count -eq 0) { $targets += $name }
         # Running projects need an explicit sentinel failure. An RPC timeout or
