@@ -786,13 +786,16 @@ function Start-UptimeKumaMaintenance {
 }
 
 function Stop-UptimeKumaMaintenance {
-    Stop-GrafanaMaintenance
+    $grafanaCleaned = $false
+    try { $grafanaCleaned = Stop-GrafanaMaintenance }
+    catch { Write-Host 'Grafana maintenance cleanup failed; continuing with Kuma cleanup.' }
+    try {
     if (-not (Test-Path $DockerKumaMaintenanceIdPath)) {
-        return $true
+        return [bool]$grafanaCleaned
     }
 
     $remaining = @()
-    foreach ($maintenanceId in @(Get-Content -LiteralPath $DockerKumaMaintenanceIdPath)) {
+    foreach ($maintenanceId in @(Get-Content -LiteralPath $DockerKumaMaintenanceIdPath -ErrorAction Stop)) {
         if ($maintenanceId -notmatch '^\d+$') { continue }
         Write-DockerLog "Removing Uptime Kuma maintenance window $maintenanceId."
         $command = "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py --strict stop $maintenanceId"
@@ -803,7 +806,11 @@ function Stop-UptimeKumaMaintenance {
         }
     }
     Set-DockerMaintenanceTokens -Path $DockerKumaMaintenanceIdPath -Tokens $remaining
-    return ($remaining.Count -eq 0)
+    return ($remaining.Count -eq 0 -and $grafanaCleaned)
+    } catch {
+        Write-Host 'Kuma maintenance cleanup failed; saved IDs and TTL remain available for recovery.'
+        return $false
+    }
 }
 
 function Get-DockerComposeProjectPath {
@@ -1343,9 +1350,12 @@ function Restart-DockerDesktopClean {
     $cliRestartSeconds = [Math]::Min($TimeoutSeconds, 180)
     $cliTimeoutSeconds = $cliRestartSeconds + 30
     $readinessTimeoutSeconds = $TimeoutSeconds
-    Update-DockerRecoveryProgress -BeginRestart
     Write-DockerLog '=== RESTARTING DOCKER DESKTOP ==='
     $restart = Invoke-DockerCliWithTimeout -Arguments @("desktop", "restart", "--timeout", $cliRestartSeconds.ToString()) -TimeoutSeconds $cliTimeoutSeconds
+    # Pre-command interruption must never authorize recreation of working stacks.
+    # An interrupted invocation without this marker resumes from independent
+    # stopped/missing-container and mount evidence only.
+    Update-DockerRecoveryProgress -BeginRestart
     # A CLI error can still leave a healthy engine. Observe before escalating.
     if (Wait-DockerDesktopReady -TimeoutSeconds $readinessTimeoutSeconds) {
         return $true
