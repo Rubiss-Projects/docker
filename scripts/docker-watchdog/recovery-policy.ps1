@@ -83,7 +83,7 @@ function Get-DockerPendingRecoveryTargets {
         Write-DockerLog 'Pending recovery deferred: mount verification was inconclusive.'
         return [pscustomobject]@{ Valid = $false; Services = @() }
     }
-    $targets = @($sentinel.FailedServices)
+    $targets = @($sentinel.FailedServices) + @(Get-DockerRecoveryInventory -PendingBindRepair)
     try { $containers = @(Get-WslComposeContainers -All) }
     catch {
         Write-DockerLog 'Pending recovery deferred: cannot inspect Compose projects.'
@@ -100,8 +100,8 @@ function Get-DockerPendingRecoveryTargets {
             continue
         }
         if (@($members | Where-Object Status -eq 'running').Count -eq 0) { $targets += $name }
-        # Running projects need an explicit sentinel failure. An RPC timeout or
-        # a completed one-shot auxiliary container does not authorize recreation.
+        # Completed running projects need an explicit sentinel failure. An RPC
+        # timeout or stopped one-shot auxiliary does not authorize recreation.
     }
     return [pscustomobject]@{ Valid = $true; Services = @($targets | Sort-Object -Unique) }
 }

@@ -263,6 +263,51 @@ Run-Test 'critical startup clamps nested process timeouts and releases its budge
     Assert-True ($elapsed.Elapsed.TotalSeconds -lt 8) 'Critical startup exceeded budget plus process cleanup'
     Assert-True ((Get-DockerTimeoutSeconds -Requested 120) -eq 120) 'Budget leaked into later operations'
 }
+Run-Test 'bind repair clamps Compose and follow-up to its remaining phase budget' {
+    New-Item -ItemType Directory -Path (Join-Path $DockerProjectRoot 'sunday-edge') -Force | Out-Null
+    Set-Content (Join-Path $DockerProjectRoot 'sunday-edge/docker-compose.yml') 'services: {}'
+    function Invoke-WslDockerCompose {
+        param($TimeoutSeconds)
+        Assert-True ($TimeoutSeconds -le 4) 'Compose received a fresh 300-second allowance'
+        $script:calls++
+        Start-Sleep -Milliseconds 1100
+        [pscustomobject]@{ExitCode=0;Output=''}
+    }
+    function Invoke-WslCommand {
+        param($TimeoutSeconds)
+        Assert-True ($TimeoutSeconds -le 3) 'Follow-up reset the bind-repair deadline'
+        $script:calls++
+        [pscustomobject]@{ExitCode=0;Output=''}
+    }
+    Assert-True (Repair-WslComposeBindServices -ServiceNames @('sunday-edge') -TimeoutSeconds 5 -OnlySpecified) 'Bounded repair failed'
+    Assert-True ($script:calls -eq 2) 'Did not exercise Compose and follow-up'
+    Assert-True ((Get-DockerTimeoutSeconds -Requested 300) -eq 300) 'Bind budget leaked outside its phase'
+}
+Run-Test 'interrupted bind repair retains unfinished running projects and skips completed ones' {
+    Set-Item Function:Get-DockerPendingRecoveryTargets $realPendingTargets
+    Save-DockerRecoveryInventory -ServiceNames @('plex','homepage','mod-mc')
+    function Test-DockerServiceOutage { $false }
+    Assert-True (-not (Restart-DockerDesktopClean)) 'Veto ignored'
+    Assert-True (@(Get-DockerRecoveryInventory -PendingBindRepair).Count -eq 0) 'Veto armed bind recreation'
+    function Test-DockerServiceOutage { $true }
+    function Invoke-DockerCliWithTimeout { [pscustomobject]@{ExitCode=0;Output=''} }
+    function Wait-DockerDesktopReady { $true }
+    Assert-True (Restart-DockerDesktopClean) 'Admitted restart failed'
+    function Invoke-WslDockerCompose {
+        param($ProjectPath)
+        $script:events += $ProjectPath
+        [pscustomobject]@{ExitCode=$(if ($ProjectPath.EndsWith('/plex')) {0} else {1});Output=''}
+    }
+    Assert-True (-not (Repair-WslComposeBindServices -ServiceNames @('plex','homepage','mod-mc') -OnlySpecified)) 'Failed project reported repaired'
+    Assert-True ((@(Get-DockerRecoveryInventory -PendingBindRepair) -join ',') -eq 'homepage,mod-mc') 'Unattempted project was lost or successful project retained'
+    function Get-StatefulServiceSentinelResult { [pscustomobject]@{Healthy=$true;ExitCode=0;FailedServices=@()} }
+    function Get-WslComposeContainers { foreach ($name in @('plex','homepage','mod-mc')) { [pscustomobject]@{Project=$name;Status='running'} } }
+    $targets = Get-DockerPendingRecoveryTargets -ServiceNames @(Get-DockerRecoveryInventory)
+    Assert-True ($targets.Valid -and ($targets.Services -join ',') -eq 'homepage,mod-mc') 'Resume skipped unfinished running projects or repeated completed repair'
+    function Invoke-WslDockerCompose { [pscustomobject]@{ExitCode=0;Output=''} }
+    Assert-True (Repair-WslComposeBindServices -ServiceNames $targets.Services -OnlySpecified) 'Resume failed'
+    Assert-True (@(Get-DockerRecoveryInventory -PendingBindRepair).Count -eq 0) 'Successful repairs stayed pending'
+}
 Run-Test 'critical startup clamps readiness waits to the same budget' {
     function Test-DockerContainerReady { $false }
     function Start-CriticalDockerServicesCore { Wait-DockerContainerReady -Name plex -TimeoutSeconds 180 -IntervalSeconds 1 }
@@ -303,7 +348,7 @@ Run-Test 'broken optional notifications do not disable the health monitor' {
     function Get-ConfirmedDockerHealth { Health }
     Assert-True ((Invoke-DockerHealthMonitor) -eq 0) 'Notification error stopped health monitoring'
 }
-Run-Test 'scheduled reboot retains maintenance and resumed recovery closes the same windows' {
+Run-Test 'scheduled reboot retains maintenance and resumed recovery refreshes coverage before cleanup' {
     Save-DockerRecoveryInventory -ServiceNames @('plex')
     function Start-UptimeKumaMaintenance {
         $script:events += 'maintenance-start'
@@ -328,7 +373,7 @@ Run-Test 'scheduled reboot retains maintenance and resumed recovery closes the s
     function Test-DockerContainerReady { $true }
     function Get-ConfirmedDockerHealth { Health }
     Assert-True (Restart-DockerDesktop -ResumeOnly) 'Resumed recovery failed'
-    Assert-True (($script:events -join ',') -eq 'maintenance-start,maintenance-stop') 'Existing maintenance IDs were overwritten or not closed'
+    Assert-True (($script:events -join ',') -eq 'maintenance-start,maintenance-start,maintenance-stop') 'Resume did not refresh maintenance before cleanup'
     Assert-True (-not (Test-Path -LiteralPath $DockerGrafanaMaintenanceIdPath)) 'Grafana window not closed after resume'
 }
 Run-Test 'resuming after saved maintenance expires opens a fresh window' {
@@ -371,7 +416,7 @@ Run-Test 'SWAG dependency failure cannot restart a responding proxy' {
     Assert-True (-not (Start-CriticalDockerServices)) 'Failed proxy restart reported fixed'
     Assert-True ($script:calls -eq 4 -and ($script:events -join ',') -eq 'swag-restart') 'Proxy restart lacked repeated independent failures'
 }
-Run-Test 'near-expiry maintenance is overlapped and every old and new window is closed' {
+Run-Test 'fresh ID timestamps never suppress overlap and all old and new windows are closed' {
     Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
     Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
     Save-DockerRecoveryInventory -ServiceNames @('plex')
@@ -379,9 +424,6 @@ Run-Test 'near-expiry maintenance is overlapped and every old and new window is 
     $newGrafana = '33333333-3333-3333-3333-333333333333:44444444-4444-4444-4444-444444444444'
     Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '123'
     Add-DockerMaintenanceToken -Path $DockerGrafanaMaintenanceIdPath -Token $oldGrafana
-    foreach ($path in @($DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath)) {
-        [IO.File]::SetLastWriteTimeUtc($path, [DateTime]::UtcNow.AddMinutes(-120))
-    }
     function Invoke-WslCommand {
         param($Command)
         $script:events += $Command

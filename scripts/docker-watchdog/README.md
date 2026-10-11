@@ -31,13 +31,12 @@ recovery inventory, and six-hour Windows reboot cooldown remain in place.
 Kuma/Grafana maintenance covers the two-hour task deadline plus 30 minutes of
 cleanup grace, and still closes immediately when recovery finishes.
 When a Windows reboot is scheduled, the window and its saved IDs survive;
-resumed recovery reuses and closes those windows instead of orphaning them.
-If the remaining lifetime cannot cover the resumed task's two-hour budget,
-resume opens overlapping windows first. Atomic ID lists retain all old and new
+resumed recovery always opens fresh overlapping windows before work. Local
+ID-file timestamps never stand in for remote expiry. Atomic ID lists retain all old and new
 windows for cleanup; failed cleanup retains the affected IDs for retry.
-Critical startup shares one 480-second budget across its nested waits, probes,
-and Compose commands (plus bounded process cleanup), rather than resetting the
-allowance for each step.
+Critical startup and bind repair share their respective 480-second and
+1,200-second budgets across nested waits, probes and commands, plus bounded
+process cleanup.
 
 The unconditional 05:00 restart is retired. Installation disables that task and
 replaces its entry point with a compatibility wrapper for the normal watchdog,
@@ -45,8 +44,9 @@ so re-enabling it does not restore unconditional restarts. The minute task no
 longer skips 05:00–05:05. Explicit maintenance still uses the shared lock.
 
 Individual application/mount failures retain targeted repair. A resumed recovery
-journal selects fully stopped projects and confirmed mount failures, rather than
-recreating every previously running stack. Failed inspection defers that repair;
+journal retains unfinished bind repairs from an admitted Desktop restart and
+also selects missing/stopped projects and confirmed mount failures. Successfully
+repaired running stacks are left alone. Failed inspection defers that repair;
 an RPC health timeout alone does not select a running stack for recreation.
 Projects are discovered through Compose working-directory labels, including
 generated container names and multiple containers per project. Plex's separate

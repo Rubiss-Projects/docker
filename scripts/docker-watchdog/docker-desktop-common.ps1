@@ -135,12 +135,16 @@ function ConvertTo-WindowsProcessArgument {
 
 function Get-DockerTimeoutSeconds {
     param ([int]$Requested)
-    # PowerShell's caller scope carries the critical-startup budget through all
-    # nested probes/Compose calls without resetting it for each operation.
+    # Caller scope carries phase budgets through nested probes/Compose calls.
     if ($null -ne $DockerCriticalTimer) {
         $remaining = [Math]::Floor($DockerCriticalBudgetSeconds - $DockerCriticalTimer.Elapsed.TotalSeconds)
         if ($remaining -lt 1) { throw [TimeoutException]::new('Critical startup deadline exceeded.') }
-        return [int][Math]::Min($Requested, $remaining)
+        $Requested = [int][Math]::Min($Requested, $remaining)
+    }
+    if ($null -ne $DockerBindRepairTimer) {
+        $remaining = [Math]::Floor($DockerBindRepairBudgetSeconds - $DockerBindRepairTimer.Elapsed.TotalSeconds)
+        if ($remaining -lt 1) { throw [TimeoutException]::new('Bind repair deadline exceeded.') }
+        $Requested = [int][Math]::Min($Requested, $remaining)
     }
     return $Requested
 }
@@ -304,7 +308,7 @@ function Save-DockerRecoveryInventory {
 }
 
 function Get-DockerRecoveryInventory {
-    param ([string]$Path = $DockerRecoveryInventoryPath, [switch]$RequireRecent)
+    param ([string]$Path = $DockerRecoveryInventoryPath, [switch]$RequireRecent, [switch]$PendingBindRepair)
     if (-not (Test-Path -LiteralPath $Path)) { return @() }
     $state = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
     if ($null -eq $state.Services) { throw 'The saved Docker recovery inventory is invalid.' }
@@ -313,10 +317,24 @@ function Get-DockerRecoveryInventory {
         $age = [DateTimeOffset]::UtcNow - $captured
         if ($age.TotalMinutes -gt 30 -or $age.TotalMinutes -lt -1) { throw 'The healthy inventory snapshot is stale or has an invalid timestamp.' }
     }
-    foreach ($name in $state.Services) {
+    $names = if ($PendingBindRepair) { @($state.PendingBindRepair | Where-Object { $_ }) } else { @($state.Services) }
+    foreach ($name in $names) {
         if ($name -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$') { throw 'The saved Docker recovery inventory contains an invalid service.' }
+        if ($PendingBindRepair -and $state.Services -notcontains $name) { throw 'Pending bind repair is outside the saved inventory.' }
         $name
     }
+}
+
+function Update-DockerRecoveryProgress {
+    param ([switch]$BeginRestart, [string]$CompletedService)
+    if (-not (Test-Path -LiteralPath $DockerRecoveryInventoryPath)) { return }
+    $names = @(Get-DockerRecoveryInventory)
+    $pending = @(Get-DockerRecoveryInventory -PendingBindRepair)
+    if ($BeginRestart) { $pending = $names }
+    else { $pending = @($pending | Where-Object { $_ -ne $CompletedService }) }
+    $state = Get-Content -LiteralPath $DockerRecoveryInventoryPath -Raw | ConvertFrom-Json
+    $state | Add-Member -NotePropertyName PendingBindRepair -NotePropertyValue $pending -Force
+    Write-DockerStateJson -Path $DockerRecoveryInventoryPath -Value $state
 }
 
 function Save-DockerHealthyInventory {
@@ -475,12 +493,13 @@ function Invoke-WslDockerCompose {
     param (
         [Parameter(Mandatory = $true)][string]$ProjectPath,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [int]$TimeoutSeconds = 300,
         [switch]$Quiet
     )
 
     $argumentText = $Arguments -join ' '
     $composeCommand = "cd $ProjectPath && env_args=(); [ -f .env ] && env_args+=(--env-file .env); [ -f .env.secret ] && env_args+=(--env-file .env.secret); docker compose " + '"${env_args[@]}"' + " $argumentText"
-    return Invoke-WslCommand -Command $composeCommand -TimeoutSeconds 300 -Quiet:$Quiet
+    return Invoke-WslCommand -Command $composeCommand -TimeoutSeconds $TimeoutSeconds -Quiet:$Quiet
 }
 
 function Invoke-WindowsDockerCompose {
@@ -557,6 +576,18 @@ function Repair-WslComposeBindServices {
         [switch]$OnlySpecified
     )
 
+    $DockerBindRepairTimer = [Diagnostics.Stopwatch]::StartNew()
+    $DockerBindRepairBudgetSeconds = $TimeoutSeconds
+    try { return Repair-WslComposeBindServicesCore -ServiceNames $ServiceNames -OnlySpecified:$OnlySpecified }
+    catch [TimeoutException] {
+        Write-DockerLog "Bind repair exceeded its $TimeoutSeconds-second budget; retaining remaining work."
+        return $false
+    }
+}
+
+function Repair-WslComposeBindServicesCore {
+    param ([string[]]$ServiceNames, [switch]$OnlySpecified)
+
     $serviceSet = [ordered]@{}
     foreach ($name in $ServiceNames) {
         if (-not [string]::IsNullOrWhiteSpace($name)) {
@@ -590,12 +621,8 @@ function Repair-WslComposeBindServices {
         $orderedNames.Add($name)
     }
 
-    $deadline = (Get-Date).AddSeconds((Get-DockerTimeoutSeconds -Requested $TimeoutSeconds))
     foreach ($name in $orderedNames) {
-        if ((Get-Date) -ge $deadline) {
-            Write-DockerLog "Timed out before WSL bind repair completed."
-            return $false
-        }
+        $composeTimeout = Get-DockerTimeoutSeconds -Requested 300
 
         if ($name -notmatch '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -or -not (Test-Path (Join-Path $DockerProjectRoot "$name/docker-compose.yml"))) {
             Write-DockerLog "Cannot repair '$name'; a valid local Compose project is required."
@@ -603,14 +630,15 @@ function Repair-WslComposeBindServices {
         }
         $projectPath = "/mnt/e/Docker/$name"
         Write-DockerLog "Recreating WSL compose service '$name' to refresh bind mounts."
-        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate")
+        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate") -TimeoutSeconds $composeTimeout
         if ($name -eq "sunday-edge" -and $composeResult.ExitCode -eq 0) {
-            $composeResult = Invoke-WslCommand -Command "python3 /mnt/e/Docker/scripts/sunday-edge-autoscale.py --reset-control" -TimeoutSeconds 180
+            $composeResult = Invoke-WslCommand -Command "python3 /mnt/e/Docker/scripts/sunday-edge-autoscale.py --reset-control" -TimeoutSeconds (Get-DockerTimeoutSeconds -Requested 180)
         }
         if ($composeResult.ExitCode -ne 0) {
             Write-DockerLog "WSL bind repair failed for '$name'."
             return $false
         }
+        Update-DockerRecoveryProgress -CompletedService $name
     }
 
     Write-DockerLog "WSL compose bind repair completed for $($orderedNames.Count) service(s)."
@@ -1271,6 +1299,7 @@ function Restart-DockerDesktopClean {
     $cliRestartSeconds = [Math]::Min($TimeoutSeconds, 180)
     $cliTimeoutSeconds = $cliRestartSeconds + 30
     $readinessTimeoutSeconds = $TimeoutSeconds
+    Update-DockerRecoveryProgress -BeginRestart
     Write-DockerLog '=== RESTARTING DOCKER DESKTOP ==='
     $restart = Invoke-DockerCliWithTimeout -Arguments @("desktop", "restart", "--timeout", $cliRestartSeconds.ToString()) -TimeoutSeconds $cliTimeoutSeconds
     # A CLI error can still leave a healthy engine. Observe before escalating.
