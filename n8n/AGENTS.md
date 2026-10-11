@@ -36,9 +36,16 @@ JavaScript implementation and requires Node.js. Run policy tests with
 `scripts/self_heal_container.js` handles Uptime Kuma down alerts. The
 `transmission-recovery-watchdog-workflow.json` fallback runs every five minutes.
 Both paths use the same per-container `flock` in Linux `/tmp`, preventing
-overlapping restarts. Transmission gets a three-minute unhealthy grace period,
+overlapping restarts. Transmission gets a five-minute unhealthy grace period,
 a 60-second Docker shutdown grace, and up to ten minutes of verification (a
 late start gets a fresh verification window). Workflow timeouts are 30 minutes.
+
+Before starting or restarting Transmission, probe Sonarr and Radarr `/ping` in
+parallel with five-second absolute deadlines. At least one must return HTTP 200
+and JSON `status: OK`; otherwise defer to the existing host watchdog and leave
+recovery intent unchanged. A Docker inspection alone does not prove WSL apps are
+responsive. The host gate also applies to an owned late start during verification.
+The next fallback run retries deferred recovery; it does not count as success.
 
 A timed-out restart is observed, not followed by another kill: Docker may still
 be completing its stop/start. Recovery intent is saved under

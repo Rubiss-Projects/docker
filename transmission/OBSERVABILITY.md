@@ -37,7 +37,9 @@ database, exposed endpoint or second restart controller is added.
   validates a successful `session-stats` response. Merely returning 409 is not
   healthy. Docker checks every 30 seconds, allows two minutes for startup and
   requires three failures before marking unhealthy. Each RPC probe has an
-  eight-second absolute deadline; Docker additionally has a ten-second timeout.
+  25-second socket timeout and a 30-second absolute deadline; Docker additionally
+  has a 35-second timeout. These recovery checks tolerate busy downloads without
+  hiding slow RPC from the separate short-deadline telemetry probes.
   LinuxServer's existing custom-init hook copies the probe into the container's
   Linux filesystem at startup, so probe execution does not depend on reading E:.
 - Homepage keeps its native Transmission widget and reads functional health
@@ -51,7 +53,8 @@ database, exposed endpoint or second restart controller is added.
   exhaustive description of the current implementation.
 - Windows Telegraf executes the same probe every 30 seconds with `--metrics`,
   which adds a lightweight `torrent-get` of only status, error code and peer
-  count. Only aggregate metrics are sent to the existing `ben-server` bucket.
+  count. Metrics retain their three-second socket/eight-second overall deadlines.
+  Only aggregate metrics are sent to the existing `ben-server` bucket.
   Linux tmpfs locks prevent overlapping probes of each mode. No names, hashes,
   paths, trackers or credentials enter telemetry. RPC is read-only.
 - Telegraf's built-in `http_response` input separately checks the published
@@ -124,6 +127,16 @@ they never induce a production failure. After installing, verify fresh
 baseline. WSL upgrades and VirtioFS activation remain separate maintenance work.
 
 ## Recovery evidence and remaining gaps
+
+Transmission recovery waits five minutes of unhealthy state before a restart,
+retains the existing 15-minute cooldown, and checks Sonarr and Radarr's unauthenticated
+`/ping` endpoints immediately before starting or restarting Transmission. At least
+one must return HTTP 200 and JSON `{"status":"OK"}` within five seconds. If neither
+responds, recovery reports `host_unresponsive_recovery_deferred`, exits unsuccessfully,
+and leaves any existing recovery intent intact. The next watchdog run can retry;
+this helper never restarts Docker Desktop. Both apps unavailable for unrelated reasons
+also defer recovery conservatively. These lightweight checks are evidence of application
+responsiveness, not proof that the host storage is healthy.
 
 Failed functional health probes include bounded Linux thread wait channels,
 open descriptor count and cgroup pressure/CPU/memory information. Before a

@@ -15,7 +15,8 @@ const requestTimeoutMs = numberArg(args.requestTimeoutMs, 'REQUEST_TIMEOUT_MS', 
 const restartTimeoutSec = numberArg(args.restartTimeoutSeconds, 'RESTART_TIMEOUT_SECONDS', container === 'transmission' ? 60 : 10);
 const verifyTimeoutMs = numberArg(args.verifyTimeoutMs, 'VERIFY_TIMEOUT_MS', container === 'transmission' ? 600000 : 90000);
 const pollIntervalMs = numberArg(args.pollIntervalMs, 'POLL_INTERVAL_MS', 3000);
-const graceMs = numberArg(args.graceMs, 'UNHEALTHY_GRACE_MS', container === 'transmission' ? 180000 : 0, 0);
+const graceMs = numberArg(args.graceMs, 'UNHEALTHY_GRACE_MS', container === 'transmission' ? 300000 : 0, 0);
+const hostProbeTimeoutMs = numberArg(args.hostProbeTimeoutMs, 'HOST_PROBE_TIMEOUT_MS', 5000);
 const cooldownMs = numberArg(args.cooldownMs, 'RECOVERY_COOLDOWN_MS', 900000);
 const healthyWindowMs = numberArg(args.healthyWindowMs, 'HEALTHY_WINDOW_MS', container === 'transmission' ? 120000 : 0, 0);
 const stateDir = process.env.RECOVERY_STATE_DIR || '/root/.n8n/recovery';
@@ -130,6 +131,7 @@ async function recoverUnhealthy() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
   if (container === 'transmission') await captureDiagnostics();
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+  await requireResponsiveHost();
   const attemptedAt = Date.now();
   savePending({ attemptedAt, lastStartAt: null, kind: 'restart', startedAt: originalStartedAt });
   actions.push({ action: 'restart', reason: 'container health is unhealthy' });
@@ -144,6 +146,53 @@ async function recoverUnhealthy() {
   }
   // Docker already escalates to SIGKILL after restart's grace period. A client
   // timeout does not cancel that operation; an additional kill races its start.
+}
+
+// Docker can still answer inspections while applications in WSL are stalled.
+// A live response from either independent app permits local recovery; otherwise
+// leave recovery to the existing host watchdog, without creating restart intent.
+async function requireResponsiveHost() {
+  if (container !== 'transmission') return;
+  const probes = [
+    { name: 'sonarr', url: process.env.RECOVERY_SONARR_HEALTH_URL || 'http://sonarr:8989/ping' },
+    { name: 'radarr', url: process.env.RECOVERY_RADARR_HEALTH_URL || 'http://radarr:7878/ping' },
+  ];
+  const results = await Promise.all(probes.map(async ({ name, url }) => {
+    try {
+      await probeApplication(url);
+      return { name, responsive: true };
+    } catch {
+      return { name, responsive: false };
+    }
+  }));
+  actions.push({ action: 'check_host_responsiveness', results });
+  if (!results.some((result) => result.responsive)) {
+    finish({ ok: false, container, actions, result: 'host_unresponsive_recovery_deferred' }, 1);
+  }
+  if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+}
+
+function probeApplication(url) {
+  return new Promise((resolve, reject) => {
+    const req = http.get(url, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('error', reject);
+      res.on('data', (chunk) => {
+        body += chunk;
+        if (body.length > 4096) req.destroy(new Error('Health response too large'));
+      });
+      res.on('end', () => {
+        try {
+          if (res.statusCode !== 200 || JSON.parse(body).status !== 'OK') throw new Error('Unhealthy application');
+          resolve();
+        } catch (error) { reject(error); }
+      });
+    });
+    const deadline = setTimeout(() => req.destroy(new Error('Host probe deadline exceeded')), hostProbeTimeoutMs);
+    req.on('close', () => clearTimeout(deadline));
+    req.on('error', reject);
+  });
 }
 
 async function captureDiagnostics() {
@@ -197,6 +246,7 @@ async function captureDiagnostics() {
 
 async function startContainer() {
   if (fs.existsSync(pausePath)) throw new Error('Recovery paused for maintenance');
+  await requireResponsiveHost();
   const lastStartAt = Date.now();
   savePending({ attemptedAt: pending?.attemptedAt ?? lastStartAt, lastStartAt, kind: 'start' });
   try {
