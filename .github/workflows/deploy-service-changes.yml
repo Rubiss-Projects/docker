@@ -111,7 +111,15 @@ jobs:
           DOCKER_REPO_DIR: /mnt/e/Docker
         # Most stacks use WSL Compose. The deploy script explicitly delegates
         # main-host cAdvisor to Windows Compose so its host mounts resolve there.
-        run: /mnt/e/Docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
+        run: |
+          set -Eeuo pipefail
+          # Load the trusted deployment commit's helper before it updates the
+          # canonical checkout, so new safety steps apply on their first deploy.
+          git -C "$DOCKER_REPO_DIR" fetch --no-tags origin "${{ github.sha }}"
+          deploy_script=$(mktemp "$RUNNER_TEMP/deploy-service-folders.XXXXXX.sh")
+          trap 'rm -f "$deploy_script"' EXIT
+          git -C "$DOCKER_REPO_DIR" show "${{ github.sha }}:scripts/deploy-changed-service-folders.sh" > "$deploy_script"
+          bash "$deploy_script" "${{ github.event.before }}" "${{ github.sha }}"
 
       - name: Install main-host contribution fork maintenance
         shell: bash
@@ -135,7 +143,13 @@ jobs:
           DOCKER_DEPLOY_SCOPE: pi
           DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /home/rubiss/docker
-        run: /home/rubiss/docker/scripts/deploy-changed-service-folders.sh "${{ github.event.before }}" "${{ github.sha }}"
+        run: |
+          set -Eeuo pipefail
+          git -C "$DOCKER_REPO_DIR" fetch --no-tags origin "${{ github.sha }}"
+          deploy_script=$(mktemp "$RUNNER_TEMP/deploy-service-folders.XXXXXX.sh")
+          trap 'rm -f "$deploy_script"' EXIT
+          git -C "$DOCKER_REPO_DIR" show "${{ github.sha }}:scripts/deploy-changed-service-folders.sh" > "$deploy_script"
+          bash "$deploy_script" "${{ github.event.before }}" "${{ github.sha }}"
 
       - name: Install Raspberry Pi maintenance timers
         shell: bash
