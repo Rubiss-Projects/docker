@@ -258,3 +258,43 @@ Run-Test 'broken optional notifications do not disable the health monitor' {
     function Get-ConfirmedDockerHealth { Health }
     Assert-True ((Invoke-DockerHealthMonitor) -eq 0) 'Notification error stopped health monitoring'
 }
+Run-Test 'scheduled reboot retains maintenance and resumed recovery closes the same windows' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    function Start-UptimeKumaMaintenance {
+        $script:events += 'maintenance-start'
+        Set-Content -LiteralPath $DockerKumaMaintenanceIdPath -Value '123'
+        Set-Content -LiteralPath $DockerGrafanaMaintenanceIdPath -Value 'test-window'
+        $true
+    }
+    function Stop-UptimeKumaMaintenance {
+        $script:events += 'maintenance-stop'
+        Remove-Item -LiteralPath $DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath
+        $true
+    }
+    function Restart-DockerDesktopClean { $script:DockerHostRebootRequested = $true; $false }
+    Assert-True (-not (Restart-DockerDesktop)) 'Reboot reported immediate recovery'
+    Assert-True (($script:events -join ',') -eq 'maintenance-start') 'Maintenance ended before reboot'
+    Assert-True (Test-Path -LiteralPath $DockerKumaMaintenanceIdPath) 'Lost saved maintenance IDs'
+    $script:DockerHostRebootRequested = $false
+    function Restart-DockerDesktopClean { throw 'Resuming must not restart Desktop' }
+    function Start-CriticalDockerServices { $true }
+    function Get-DockerPendingRecoveryTargets { [pscustomobject]@{Valid=$true;Services=@()} }
+    function Repair-WslComposeBindServices { $true }
+    function Test-DockerContainerReady { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop -ResumeOnly) 'Resumed recovery failed'
+    Assert-True (($script:events -join ',') -eq 'maintenance-start,maintenance-stop') 'Existing maintenance IDs were overwritten or not closed'
+    Assert-True (-not (Test-Path -LiteralPath $DockerGrafanaMaintenanceIdPath)) 'Grafana window not closed after resume'
+}
+Run-Test 'resuming after saved maintenance expires opens a fresh window' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    Set-Content -LiteralPath $DockerKumaMaintenanceIdPath -Value '123'
+    [IO.File]::SetLastWriteTimeUtc($DockerKumaMaintenanceIdPath, [DateTime]::UtcNow.AddHours(-3))
+    function Start-CriticalDockerServices { $true }
+    function Get-DockerPendingRecoveryTargets { [pscustomobject]@{Valid=$true;Services=@()} }
+    function Repair-WslComposeBindServices { $true }
+    function Test-DockerContainerReady { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop -ResumeOnly) 'Resume after expiry failed'
+    Assert-True (($script:events -join ',') -eq 'maintenance-stop,maintenance-start,maintenance-stop') 'Expired IDs prevented fresh maintenance'
+}

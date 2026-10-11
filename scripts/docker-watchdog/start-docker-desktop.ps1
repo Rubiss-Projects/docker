@@ -151,7 +151,24 @@ function Restart-DockerDesktop {
         }
     }
 
-    $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery'
+    # Reuse the persisted, auto-expiring windows after a reboot. Opening another
+    # would overwrite their IDs and leave the original silences orphaned.
+    $savedPaths = @(@($DockerKumaMaintenanceIdPath, $DockerGrafanaMaintenanceIdPath) | Where-Object { Test-Path -LiteralPath $_ })
+    $savedMaintenance = $savedPaths.Count -gt 0
+    $expiredPaths = @($savedPaths | Where-Object {
+        (Get-Item -LiteralPath $_).LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-$DockerKumaMaintenanceTtlMinutes)
+    })
+    if ($ResumeOnly -and $expiredPaths.Count -gt 0) {
+        Write-Log 'Saved maintenance has expired; retiring its IDs before opening a fresh window.'
+        Stop-UptimeKumaMaintenance | Out-Null
+        $savedMaintenance = $false
+    }
+    if ($ResumeOnly -and $savedMaintenance) {
+        Write-Log 'Resuming recovery under the saved maintenance window.'
+        $maintenanceStarted = $true
+    } else {
+        $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery'
+    }
     try {
         if (-not $ResumeOnly -and -not (Restart-DockerDesktopClean -TimeoutSeconds 600 -ShutdownWslOnFallback)) {
             Write-Log 'Docker Desktop restart did not reach daemon readiness.'
@@ -184,7 +201,8 @@ function Restart-DockerDesktop {
         Remove-Item -LiteralPath $DockerRecoveryInventoryPath -Force -ErrorAction SilentlyContinue
         return $true
     } finally {
-        if ($maintenanceStarted) { Stop-UptimeKumaMaintenance | Out-Null }
+        if ($maintenanceStarted -and -not $script:DockerHostRebootRequested) { Stop-UptimeKumaMaintenance | Out-Null }
+        elseif ($maintenanceStarted) { Write-Log 'Leaving auto-expiring maintenance active through the scheduled Windows reboot.' }
     }
 }
 

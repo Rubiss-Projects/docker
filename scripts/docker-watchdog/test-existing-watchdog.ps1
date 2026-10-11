@@ -31,10 +31,13 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             $DockerRecoveryInventoryPath = Join-Path $scratch 'recovery-services.json'
             $DockerHealthyInventoryPath = Join-Path $scratch 'healthy-services.json'
             $DockerHostRebootPath = Join-Path $scratch 'host-reboot.json'
-            Remove-Item -LiteralPath $DockerRecoveryInventoryPath,$DockerHostRebootPath,$DockerHealthyInventoryPath -ErrorAction SilentlyContinue
+            $DockerKumaMaintenanceIdPath = Join-Path $scratch 'kuma-maintenance.id'
+            $DockerGrafanaMaintenanceIdPath = Join-Path $scratch 'grafana-maintenance.id'
+            Remove-Item -LiteralPath $DockerRecoveryInventoryPath,$DockerHostRebootPath,$DockerHealthyInventoryPath,$DockerKumaMaintenanceIdPath,$DockerGrafanaMaintenanceIdPath -ErrorAction SilentlyContinue
             $DockerProjectRoot = Join-Path $scratch 'projects'
             $maxRestartAttempts = 3; $restartCooldownMinutes = 10; $restartWindowMinutes = 60
             $script:events = @(); $script:calls = 0
+            $script:DockerHostRebootRequested = $false
             Set-Content $logFilePath ''
             function Write-DockerLog { param($Message) }
             function Write-Log { param($message) }

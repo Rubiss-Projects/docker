@@ -30,6 +30,10 @@ shutdown and Windows reboot each recheck availability too. Existing shared locks
 recovery inventory, and six-hour Windows reboot cooldown remain in place.
 Kuma/Grafana maintenance covers the two-hour task deadline plus 30 minutes of
 cleanup grace, and still closes immediately when recovery finishes.
+When a Windows reboot is scheduled, the window and its saved IDs survive;
+resumed recovery reuses and closes those windows instead of orphaning them.
+If the host was offline long enough for them to expire, resume retires the saved
+IDs and opens fresh maintenance.
 Critical startup shares one 480-second budget across its nested waits, probes,
 and Compose commands (plus bounded process cleanup), rather than resetting the
 allowance for each step.
