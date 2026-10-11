@@ -777,3 +777,27 @@ all six verified v0.2.43 image pins (source revision
 revision `b5bc569cc042c75210e5d1562b7680c2a5ceefe0` is compatible. Do not roll
 workers back alone while the web requires v41. Use reviewed promotion and the maintenance wrapper, preserve
 durable work and volumes, and verify queue cutover and runtime work again.
+
+## Locked late-swap projection evidence (v0.2.46)
+
+Deploy web revision `46855e3932f6f24cf0488d69d9e9e281b18f053a` before promoting
+all six v0.2.46 image references through the maintenance-wrapped workflow. Verify
+all five published image versions and source revisions first. Analytics advances
+to `dfs-free-ensemble-v28`; compute remains v41 with no database, queue protocol,
+volume, credential, resource, or worker-pool changes.
+
+Require the deployed containers' exact version/revision and healthy registration,
+then verify a fresh affected analytics, maintenance, or monitor task using v28.
+A new late-swap generation must retain supported numeric evidence for an
+unavailable locked player, preserve its confirmed slot and zero projection, and
+exclude unavailable players from new selections. Genuinely unsupported locked
+projections still fail closed. Preserve failed-job history; verify the job-failure
+alert clears after its trailing 15-minute window and repeat web queue-cutover checks.
+
+Protocol-compatible rollback uses all six v0.2.45 image references, source revision
+`7da6259a76820ff1548f6bf0b9a49cec01a3edfd`, through a reviewed maintenance-wrapped
+promotion. Keep the corrected web revision and existing two-to-eight-worker pool,
+candidate concurrency, volumes, snapshots, leases, and completed trials. The older
+workers reintroduce the locked-OUT evidence failure, so verify affected task
+behavior again; do not replace current snapshots with older evidence or reset
+failed jobs.
