@@ -123,8 +123,10 @@ Windows probe tests: `powershell.exe -NoProfile -NonInteractive -File
 transmission/scripts/test_host_rpc_health.ps1`. They use disposable Windows-loopback
 servers, including delayed/truncated bodies and a shared token-negotiation deadline;
 they never induce a production failure. After installing, verify fresh
-`transmission_host_rpc` samples before beginning a 24–48 hour unchanged Plan9
-baseline. WSL upgrades and VirtioFS activation remain separate maintenance work.
+`transmission_host_rpc` samples before gathering a 24–48 hour uncapped baseline
+for any future backend change. The original Plan9 baseline and subsequent VirtioFS
+activation are historical; the October 11 comparison below uses the current
+VirtioFS backend. WSL upgrades remain separate maintenance work.
 
 ## Application storage cutover (2026-10-11)
 
@@ -182,9 +184,11 @@ independently. A failure of the whole Windows host also takes its local Grafana
 and InfluxDB offline. External alert delivery for a total host loss remains a
 gap in the current architecture; this phase does not add another observer.
 
-Collect 24–48 hours at uncapped load before choosing a storage/runtime change.
-Compare RPC p95/p99 and error periods against E: latency/queue, CPU, memory,
-OOM events and captured `p9_client_rpc` waits. The September 22 investigation
+Use the collected October 11 baseline for this cutover, and compare the same
+short-deadline RPC metrics over 24–48 hours afterward at uncapped load. Compare
+RPC p95/p99 and error periods against E: latency/queue, CPU, memory, OOM events
+and captured `request_wait_answer` waits with descriptor/syscall evidence on
+VirtioFS. Historical Plan9 captures used `p9_client_rpc`. The September 22 investigation
 observed about 210 MiB RSS for 1,408 torrents, no OOM, and a Windows-backed
 storage stall correlation. That does not establish the initial storage stall's
 cause or prove capacity at peak load. Do not preemptively reduce torrents,
