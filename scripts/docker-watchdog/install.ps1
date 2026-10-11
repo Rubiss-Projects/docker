@@ -56,6 +56,16 @@ function Enter-WatchdogInstallationLock {
     return [IO.File]::Open((Join-Path $Directory 'docker-watchdog-install.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 }
 
+function Write-WatchdogInstallationManifest {
+    param ([string]$Path, $Value)
+    $temporary = $Path + ".$PID.tmp"
+    try {
+        $Value | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $temporary -ErrorAction Stop
+        if (Test-Path -LiteralPath $Path) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) }
+        else { [IO.File]::Move($temporary, $Path) }
+    } finally { Remove-Item -LiteralPath $temporary -ErrorAction SilentlyContinue }
+}
+
 if ($MyInvocation.InvocationName -eq '.') { return }
 $Destination = [IO.Path]::GetFullPath($Destination)
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -133,7 +143,7 @@ try {
     if ((Get-WatchdogContainerSnapshot) -cne $before) { throw 'Containers changed during installation; investigate before accepting deployment.' }
     $hashes = @{}
     foreach ($name in $files) { $hashes[$name] = (Get-FileHash -LiteralPath (Join-Path $Destination $name)).Hash }
-    @{InstalledAt=(Get-Date -Format o);Hashes=$hashes} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath
+    Write-WatchdogInstallationManifest -Path $manifestPath -Value @{InstalledAt=(Get-Date -Format o);Hashes=$hashes}
     $success = $true
     Write-Host "Watchdog installed without changing container identities or start times. Backup: $backup"
     Write-Host 'Minute watchdog remains enabled; unconditional nightly restart task is disabled.'

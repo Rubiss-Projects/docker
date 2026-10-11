@@ -76,6 +76,13 @@ function Test-DockerAutomaticRecoveryAllowed {
     return Test-DockerServiceOutage
 }
 
+function Test-DockerBackendRecoveryRequired {
+    param ([string]$ExpectedKind)
+    $kind = (Get-DockerHealthSnapshot).Kind
+    return $kind -in @('Daemon', 'WslTransport', 'WslIntegration') -and
+        ([string]::IsNullOrWhiteSpace($ExpectedKind) -or $kind -eq $ExpectedKind)
+}
+
 function Get-DockerPendingRecoveryTargets {
     param ([string[]]$ServiceNames)
     $sentinel = Get-StatefulServiceSentinelResult -MaxAttempts 1

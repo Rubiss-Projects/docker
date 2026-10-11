@@ -127,7 +127,7 @@ function Repair-ConfirmedDockerServiceHealth {
 }
 
 function Restart-DockerDesktop {
-    param ([switch]$ResumeOnly)
+    param ([switch]$ResumeOnly, [string]$FailureKind)
     if ($ResumeOnly) { Write-Log '=== RESUMING DOCKER SERVICE RECOVERY ===' }
     else { Write-Log 'Preparing Docker Desktop recovery.' }
     $runningWslComposeServices = @()
@@ -156,7 +156,7 @@ function Restart-DockerDesktop {
     $maintenanceState = @{}
     $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery' -State $maintenanceState
     try {
-        if (-not $ResumeOnly -and -not (Restart-DockerDesktopClean -TimeoutSeconds 600 -ShutdownWslOnFallback)) {
+        if (-not $ResumeOnly -and -not (Restart-DockerDesktopClean -TimeoutSeconds 600 -ShutdownWslOnFallback -ExpectedKind $FailureKind)) {
             Write-Log 'Docker Desktop restart did not reach daemon readiness.'
             return $false
         }
@@ -293,7 +293,7 @@ function Invoke-DockerHealthMonitor {
     }
     Write-Log "Persistent $($health.Kind) failure and broad service outage confirmed; starting Desktop recovery."
     Send-DiscordAlert -title '[WARNING] Docker Desktop Recovery' -description "Persistent $($health.Kind) failure and three independent service-outage checks. Starting automatic recovery." -color '15105570'
-    if (Restart-DockerDesktop) {
+    if (Restart-DockerDesktop -FailureKind $health.Kind) {
         Write-Log '=== Docker Health Check Completed Successfully ==='
         Send-DiscordAlert -title '[OK] Docker Desktop Recovered' -description 'Docker Desktop and critical services passed recovery checks.' -color '3066993'
         return 0
