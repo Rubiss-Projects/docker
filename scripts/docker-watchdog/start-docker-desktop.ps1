@@ -129,7 +129,7 @@ function Repair-ConfirmedDockerServiceHealth {
 function Restart-DockerDesktop {
     param ([switch]$ResumeOnly)
     if ($ResumeOnly) { Write-Log '=== RESUMING DOCKER SERVICE RECOVERY ===' }
-    else { Write-Log "=== RESTARTING DOCKER DESKTOP ===" }
+    else { Write-Log 'Preparing Docker Desktop recovery.' }
     $runningWslComposeServices = @()
     if (Test-Path -LiteralPath $DockerRecoveryInventoryPath) {
         $runningWslComposeServices = @(Get-DockerRecoveryInventory)
@@ -154,7 +154,9 @@ function Restart-DockerDesktop {
     # Reuse only when the remaining lifetime covers the full two-hour task.
     # Refresh overlaps the old windows and retains every ID until cleanup.
     $savedPaths = @(@($DockerKumaMaintenanceIdPath, $DockerGrafanaMaintenanceIdPath) | Where-Object { Test-Path -LiteralPath $_ })
-    $savedMaintenance = $savedPaths.Count -gt 0
+    $savedMaintenance = $savedPaths.Count -eq 2 -and @($savedPaths | Where-Object {
+        [string]::IsNullOrWhiteSpace((Get-Content -LiteralPath $_ -Raw))
+    }).Count -eq 0
     $refreshPaths = @($savedPaths | Where-Object {
         (Get-Item -LiteralPath $_).LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-($DockerKumaMaintenanceTtlMinutes - 120))
     })

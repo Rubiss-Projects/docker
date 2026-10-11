@@ -231,12 +231,12 @@ Run-Test 'successful WSL shutdown never forces or reboots' {
     Assert-True (Stop-DockerWslForRecovery) 'Clean WSL shutdown failed'
     Assert-True (($script:events -join ',') -eq '--shutdown') 'Forced a healthy WSL VM'
 }
-Run-Test 'hung normal WSL shutdown gets one forced attempt' {
-    function Invoke-ProcessWithTimeout { param($FilePath,$Arguments) $script:events += ($Arguments -join ' '); [pscustomobject]@{ExitCode=$(if ($Arguments.Count -eq 1) {124} else {0});Output=''} }
+Run-Test 'hung WSL shutdown gets one supported retry' {
+    function Invoke-ProcessWithTimeout { param($FilePath,$Arguments) $script:events += ($Arguments -join ' '); $script:calls++; [pscustomobject]@{ExitCode=$(if ($script:calls -eq 1) {124} else {0});Output=''} }
     function Invoke-WslCommand { [pscustomobject]@{ExitCode=0;Output=''} }
     function Request-DockerHostRecoveryReboot { throw 'Unexpected reboot' }
-    Assert-True (Stop-DockerWslForRecovery) 'Forced shutdown recovery failed'
-    Assert-True (($script:events -join ',') -eq '--shutdown,--shutdown --force') 'Incorrect escalation order'
+    Assert-True (Stop-DockerWslForRecovery) 'Shutdown retry recovery failed'
+    Assert-True (($script:events -join ',') -eq '--shutdown,--shutdown') 'Unsupported shutdown arguments'
 }
 Run-Test 'two hung WSL shutdowns request host recovery and stop Docker launch' {
     function Invoke-ProcessWithTimeout { [pscustomobject]@{ExitCode=124;Output='timeout'} }
