@@ -113,15 +113,52 @@ Run-Test 'cold startup gets the full ten-minute readiness budget' {
     function Wait-DockerDesktopReady { param($TimeoutSeconds) Assert-True ($TimeoutSeconds -eq 600) 'Readiness capped at three minutes'; $true }
     Assert-True (Restart-DockerDesktopClean -TimeoutSeconds 600) 'Delayed startup rejected'
 }
-Run-Test 'pending journal only selects stopped containers and confirmed bad mounts' {
+Run-Test 'pending journal only selects stopped projects and confirmed bad mounts' {
     Set-Item Function:Get-DockerPendingRecoveryTargets $realPendingTargets
     function Get-StatefulServiceSentinelResult { [pscustomobject]@{Healthy=$false;ExitCode=1;FailedServices=@('homepage')} }
-    function Get-DockerContainerState {
-        param($Name)
-        [pscustomobject]@{Status=$(if ($Name -eq 'sonarr') {'exited'} else {'running'});Health='unhealthy'}
+    function Get-WslComposeContainers {
+        foreach ($name in @('channels-dvr','sonarr','transmission','mod-mc')) {
+            [pscustomobject]@{Project=$name;Container=($name+'-generated-1');Status=$(if ($name -eq 'sonarr') {'exited'} else {'running'})}
+        }
+        [pscustomobject]@{Project='mod-mc';Container='mod-mc-init-1';Status='exited'}
     }
-    $targets = Get-DockerPendingRecoveryTargets -ServiceNames @('channels-dvr','sonarr','transmission')
+    $targets = Get-DockerPendingRecoveryTargets -ServiceNames @('channels-dvr','sonarr','transmission','mod-mc')
     Assert-True ($targets.Valid -and ($targets.Services -join ',') -eq 'homepage,sonarr') 'Recreated working or RPC-busy containers'
     function Get-StatefulServiceSentinelResult { [pscustomobject]@{Healthy=$false;ExitCode=124;FailedServices=@()} }
     Assert-True (-not (Get-DockerPendingRecoveryTargets -ServiceNames @('channels-dvr')).Valid) 'Probe timeout authorized bind repair'
+}
+Run-Test 'Plex LAN response vetoes loopback-only targeted restart' {
+    Set-Item Function:Test-DockerServiceOutage $realOutage
+    function Test-ContainerUrl { $true }
+    function Test-HostUrl { $false }
+    function Get-DockerServiceAvailability {
+        param($ServiceNames)
+        Assert-True (($ServiceNames -join ',') -eq 'plex') 'Plex repair must check its own endpoints'
+        $checks = @(Availability | Where-Object Name -eq plex)
+        $checks[1].State = 'Responding'
+        $checks
+    }
+    function Restart-DockerContainerAndWait { throw 'Interrupted working LAN stream' }
+    Assert-True (-not (Repair-PlexHostPort -RestartOnFailure)) 'Loopback issue falsely reported fixed'
+}
+Run-Test 'Plex host repair requires repeated failure of both endpoints' {
+    Set-Item Function:Test-DockerServiceOutage $realOutage
+    function Test-ContainerUrl { $true }
+    function Test-HostUrl { $false }
+    function Get-DockerServiceAvailability { $script:calls++; Availability | Where-Object Name -eq plex }
+    function Start-Sleep {}
+    function Restart-DockerContainerAndWait { $script:events += 'plex-restart'; $false }
+    Assert-True (-not (Repair-PlexHostPort -RestartOnFailure)) 'Failed restart falsely reported fixed'
+    Assert-True ($script:calls -eq 3 -and ($script:events -join ',') -eq 'plex-restart') 'Restart lacked persistent independent evidence'
+}
+Run-Test 'maintenance covers the task execution limit in both Kuma and Grafana' {
+    Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
+    $DockerKumaMaintenanceIdPath = Join-Path $scratch 'kuma-maintenance.id'
+    function Start-GrafanaMaintenance { param($TtlMinutes) Assert-True ($TtlMinutes -ge 150) 'Grafana expires before task deadline'; $true }
+    function Invoke-WslCommand {
+        param($Command)
+        Assert-True ($Command -match '--ttl-minutes 150') 'Kuma expires before task deadline'
+        [pscustomobject]@{ExitCode=0;Output='123'}
+    }
+    Assert-True (Start-UptimeKumaMaintenance) 'Maintenance could not start'
 }

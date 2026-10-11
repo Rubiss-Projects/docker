@@ -18,6 +18,7 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
     try {
         & {
             . (Join-Path $suiteRoot 'docker-desktop-common.ps1') -ProjectRoot $ProjectRoot
+            $realMaintenanceStart = ${function:Start-UptimeKumaMaintenance}
             $tokens = $null; $errors = $null
             $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $suiteRoot 'start-docker-desktop.ps1'), [ref]$tokens, [ref]$errors)
             foreach ($definition in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $false)) {
@@ -106,14 +107,16 @@ Run-Test 'failed inventory is distinguishable from empty inventory' {
     Assert-True (-not (Repair-WslComposeBindServices)) 'Unknown inventory was reported repaired'
 }
 Run-Test 'inventory uses Windows and filters known projects and cAdvisor' {
-    foreach ($name in @('homepage','plex','cadvisor')) {
+    foreach ($name in @('homepage','plex','cadvisor','mod-mc')) {
         New-Item -ItemType Directory -Path (Join-Path $DockerProjectRoot $name) -Force | Out-Null
         Set-Content (Join-Path $DockerProjectRoot "$name/docker-compose.yml") 'services: {}'
     }
-    function Invoke-DockerCli { [pscustomobject]@{ExitCode=0;Output="plex`nhomepage`ncadvisor`nunknown"} }
+    function Invoke-DockerCli {
+        [pscustomobject]@{ExitCode=0;Output="plex|/mnt/e/Docker/plex|running`nhomepage|/mnt/e/Docker/homepage|running`ncadvisor|E:\Docker\cadvisor|running`nunknown||running`nmod-mc-minecraft-server-1|/mnt/e/Docker/mod-mc|running`nmod-mc-sidecar-1|/mnt/e/Docker/mod-mc|running`nexternal|/tmp/mod-mc|running"}
+    }
     function Invoke-WslCommand { throw 'Inventory must not use WSL' }
     $names = @(Get-RunningWslComposeServiceNames)
-    Assert-True (($names -join ',') -eq 'homepage,plex') "Unexpected inventory: $names"
+    Assert-True (($names -join ',') -eq 'homepage,mod-mc,plex') "Unexpected inventory: $names"
 }
 Run-Test 'empty targeted repair never discovers or recreates all services' {
     function Get-RunningWslComposeServiceNames { throw 'Unexpected discovery' }

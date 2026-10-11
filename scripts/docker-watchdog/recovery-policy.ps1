@@ -9,8 +9,9 @@ $DockerAvailabilityServices = @(
 )
 
 function Get-DockerServiceAvailability {
+    param ([string[]]$ServiceNames = @('channels-dvr', 'plex', 'sonarr', 'radarr'))
     foreach ($address in $DockerAvailabilityHosts) {
-        foreach ($service in $DockerAvailabilityServices) {
+        foreach ($service in ($DockerAvailabilityServices | Where-Object { $ServiceNames -contains $_.Name })) {
             $url = 'http://' + $address + $service.Path
             try {
                 $result = Invoke-ProcessWithTimeout -FilePath "$env:SystemRoot\System32\curl.exe" -Arguments @(
@@ -34,11 +35,16 @@ function Get-DockerServiceAvailability {
 }
 
 function Test-DockerServiceOutage {
-    param ([ValidateRange(1, 3)][int]$Attempts = 3, [int]$RetryDelaySeconds = 30)
+    param (
+        [ValidateRange(1, 3)][int]$Attempts = 3,
+        [int]$RetryDelaySeconds = 30,
+        [ValidateSet('channels-dvr', 'plex', 'sonarr', 'radarr')]
+        [string[]]$ServiceNames = @('channels-dvr', 'plex', 'sonarr', 'radarr')
+    )
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
-        $checks = @(Get-DockerServiceAvailability)
-        $expectedCount = $DockerAvailabilityHosts.Count * $DockerAvailabilityServices.Count
-        if ($expectedCount -lt 4 -or $checks.Count -ne $expectedCount) {
+        $checks = @(Get-DockerServiceAvailability -ServiceNames $ServiceNames)
+        $expectedCount = $DockerAvailabilityHosts.Count * @($ServiceNames | Sort-Object -Unique).Count
+        if ($expectedCount -lt 2 -or $checks.Count -ne $expectedCount) {
             Write-DockerLog 'Recovery withheld: incomplete independent service checks.'
             return $false
         }
@@ -75,15 +81,21 @@ function Get-DockerPendingRecoveryTargets {
         return [pscustomobject]@{ Valid = $false; Services = @() }
     }
     $targets = @($sentinel.FailedServices)
+    try { $containers = @(Get-WslComposeContainers -All) }
+    catch {
+        Write-DockerLog 'Pending recovery deferred: cannot inspect Compose projects.'
+        return [pscustomobject]@{ Valid = $false; Services = @() }
+    }
     foreach ($name in $ServiceNames) {
         # Query failures must not be interpreted as permission to recreate a stack.
-        $state = Get-DockerContainerState -Name $name
-        if ($null -eq $state) {
+        $members = @($containers | Where-Object Project -eq $name)
+        if ($members.Count -eq 0) {
             Write-DockerLog "Pending recovery deferred: cannot inspect $name."
             return [pscustomobject]@{ Valid = $false; Services = @() }
         }
-        if ($state.Status -ne 'running') { $targets += $name }
-        # An RPC health timeout alone is insufficient evidence for recreation.
+        if (@($members | Where-Object Status -eq 'running').Count -eq 0) { $targets += $name }
+        # Running projects need an explicit sentinel failure. An RPC timeout or
+        # a completed one-shot auxiliary container does not authorize recreation.
     }
     return [pscustomobject]@{ Valid = $true; Services = @($targets | Sort-Object -Unique) }
 }
