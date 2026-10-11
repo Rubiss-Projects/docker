@@ -44,7 +44,7 @@ groups:
             model:
               # Convert bounded slot labels to values, deduplicate identities, and
               # count only healthy slots within the live target.
-              expr: (count(max by (slot) ((sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="1"} * 1 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="2"} * 2 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="3"} * 3 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="4"} * 4 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="5"} * 5 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="6"} * 6) and on (instance, job) (up{job="sunday-edge-dfs-workers"} == 1)) <= scalar(max(sunday_edge_dfs_worker_pool_desired_replicas))) or vector(0)) / max(sunday_edge_dfs_worker_pool_desired_replicas)
+              expr: (count(max by (slot) ((sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="1"} * 1 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="2"} * 2 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="3"} * 3 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="4"} * 4 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="5"} * 5 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="6"} * 6 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="7"} * 7 or sunday_edge_dfs_worker_info{job="sunday-edge-dfs-workers",slot="8"} * 8) and on (instance, job) (up{job="sunday-edge-dfs-workers"} == 1)) <= scalar(max(sunday_edge_dfs_worker_pool_desired_replicas))) or vector(0)) / max(sunday_edge_dfs_worker_pool_desired_replicas)
           - refId: B
             datasourceUid: __expr__
             model: { expression: A, reducer: last, type: reduce }
@@ -63,7 +63,7 @@ groups:
           __dashboardUid__: sunday-edge-dfs-compute
           __panelId__: "1"
           summary: "The DFS pool is below its live slot target"
-          description: "Check the Sunday Edge n8n autoscaling workflow, pool.json in the shared runtime volume, and docker compose ps/logs. The baseline is two and maximum is six. Intensive Vercel fallback remains disabled."
+          description: "Check the Sunday Edge n8n autoscaling workflow, pool.json in the shared runtime volume, and docker compose ps/logs. The baseline is two and maximum is eight. Intensive Vercel fallback remains disabled."
         labels: { severity: critical, service: sunday-edge-dfs-simulator, maintenance_window: wsl-nightly-availability }
 
       - uid: sunday_edge_dfs_worker_failures
