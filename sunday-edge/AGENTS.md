@@ -716,3 +716,29 @@ Rollback uses all six v0.2.42 images and `CODEX_BATCH_TIMEOUT_MS=240000` togethe
 That restores the shorter extraction deadline while retaining the Week 4 lineup
 baseline fix. No schema, queue protocol or persistent-volume migration is needed.
 Keep the established web queue-cutover checks when the app revision changes.
+
+## Week 4 projection and contest-learning improvements (v0.2.44)
+
+Deploy the matching web revision `b982ea5c9b54e0e3daa085a4edb74c04bc3d22f6`
+and publish all five v0.2.44 images before promoting all six Compose references
+through the maintenance-wrapped workflow. The web requires compute worker v41.
+Workers retain compatibility with frozen optimizer v28, input v9 and simulation
+protocol v7 work; unfinished old-worker leases recover through normal reclaim.
+Preserve completed trials, frozen inputs and durable jobs; never reset jobs for
+this rollout. No database or persistent-volume migration is required.
+
+Verify all running image versions/revisions and compute-v41 registration, then
+complete a real compute job. Run global analytics sync, inspect the field
+calibration and research-policy receipts, and verify a refreshed ensemble-v27
+snapshot plus a new optimizer-v29 portfolio. Analytics still reports intelligence
+v25, so verify its new image revision and a source collection completed after
+recreation, including accepted ingestion batches and any remaining source gaps.
+Repeat the established web queue-cutover checks; a healthy container or alias
+alone does not prove fresh work uses this release.
+
+Rollback requires a compatible web revision accepting compute v40 together with
+all six verified v0.2.43 image pins (source revision
+`53188b3b0c069d88d13eb4071130438b9bdfbb03`). The preserved prior production web
+revision `b5bc569cc042c75210e5d1562b7680c2a5ceefe0` is compatible. Do not roll
+workers back alone while the web requires v41. Use reviewed promotion and the maintenance wrapper, preserve
+durable work and volumes, and verify queue cutover and runtime work again.
