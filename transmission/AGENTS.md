@@ -124,7 +124,7 @@ In Sonarr/Radarr:
    - Username: `${TRANSMISSION_USER}`
    - Password: `${TRANSMISSION_PASS}`
    - Category: `sonarr` or `radarr`
-   - Directory: `/downloads/complete/`
+   - Directory: `/data/downloads/`
 3. Test and Save
 
 ### Unpackerr Integration
@@ -170,7 +170,7 @@ Unpackerr watches Transmission downloads:
 1. Verify paths match in both services
 2. Check PUID/PGID permissions
 3. Ensure category is set correctly
-4. Test: `docker exec sonarr ls /downloads/complete`
+4. Test: `docker exec sonarr ls /data/downloads`
 
 ### Torrents Stuck at 0%
 1. Check if tracker is online
@@ -283,8 +283,8 @@ If Transmission consistently hits its memory limit (e.g., 2G) and triggers Grafa
 Located in the `transmission_config` volume at `/config/settings.json`:
 ```json
 {
-  "download-dir": "/downloads/complete",
-  "incomplete-dir": "/downloads/incomplete",
+  "download-dir": "/data/downloads",
+  "incomplete-dir": "/data/downloads/incomplete",
   "incomplete-dir-enabled": true,
   "speed-limit-down": 10000,
   "speed-limit-down-enabled": false,
@@ -419,7 +419,7 @@ $body = @{
     method = "torrent-add"
     arguments = @{
         filename = "magnet:?xt=urn:btih:..."
-        "download-dir" = "/downloads/complete"
+        "download-dir" = "/data/downloads"
     }
 } | ConvertTo-Json
 
@@ -497,12 +497,14 @@ set -euo pipefail
 backup="/path/to/protected-backups/transmission-$(date +%Y%m%d-%H%M%S).tar"
 test ! -e "$backup"
 image=$(docker inspect transmission --format '{{.Image}}')
-docker volume inspect transmission_config >/dev/null
+config_volume=$(docker inspect transmission --format '{{range .Mounts}}{{if and (eq .Destination "/config") (eq .Type "volume")}}{{.Name}}{{end}}{{end}}')
+test -n "$config_volume"
+docker volume inspect "$config_volume" >/dev/null
 docker stop --time 120 transmission
 test "$(docker inspect transmission --format '{{.State.ExitCode}}')" = 0
-docker run --rm --pull never --network none --read-only --entrypoint tar --mount type=volume,src=transmission_config,dst=/config,readonly "$image" --numeric-owner -C /config -cpf - . > "$backup"
+docker run --rm --pull never --network none --read-only --entrypoint tar --mount "type=volume,src=$config_volume,dst=/config,readonly" "$image" --numeric-owner -C /config -cpf - . > "$backup"
 tar -tf "$backup" >/dev/null
-sha256sum "$backup" > "$backup.sha256"
+sha256sum "$backup" | cut -d ' ' -f1 > "$backup.sha256"
 docker start transmission
 ```
 
@@ -519,7 +521,9 @@ Use the same pinned Transmission image as the current deployment:
 ```bash
 set -euo pipefail
 backup="/path/to/protected-backups/transmission-YYYYMMDD-HHMMSS.tar"
-sha256sum -c "$backup.sha256"
+expected=$(cat "$backup.sha256")
+[[ "$expected" =~ ^[a-f0-9]{64}$ ]]
+test "$(sha256sum "$backup" | cut -d ' ' -f1)" = "$expected"
 image=$(docker inspect transmission --format '{{.Image}}')
 docker stop --time 120 transmission
 test "$(docker inspect transmission --format '{{.State.ExitCode}}')" = 0
