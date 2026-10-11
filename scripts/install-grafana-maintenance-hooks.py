@@ -19,12 +19,13 @@ def replace_once(text, old, new):
 
 
 def common_hooks(text):
-    # The versioned watchdog already imports the helper after its param block.
-    # Do not insert executable code before param (invalid PowerShell syntax).
-    if ". (Join-Path $ProjectRoot 'scripts\\grafana-maintenance.ps1')" not in text:
-        text = replace_once(text,
-            '# Shared Docker Desktop maintenance helpers.\n',
-            '# Shared Docker Desktop maintenance helpers.\n. "E:\\Docker\\scripts\\grafana-maintenance.ps1"\n')
+    # The integrated watchdog is maintained in the repository and deployed by
+    # its guarded installer. Legacy text patches must not alter that version.
+    if ". (Join-Path $ProjectRoot 'scripts\\grafana-maintenance.ps1')" in text:
+        return text
+    text = replace_once(text,
+        '# Shared Docker Desktop maintenance helpers.\n',
+        '# Shared Docker Desktop maintenance helpers.\n. "E:\\Docker\\scripts\\grafana-maintenance.ps1"\n')
     start = text.index('function Start-UptimeKumaMaintenance {')
     end = text.index('function Stop-UptimeKumaMaintenance {')
     block = text[start:end]
