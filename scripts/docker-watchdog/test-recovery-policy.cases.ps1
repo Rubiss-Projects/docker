@@ -290,7 +290,7 @@ Run-Test 'interrupted bind repair retains unfinished running projects and skips 
     Assert-True (-not (Restart-DockerDesktopClean)) 'Veto ignored'
     Assert-True (@(Get-DockerRecoveryInventory -PendingBindRepair).Count -eq 0) 'Veto armed bind recreation'
     function Test-DockerServiceOutage { $true }
-    function Invoke-DockerCliWithTimeout { [pscustomobject]@{ExitCode=0;Output=''} }
+    function Invoke-DockerCliWithTimeout { param($OnStarted) if ($OnStarted) { & $OnStarted }; [pscustomobject]@{ExitCode=0;Output=''} }
     function Wait-DockerDesktopReady { $true }
     Assert-True (Restart-DockerDesktopClean) 'Admitted restart failed'
     function Invoke-WslDockerCompose {
@@ -649,4 +649,29 @@ Run-Test 'Grafana cleanup failure cannot skip Kuma cleanup or escape the recover
     Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '456'
     function Invoke-WslCommand { throw 'Kuma transport failed' }
     Assert-True (-not (Stop-UptimeKumaMaintenance)) 'Kuma failure was not contained'
+}
+
+Run-Test 'restart issuance is durable while the child is running and never precedes process creation' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    $callback = {
+        param($Child)
+        Assert-True (-not $Child.HasExited) 'Waited until command completion to record issuance'
+        Update-DockerRecoveryProgress -BeginRestart
+        Assert-True ((@(Get-DockerRecoveryInventory -PendingBindRepair) -join ',') -eq 'plex') 'Pending work not durable during restart'
+    }
+    $missing = Join-Path $scratch 'missing-restart-command.exe'
+    $result = Invoke-ProcessWithTimeout -FilePath $missing -OnStarted $callback -Quiet
+    Assert-True (-not $result.StartCallbackSucceeded -and @(Get-DockerRecoveryInventory -PendingBindRepair).Count -eq 0) 'Failed launch authorized repair'
+    $DockerCliPath = (Get-Command powershell.exe).Source
+    $result = Invoke-DockerCliWithTimeout -Arguments @('-NoProfile','-Command','Start-Sleep -Seconds 2') -TimeoutSeconds 10 -OnStarted $callback -Quiet
+    Assert-True ($result.ExitCode -eq 0 -and $result.StartCallbackSucceeded) 'Started callback did not cross the Docker wrapper'
+    Assert-True ((@(Get-DockerRecoveryInventory -PendingBindRepair) -join ',') -eq 'plex') 'Restart progress lost after process exit'
+}
+
+Run-Test 'failed issuance persistence waits for the child then prevents further recovery mutations' {
+    $result = Invoke-ProcessWithTimeout -FilePath powershell.exe -Arguments @('-NoProfile','-Command','exit 0') -OnStarted { throw 'journal write failed' } -Quiet
+    Assert-True ($result.ExitConfirmed -and -not $result.StartCallbackSucceeded) 'Callback failure escaped before observing child completion'
+    function Invoke-DockerCliWithTimeout { [pscustomobject]@{ExitCode=0;StartCallbackSucceeded=$false;Output=''} }
+    function Wait-DockerDesktopReady { throw 'Continued recovery without a durable issuance record' }
+    Assert-True (-not (Restart-DockerDesktopClean)) 'Missing issuance record did not defer recovery'
 }
