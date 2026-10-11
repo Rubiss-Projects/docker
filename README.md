@@ -22,6 +22,7 @@ This repository contains Docker configurations for:
 - [Main deploy workflow](./.github/workflows/deploy-service-changes.yml)
 - [PR validation workflow](./.github/workflows/pr-validation.yml)
 - [Dependabot configuration](./.github/dependabot.yml)
+- [Image pinning policy and update audit](./docs/image-updates.md)
 
 ## Secret Management
 

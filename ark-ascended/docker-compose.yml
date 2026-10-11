@@ -1,6 +1,6 @@
 services:
   ark-ascended:
-    image: sknnr/ark-ascended-server:v1.5.2
+    image: sknnr/ark-ascended-server:v1.5.2@sha256:a2e1fa4971d79e8d31890012143029022e486b7924dcb9963e3df7a190527043
     container_name: ark-ascended
     ports:
       - "7777:7777/udp"

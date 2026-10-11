@@ -1,7 +1,7 @@
 ###########################################################
 # Dockerfile that builds a astroneer Gameserver
 ###########################################################
-FROM cm2network/steamcmd:root
+FROM cm2network/steamcmd:root@sha256:e6b6b3503bf0e41feafe12dc709c90151afba193e1292cac55d28a7d470b1493
 
 ENV STEAMAPPID 728470
 ENV STEAMAPP astroneer

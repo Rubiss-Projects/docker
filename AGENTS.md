@@ -210,7 +210,7 @@ This naming convention is required for:
 ```yaml
 services:
   myservice:
-    image: vendor/myservice:latest
+    image: vendor/myservice:1.2.3@sha256:<verified-64-character-digest>
     container_name: myservice  # MUST match folder name
     environment:
       - PUID=${PUID}
@@ -421,7 +421,12 @@ Use **internal Docker ports**, not host-mapped ports:
 
 Add the service to `.github/dependabot.yml` so Docker image pins continue to receive update PRs.
 
-Use the same weekly schedule and labels as the existing service entries:
+Use the same weekly Saturday schedule and labels as the existing service entries,
+with an unused five-minute slot after the existing entries (currently 10:15).
+Pin each image as `tag@sha256:digest`; prefer plain stable version tags, including
+three-part numeric aliases for LinuxServer images. See [the image update policy](docs/image-updates.md).
+Services built from a Dockerfile need a `docker` ecosystem entry for its directory;
+a `docker-compose` entry alone does not update `FROM` images.
 
 ```yaml
   - package-ecosystem: docker-compose
@@ -429,7 +434,7 @@ Use the same weekly schedule and labels as the existing service entries:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "10:15"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:

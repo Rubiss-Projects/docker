@@ -645,6 +645,11 @@ deploy_stack() {
       run python3 "$REPO_DIR/scripts/login-sunday-edge-registry.py"
     fi
     run compose pull --ignore-buildable
+    if [[ "$stack_dir" == "tracearr" ]]; then
+      # shellcheck source=../tracearr/upgrade-database.sh
+      source "$REPO_DIR/tracearr/upgrade-database.sh"
+      run upgrade_tracearr_database
+    fi
     run compose up -d --build --remove-orphans
 
     if [[ "$DRY_RUN" != "true" ]]; then

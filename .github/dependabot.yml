@@ -5,6 +5,7 @@ registries:
     url: https://ghcr.io
     username: Rubiss
     password: ${{secrets.SUNDAY_EDGE_GHCR_TOKEN}}
+# Spread registry requests across Saturday morning; keep each new entry in its own slot.
 updates:
   - package-ecosystem: docker-compose
     directory: /sunday-edge
@@ -27,7 +28,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:05"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -45,7 +46,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:10"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -63,7 +64,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:15"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -76,12 +77,12 @@ updates:
       ark-ascended-images:
         patterns:
           - '*'
-  - package-ecosystem: docker-compose
+  - package-ecosystem: docker
     directory: /astroneer
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:20"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -99,7 +100,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:25"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -117,7 +118,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:30"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -135,7 +136,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:35"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -150,10 +151,14 @@ updates:
           - '*'
   - package-ecosystem: docker-compose
     directory: /bitwarden
+    # PostgreSQL major upgrades require a data migration.
+    ignore:
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:40"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -171,7 +176,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:45"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -189,7 +194,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:50"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -207,7 +212,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "06:55"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -225,7 +230,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:00"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -243,7 +248,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:05"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -261,7 +266,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:10"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -279,7 +284,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:15"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -297,7 +302,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:20"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -315,7 +320,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:25"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -333,7 +338,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:30"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -351,7 +356,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:35"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -369,7 +374,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:40"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -387,7 +392,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:45"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -405,7 +410,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:50"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -423,7 +428,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "07:55"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -441,7 +446,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:00"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -459,7 +464,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:05"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -477,7 +482,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:10"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -495,7 +500,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:15"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -513,7 +518,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:20"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -531,7 +536,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:25"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -549,7 +554,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:30"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -567,7 +572,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:35"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -585,7 +590,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:40"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -603,7 +608,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:45"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -621,7 +626,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:50"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -639,7 +644,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "08:55"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -657,7 +662,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -675,7 +680,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:05"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -693,7 +698,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:10"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -711,7 +716,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:15"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -729,7 +734,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:20"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -747,7 +752,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:25"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -765,7 +770,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:30"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -783,7 +788,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:35"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -801,7 +806,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:40"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -819,7 +824,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:45"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -837,7 +842,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:50"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -855,7 +860,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "09:55"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -873,7 +878,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "10:00"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -891,7 +896,7 @@ updates:
     schedule:
       interval: weekly
       day: saturday
-      time: "06:00"
+      time: "10:05"
       timezone: America/Chicago
     open-pull-requests-limit: 1
     commit-message:
@@ -900,4 +905,19 @@ updates:
     labels: [dependencies, docker-compose]
     groups:
       tracearr-images:
+        patterns: ['*']
+  - package-ecosystem: docker
+    directory: /scripts/transmission-diagnostics
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "10:10"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels: [dependencies, docker-compose]
+    groups:
+      transmission-diagnostics-images:
         patterns: ['*']
