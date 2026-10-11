@@ -32,8 +32,9 @@ Kuma/Grafana maintenance covers the two-hour task deadline plus 30 minutes of
 cleanup grace, and still closes immediately when recovery finishes.
 When a Windows reboot is scheduled, the window and its saved IDs survive;
 resumed recovery reuses and closes those windows instead of orphaning them.
-If the host was offline long enough for them to expire, resume retires the saved
-IDs and opens fresh maintenance.
+If the remaining lifetime cannot cover the resumed task's two-hour budget,
+resume opens overlapping windows first. Atomic ID lists retain all old and new
+windows for cleanup; failed cleanup retains the affected IDs for retry.
 Critical startup shares one 480-second budget across its nested waits, probes,
 and Compose commands (plus bounded process cleanup), rather than resetting the
 allowance for each step.
@@ -51,6 +52,9 @@ Projects are discovered through Compose working-directory labels, including
 generated container names and multiple containers per project. Plex's separate
 host-port repair also requires repeated failures on both host addresses, so a
 localhost-only problem cannot restart a working LAN stream.
+SWAG dependency failures likewise require repeated independent failures of its
+HTTP and HTTPS listeners on both host addresses before restarting the proxy.
+An HTTP response or an inconclusive TLS check protects the running proxy.
 Healthy observations save an atomic inventory snapshot, so a later Docker API
 failure cannot lose stacks without an automatic restart policy. If both live and
 saved inventory are unavailable, recovery is withheld. Fallback snapshots must

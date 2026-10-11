@@ -5,14 +5,17 @@ $DockerAvailabilityServices = @(
     @{ Name = 'channels-dvr'; Path = ':8089/' },
     @{ Name = 'plex'; Path = ':32400/identity' },
     @{ Name = 'sonarr'; Path = ':8989/ping' },
-    @{ Name = 'radarr'; Path = ':7878/ping' }
+    @{ Name = 'radarr'; Path = ':7878/ping' },
+    @{ Name = 'swag-http'; Path = ':80/' },
+    @{ Name = 'swag-https'; Path = ':443/'; Scheme = 'https' }
 )
 
 function Get-DockerServiceAvailability {
     param ([string[]]$ServiceNames = @('channels-dvr', 'plex', 'sonarr', 'radarr'))
     foreach ($address in $DockerAvailabilityHosts) {
         foreach ($service in ($DockerAvailabilityServices | Where-Object { $ServiceNames -contains $_.Name })) {
-            $url = 'http://' + $address + $service.Path
+            $scheme = if ($service.ContainsKey('Scheme')) { $service.Scheme } else { 'http' }
+            $url = $scheme + '://' + $address + $service.Path
             try {
                 $result = Invoke-ProcessWithTimeout -FilePath "$env:SystemRoot\System32\curl.exe" -Arguments @(
                     '--noproxy', '*', '--connect-timeout', '2', '--max-time', '5',
@@ -38,7 +41,7 @@ function Test-DockerServiceOutage {
     param (
         [ValidateRange(1, 3)][int]$Attempts = 3,
         [int]$RetryDelaySeconds = 30,
-        [ValidateSet('channels-dvr', 'plex', 'sonarr', 'radarr')]
+        [ValidateSet('channels-dvr', 'plex', 'sonarr', 'radarr', 'swag-http', 'swag-https')]
         [string[]]$ServiceNames = @('channels-dvr', 'plex', 'sonarr', 'radarr')
     )
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {

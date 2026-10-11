@@ -718,7 +718,7 @@ function Start-UptimeKumaMaintenance {
         return $true
     }
 
-    Set-Content -Path $DockerKumaMaintenanceIdPath -Value $maintenanceId
+    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token $maintenanceId
     Write-DockerLog "Created Uptime Kuma maintenance window $maintenanceId."
     return $true
 }
@@ -729,27 +729,19 @@ function Stop-UptimeKumaMaintenance {
         return $true
     }
 
-    $maintenanceId = Get-Content -Path $DockerKumaMaintenanceIdPath -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($null -ne $maintenanceId) {
-        $maintenanceId = $maintenanceId.Trim()
+    $remaining = @()
+    foreach ($maintenanceId in @(Get-Content -LiteralPath $DockerKumaMaintenanceIdPath)) {
+        if ($maintenanceId -notmatch '^\d+$') { continue }
+        Write-DockerLog "Removing Uptime Kuma maintenance window $maintenanceId."
+        $command = "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py stop $maintenanceId"
+        $result = Invoke-WslCommand -Command $command -TimeoutSeconds 45 -MaxAttempts 1
+        if ($result.ExitCode -ne 0) {
+            $remaining += $maintenanceId
+            Write-DockerLog "Unable to remove Uptime Kuma maintenance window $maintenanceId; retaining its ID for cleanup."
+        }
     }
-    if ([string]::IsNullOrWhiteSpace($maintenanceId)) {
-        Remove-Item -Path $DockerKumaMaintenanceIdPath -Force -ErrorAction SilentlyContinue
-        return $true
-    }
-
-    Write-DockerLog "Removing Uptime Kuma maintenance window $maintenanceId."
-    $command = "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py stop $maintenanceId"
-    $result = Invoke-WslCommand -Command $command -TimeoutSeconds 45 -MaxAttempts 1
-    Remove-Item -Path $DockerKumaMaintenanceIdPath -Force -ErrorAction SilentlyContinue
-
-    if ($result.ExitCode -eq 0) {
-        Write-DockerLog "Removed Uptime Kuma maintenance window $maintenanceId."
-        return $true
-    }
-
-    Write-DockerLog "Unable to remove Uptime Kuma maintenance window $maintenanceId; it will expire automatically. Output: $($result.Output)"
-    return $false
+    Set-DockerMaintenanceTokens -Path $DockerKumaMaintenanceIdPath -Tokens $remaining
+    return ($remaining.Count -eq 0)
 }
 
 function Get-DockerComposeProjectPath {
@@ -1222,6 +1214,10 @@ function Start-CriticalDockerServicesCore {
     if (-not (Start-DockerContainerIfPresent -Name "swag")) { return $false }
     if (-not (Wait-DockerContainerReady -Name "swag" -TimeoutSeconds 240)) { return $false }
     if (-not (Test-SwagDependencyEndpoints)) {
+        if (-not (Test-DockerServiceOutage -ServiceNames @('swag-http', 'swag-https'))) {
+            Write-DockerLog 'SWAG dependency probe failed, but proxy outage was not confirmed; leaving SWAG running.'
+            return $false
+        }
         Write-DockerLog "Restarting SWAG now that dependencies are ready."
         if (-not (Restart-DockerContainerAndWait -Name "swag" -StopTimeoutSeconds 90 -ReadyTimeoutSeconds 240)) { return $false }
         if (-not (Test-SwagDependencyEndpoints)) { return $false }

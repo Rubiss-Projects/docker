@@ -1,6 +1,27 @@
 # Loaded by E:\Scripts\docker-desktop-common.ps1. Uses its WSL command and logger.
 $DockerGrafanaMaintenanceIdPath = 'E:\Scripts\Logs\docker-grafana-maintenance.id'
 
+function Set-DockerMaintenanceTokens {
+    param ([string]$Path, [string[]]$Tokens)
+    if ($Tokens.Count -eq 0) {
+        Remove-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+        return
+    }
+    $temporary = $Path + ".$PID.tmp"
+    try {
+        $Tokens | Set-Content -LiteralPath $temporary -ErrorAction Stop
+        if (Test-Path -LiteralPath $Path) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) }
+        else { [IO.File]::Move($temporary, $Path) }
+    } finally { Remove-Item -LiteralPath $temporary -ErrorAction SilentlyContinue }
+}
+
+function Add-DockerMaintenanceToken {
+    param ([string]$Path, [string]$Token)
+    $tokens = @()
+    if (Test-Path -LiteralPath $Path) { $tokens = @(Get-Content -LiteralPath $Path -ErrorAction Stop) }
+    Set-DockerMaintenanceTokens -Path $Path -Tokens @((@($tokens) + $Token) | Sort-Object -Unique)
+}
+
 function Start-GrafanaMaintenance {
     param ([int]$TtlMinutes = 30, [string]$Reason = 'planned-docker-restart')
 
@@ -16,24 +37,24 @@ function Start-GrafanaMaintenance {
         Write-DockerLog 'Grafana is unavailable for maintenance setup; retaining nightly mute fallback and continuing Docker recovery.'
         return $false
     }
-    Set-Content -Path $DockerGrafanaMaintenanceIdPath -Value $token
+    Add-DockerMaintenanceToken -Path $DockerGrafanaMaintenanceIdPath -Token $token
     Write-DockerLog "Created Sunday Edge Grafana maintenance for $TtlMinutes minutes plus restart grace."
     return $true
 }
 
 function Stop-GrafanaMaintenance {
     if (-not (Test-Path $DockerGrafanaMaintenanceIdPath)) { return }
-    $token = (Get-Content -Path $DockerGrafanaMaintenanceIdPath | Select-Object -First 1).Trim()
-    if ($token -notmatch '^[0-9a-f-]{36}:[0-9a-f-]{36}$') {
-        Write-DockerLog 'Invalid Grafana maintenance token; silences will expire automatically.'
-        return
+    $remaining = @()
+    foreach ($token in @(Get-Content -LiteralPath $DockerGrafanaMaintenanceIdPath)) {
+        if ($token -notmatch '^[0-9a-f-]{36}:[0-9a-f-]{36}$') { continue }
+        $command = "cd /mnt/e/Docker && python3 scripts/grafana-maintenance.py stop $token"
+        $result = Invoke-WslCommand -Command $command -TimeoutSeconds 75 -MaxAttempts 1
+        if ($result.ExitCode -eq 0) {
+            Write-DockerLog 'Grafana availability maintenance ended; restart notifications resume in 35 minutes.'
+        } else {
+            $remaining += $token
+            Write-DockerLog 'Unable to end Grafana maintenance; retaining its IDs for cleanup.'
+        }
     }
-    $command = "cd /mnt/e/Docker && python3 scripts/grafana-maintenance.py stop $token"
-    $result = Invoke-WslCommand -Command $command -TimeoutSeconds 75 -MaxAttempts 1
-    if ($result.ExitCode -eq 0) {
-        Remove-Item -Path $DockerGrafanaMaintenanceIdPath -Force
-        Write-DockerLog 'Grafana availability maintenance ended; restart notifications resume in 35 minutes.'
-    } else {
-        Write-DockerLog 'Unable to end Grafana maintenance; silences will expire automatically.'
-    }
+    Set-DockerMaintenanceTokens -Path $DockerGrafanaMaintenanceIdPath -Tokens $remaining
 }

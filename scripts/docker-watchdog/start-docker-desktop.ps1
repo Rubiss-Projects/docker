@@ -151,16 +151,15 @@ function Restart-DockerDesktop {
         }
     }
 
-    # Reuse the persisted, auto-expiring windows after a reboot. Opening another
-    # would overwrite their IDs and leave the original silences orphaned.
+    # Reuse only when the remaining lifetime covers the full two-hour task.
+    # Refresh overlaps the old windows and retains every ID until cleanup.
     $savedPaths = @(@($DockerKumaMaintenanceIdPath, $DockerGrafanaMaintenanceIdPath) | Where-Object { Test-Path -LiteralPath $_ })
     $savedMaintenance = $savedPaths.Count -gt 0
-    $expiredPaths = @($savedPaths | Where-Object {
-        (Get-Item -LiteralPath $_).LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-$DockerKumaMaintenanceTtlMinutes)
+    $refreshPaths = @($savedPaths | Where-Object {
+        (Get-Item -LiteralPath $_).LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-($DockerKumaMaintenanceTtlMinutes - 120))
     })
-    if ($ResumeOnly -and $expiredPaths.Count -gt 0) {
-        Write-Log 'Saved maintenance has expired; retiring its IDs before opening a fresh window.'
-        Stop-UptimeKumaMaintenance | Out-Null
+    if ($ResumeOnly -and $refreshPaths.Count -gt 0) {
+        Write-Log 'Saved maintenance cannot cover the resume budget; opening overlapping windows before recovery.'
         $savedMaintenance = $false
     }
     if ($ResumeOnly -and $savedMaintenance) {
