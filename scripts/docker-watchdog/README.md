@@ -54,6 +54,10 @@ be at most 30 minutes old; an admitted recovery journal remains durable across
 long retries and reboots. A journaled project with
 no remaining containers is restored after a successful all-container query;
 failed queries still defer repair.
+Recovery and host-reboot journals also use atomic writes. A definitely rejected
+Windows reboot command does not consume the cooldown; ambiguous timeouts retain
+it to avoid a possible reboot loop. Missing or malformed notification settings
+disable notifications only, with a log entry; health monitoring continues.
 
 Tradeoff: a partial outage with another service still responding can require
 operator intervention. The watchdog logs a degraded condition and returns a

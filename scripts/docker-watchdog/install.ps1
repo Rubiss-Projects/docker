@@ -111,7 +111,7 @@ try {
     }
     if ($manifestExisted) { Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $backup 'docker-watchdog-installation.json') }
     if (-not (Test-Path -LiteralPath $notificationPath)) {
-        $url = Get-LegacyWatchdogWebhook -Path (Join-Path $Destination 'start-docker-desktop.ps1')
+        $url = if ($manifestExisted) { '' } else { Get-LegacyWatchdogWebhook -Path (Join-Path $Destination 'start-docker-desktop.ps1') }
         $createdNotifications = $true
         Write-ProtectedWatchdogJson -Path $notificationPath -Value @{DiscordWebhookUrl=$url} -Acl (Get-Acl (Join-Path $Destination 'start-docker-desktop.ps1'))
     }
