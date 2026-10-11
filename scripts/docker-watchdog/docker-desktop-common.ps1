@@ -159,6 +159,7 @@ function Invoke-ProcessWithTimeout {
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$Arguments = @(),
         [int]$TimeoutSeconds = 120,
+        [scriptblock]$OnStarted,
         [switch]$Quiet
     )
 
@@ -167,6 +168,7 @@ function Invoke-ProcessWithTimeout {
     $stderrPath = [System.IO.Path]::GetTempFileName()
 
     $process = $null
+    $startCallbackSucceeded = ($null -eq $OnStarted)
     try {
         $startArgs = @{ FilePath = $FilePath; WindowStyle = 'Hidden'; PassThru = $true; RedirectStandardOutput = $stdoutPath; RedirectStandardError = $stderrPath; ErrorAction = 'Stop' }
         if ($Arguments.Count -gt 0) {
@@ -175,6 +177,14 @@ function Invoke-ProcessWithTimeout {
         $process = Start-Process @startArgs
         # Windows PowerShell 5.1 loses ExitCode without a retained handle.
         $processHandle = $process.Handle
+        if ($OnStarted) {
+            try { & $OnStarted $process | Out-Null; $startCallbackSucceeded = $true }
+            catch {
+                # The command is already running. Still wait/terminate within
+                # its budget before returning failure to the recovery caller.
+                Write-Host 'Process started, but its durable recovery marker could not be saved.'
+            }
+        }
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             try {
                 $process.Kill($true)
@@ -186,7 +196,7 @@ function Invoke-ProcessWithTimeout {
             if (-not $Quiet) {
                 Write-DockerLog "Process timed out after $TimeoutSeconds seconds: $FilePath $($Arguments -join ' ')"
             }
-            return [pscustomobject]@{ ExitCode = 124; ExitConfirmed = $false; Output = "Timed out after $TimeoutSeconds seconds" }
+            return [pscustomobject]@{ ExitCode = 124; ExitConfirmed = $false; StartCallbackSucceeded = $startCallbackSucceeded; Output = "Timed out after $TimeoutSeconds seconds" }
         }
 
         $process.WaitForExit()
@@ -195,12 +205,12 @@ function Invoke-ProcessWithTimeout {
         $stdout = Get-Content -Path $stdoutPath -Raw -ErrorAction SilentlyContinue
         $stderr = Get-Content -Path $stderrPath -Raw -ErrorAction SilentlyContinue
         $outputText = (@($stdout, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
-        return [pscustomobject]@{ ExitCode = [int]$exitCode; ExitConfirmed = $true; Output = $outputText.Replace([string][char]0, '').Trim() }
+        return [pscustomobject]@{ ExitCode = [int]$exitCode; ExitConfirmed = $true; StartCallbackSucceeded = $startCallbackSucceeded; Output = $outputText.Replace([string][char]0, '').Trim() }
     } catch {
         if (-not $Quiet) {
             Write-DockerLog "Process failed: $FilePath $($Arguments -join ' ') Error: $($_.Exception.Message)"
         }
-        return [pscustomobject]@{ ExitCode = 1; ExitConfirmed = $false; Output = $_.Exception.Message }
+        return [pscustomobject]@{ ExitCode = 1; ExitConfirmed = $false; StartCallbackSucceeded = $startCallbackSucceeded; Output = $_.Exception.Message }
     } finally {
         if ($process) { $process.Dispose() }
         Remove-Item -Path $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
@@ -228,6 +238,7 @@ function Invoke-DockerCliWithTimeout {
     param (
         [Parameter(Mandatory = $true)][string[]]$Arguments,
         [int]$TimeoutSeconds = 120,
+        [scriptblock]$OnStarted,
         [switch]$Quiet
     )
 
@@ -235,10 +246,10 @@ function Invoke-DockerCliWithTimeout {
         if (-not $Quiet) {
             Write-DockerLog "Docker CLI not found at $DockerCliPath"
         }
-        return [pscustomobject]@{ ExitCode = 127; Output = "Docker CLI not found" }
+        return [pscustomobject]@{ ExitCode = 127; StartCallbackSucceeded = $false; Output = "Docker CLI not found" }
     }
 
-    $result = Invoke-ProcessWithTimeout -FilePath $DockerCliPath -Arguments $Arguments -TimeoutSeconds $TimeoutSeconds -Quiet:$Quiet
+    $result = Invoke-ProcessWithTimeout -FilePath $DockerCliPath -Arguments $Arguments -TimeoutSeconds $TimeoutSeconds -OnStarted $OnStarted -Quiet:$Quiet
     if ($result.ExitCode -ne 0 -and -not $Quiet) {
         Write-DockerLog "docker $($Arguments -join ' ') failed with exit code $($result.ExitCode). Output: $($result.Output)"
     }
@@ -1351,11 +1362,11 @@ function Restart-DockerDesktopClean {
     $cliTimeoutSeconds = $cliRestartSeconds + 30
     $readinessTimeoutSeconds = $TimeoutSeconds
     Write-DockerLog '=== RESTARTING DOCKER DESKTOP ==='
-    $restart = Invoke-DockerCliWithTimeout -Arguments @("desktop", "restart", "--timeout", $cliRestartSeconds.ToString()) -TimeoutSeconds $cliTimeoutSeconds
-    # Pre-command interruption must never authorize recreation of working stacks.
-    # An interrupted invocation without this marker resumes from independent
-    # stopped/missing-container and mount evidence only.
-    Update-DockerRecoveryProgress -BeginRestart
+    $restart = Invoke-DockerCliWithTimeout -Arguments @("desktop", "restart", "--timeout", $cliRestartSeconds.ToString()) -TimeoutSeconds $cliTimeoutSeconds -OnStarted { Update-DockerRecoveryProgress -BeginRestart }
+    if ($restart.StartCallbackSucceeded -eq $false) {
+        Write-DockerLog 'Recovery deferred: restart issuance could not be recorded safely.'
+        return $false
+    }
     # A CLI error can still leave a healthy engine. Observe before escalating.
     if (Wait-DockerDesktopReady -TimeoutSeconds $readinessTimeoutSeconds) {
         return $true
