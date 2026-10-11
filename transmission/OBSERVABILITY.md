@@ -126,6 +126,33 @@ they never induce a production failure. After installing, verify fresh
 `transmission_host_rpc` samples before beginning a 24–48 hour unchanged Plan9
 baseline. WSL upgrades and VirtioFS activation remain separate maintenance work.
 
+## Application storage cutover (2026-10-11)
+
+Transmission's approximately 92 MiB of configuration/session state uses the native
+Linux `transmission_config` Docker volume. The Windows `data/` directory is retained
+as a pre-cutover snapshot. Media paths and the download/seeding policy are unchanged.
+This reduces configuration I/O through the Windows filesystem bridge; it is not
+a claim that moving configuration fixes media I/O stalls.
+
+The 48-hour host RPC baseline was retrieved through the existing Grafana read
+credential and InfluxQL database mapping. Six-hour successful-probe averages ranged
+from about 80.6% to 100%; absent samples are not included in these averages.
+Twenty retained passive captures covering roughly 12 hours included 13 blocked
+`pwritev2` and 11 blocked `pread64` samples whose descriptors mapped to `/data`.
+No configuration-file wait was identified in those samples. Sampling does not
+exclude configuration stalls outside those observations. E: currently uses VirtioFS.
+
+Other application config sizes observed during the audit: Sonarr 927 MiB, Radarr
+908 MiB, Bookshelf 171 MiB, Bookshelf Audio 144 MiB, Prowlarr 107 MiB, Seerr 332 MiB,
+and n8n 2.2 GiB. Those services have not been migrated by this change. Any later
+cutover needs a consistent stopped-service copy, verification, backup coverage
+for the new location, and coordination with other service work.
+
+Compare the unchanged short-deadline host RPC telemetry before/after cutover;
+Docker health is not comparable across a health-timeout change. Continue correlating
+media I/O waits with Windows disk latency and queue depth before choosing a media
+storage change. Retain full-rate transfers and all original torrents/data.
+
 ## Recovery evidence and remaining gaps
 
 Transmission recovery waits five minutes of unhealthy state before a restart,

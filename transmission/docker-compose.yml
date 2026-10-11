@@ -23,7 +23,7 @@ services:
       - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
       - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/scripts/cross-seed-complete.sh
     volumes:
-      - ./data:/config
+      - transmission_config:/config
       - ../../Media:/data
       - ./scripts:/scripts:ro
       - ./init:/custom-cont-init.d:ro
@@ -68,3 +68,9 @@ networks:
   proxynet:
     external: true
     name: proxynet
+
+volumes:
+  # Seed from the stopped daemon's existing config before deploying.
+  transmission_config:
+    external: true
+    name: transmission_config

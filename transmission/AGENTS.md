@@ -13,6 +13,26 @@ See `OBSERVABILITY.md` for the functional RPC check, existing Windows Telegraf
 collection, Grafana dashboards, Kuma history-preserving migration and diagnostic
 capture. Storage changes remain contingent on an uncapped 24–48 hour baseline.
 
+## Current configuration storage
+
+`/config` uses the external Docker volume `transmission_config` on Linux storage.
+The media library, complete/incomplete downloads and watch directory remain on
+Windows-backed mounts. This isolates session/torrent metadata I/O; it does not
+eliminate stalls when the daemon reads or writes Windows-backed media.
+
+Provision the volume from the existing configuration with Transmission cleanly
+stopped, recovery paused, and no deployment in progress. Preserve every file,
+numeric owner and mode, verify source/destination SHA-256 manifests, then verify
+the torrent inventory after cutover. A missing external volume deliberately
+refuses startup rather than creating an empty session. Never seed from live state.
+
+The old `transmission/data/` directory is a retained migration snapshot, not the
+active session or a current backup. Back up the native volume with Transmission
+cleanly stopped, preserving owners and modes. A Windows rollback requires a fresh
+consistent copy of the native volume into a new bind-mount directory and a reviewed
+mount change; never switch back to the stale migration snapshot. Do not delete the
+native volume, the old snapshot, torrent registrations, or downloaded data.
+
 ## Service Overview
 Transmission is a lightweight, cross-platform BitTorrent client that handles downloads for Sonarr, Radarr, and other *arr services. It provides a web UI and API for remote management.
 
