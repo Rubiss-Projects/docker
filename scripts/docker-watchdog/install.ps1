@@ -49,10 +49,19 @@ function Get-WatchdogContainerSnapshot {
     return (($query.Output -split "`n" | Sort-Object) -join "`n").Trim()
 }
 
+function Enter-WatchdogInstallationLock {
+    param ([string]$Directory)
+    # Serialize installers before reading/restoring task state. The recovery
+    # operation lock is acquired separately after active scheduled work finishes.
+    return [IO.File]::Open((Join-Path $Directory 'docker-watchdog-install.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+}
+
 if ($MyInvocation.InvocationName -eq '.') { return }
 $Destination = [IO.Path]::GetFullPath($Destination)
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this installer elevated.' }
+$installationLock = Enter-WatchdogInstallationLock -Directory $Destination
+try {
 $files = @('docker-desktop-common.ps1', 'start-docker-desktop.ps1', 'docker-desktop-nightly-maintenance.ps1', 'recovery-policy.ps1')
 $manifestPath = Join-Path $Destination 'docker-watchdog-installation.json'
 $notificationPath = Join-Path $Destination 'docker-watchdog-notifications.json'
@@ -147,3 +156,4 @@ try {
         if ($taskStates[$task.TaskName]) { Enable-ScheduledTask -TaskName $task.TaskName | Out-Null }
     }
 }
+} finally { $installationLock.Dispose() }

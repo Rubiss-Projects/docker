@@ -37,3 +37,12 @@ $before = Get-WatchdogContainerSnapshot
 $script:started = '2026-10-11T12:05:00Z'
 if ((Get-WatchdogContainerSnapshot) -ceq $before) { throw 'Snapshot ignored a restart with the same container ID.' }
 Write-Host 'PASS installation verification detects restarts without recreation'
+$guard = Enter-WatchdogInstallationLock -Directory $scratch
+try {
+    $rejected = $false
+    try { $other = Enter-WatchdogInstallationLock -Directory $scratch; $other.Dispose() } catch { $rejected = $true }
+    if (-not $rejected) { throw 'Concurrent installer acquired task-state ownership.' }
+} finally { $guard.Dispose() }
+$guard = Enter-WatchdogInstallationLock -Directory $scratch
+$guard.Dispose()
+Write-Host 'PASS installer lock rejects concurrent task-state ownership and releases cleanly'

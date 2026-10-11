@@ -272,6 +272,10 @@ function Stop-DockerDesktopProcessTree {
     }
 
     Start-DockerRetrySleep -Seconds 5
+    if (@(Get-Process -Name $DockerDesktopProcessNames -ErrorAction SilentlyContinue).Count -gt 0) {
+        Write-DockerLog 'Docker Desktop processes still exist after termination; hard recovery cannot proceed safely.'
+        return $false
+    }
     return $allStopped
 }
 
@@ -775,7 +779,7 @@ function Stop-UptimeKumaMaintenance {
     foreach ($maintenanceId in @(Get-Content -LiteralPath $DockerKumaMaintenanceIdPath)) {
         if ($maintenanceId -notmatch '^\d+$') { continue }
         Write-DockerLog "Removing Uptime Kuma maintenance window $maintenanceId."
-        $command = "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py stop $maintenanceId"
+        $command = "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py --strict stop $maintenanceId"
         $result = Invoke-WslCommand -Command $command -TimeoutSeconds 45 -MaxAttempts 1
         if ($result.ExitCode -ne 0) {
             $remaining += $maintenanceId
