@@ -151,25 +151,9 @@ function Restart-DockerDesktop {
         }
     }
 
-    # Reuse only when the remaining lifetime covers the full two-hour task.
-    # Refresh overlaps the old windows and retains every ID until cleanup.
-    $savedPaths = @(@($DockerKumaMaintenanceIdPath, $DockerGrafanaMaintenanceIdPath) | Where-Object { Test-Path -LiteralPath $_ })
-    $savedMaintenance = $savedPaths.Count -eq 2 -and @($savedPaths | Where-Object {
-        [string]::IsNullOrWhiteSpace((Get-Content -LiteralPath $_ -Raw))
-    }).Count -eq 0
-    $refreshPaths = @($savedPaths | Where-Object {
-        (Get-Item -LiteralPath $_).LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-($DockerKumaMaintenanceTtlMinutes - 120))
-    })
-    if ($ResumeOnly -and $refreshPaths.Count -gt 0) {
-        Write-Log 'Saved maintenance cannot cover the resume budget; opening overlapping windows before recovery.'
-        $savedMaintenance = $false
-    }
-    if ($ResumeOnly -and $savedMaintenance) {
-        Write-Log 'Resuming recovery under the saved maintenance window.'
-        $maintenanceStarted = $true
-    } else {
-        $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery'
-    }
+    # Remote expiry cannot be inferred from local ID-file timestamps. Every
+    # attempt opens fresh overlapping windows; retain all old IDs for cleanup.
+    $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-docker-recovery'
     try {
         if (-not $ResumeOnly -and -not (Restart-DockerDesktopClean -TimeoutSeconds 600 -ShutdownWslOnFallback)) {
             Write-Log 'Docker Desktop restart did not reach daemon readiness.'
@@ -179,8 +163,8 @@ function Restart-DockerDesktop {
         if (-not $maintenanceStarted) {
             $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-bind-recovery'
         }
-        # A saved journal is not evidence that every stack is broken. Check its
-        # containers and mounts before recreating anything on a resumed attempt.
+        # Resume unfinished repairs from an admitted restart, plus projects
+        # independently confirmed missing, stopped, or suffering bad mounts.
         if ($ResumeOnly) {
             $targets = Get-DockerPendingRecoveryTargets -ServiceNames $runningWslComposeServices
             if (-not $targets.Valid) { return $false }
