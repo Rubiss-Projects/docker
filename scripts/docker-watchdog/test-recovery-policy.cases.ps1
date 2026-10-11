@@ -451,7 +451,7 @@ Run-Test 'failed maintenance cleanup retains only the failed IDs for retry' {
     Set-Item Function:Stop-UptimeKumaMaintenance $realMaintenanceStop
     Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '123'
     Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token '456'
-    function Invoke-WslCommand { param($Command) [pscustomobject]@{ExitCode=$(if ($Command.EndsWith('stop 123')) {1} else {0});Output=''} }
+    function Invoke-WslCommand { param($Command) Assert-True ($Command -match 'kuma-maintenance.py --strict stop') 'Kuma failure would be reported as success'; [pscustomobject]@{ExitCode=$(if ($Command.EndsWith('stop 123')) {1} else {0});Output=''} }
     Assert-True (-not (Stop-UptimeKumaMaintenance)) 'Failed cleanup reported success'
     Assert-True ((Get-Content -LiteralPath $DockerKumaMaintenanceIdPath) -eq '123') 'Failed cleanup lost its retry ID'
     function Invoke-WslCommand { [pscustomobject]@{ExitCode=0;Output=''} }
@@ -515,6 +515,16 @@ Run-Test 'failed Docker process termination aborts hard recovery before WSL shut
     function Stop-DockerWslForRecovery { throw 'Shut down WSL with surviving Docker processes' }
     function Start-DockerDesktopServiceIfAvailable { throw 'Launched against surviving Docker processes' }
     Assert-True (-not (Invoke-DockerDesktopHardRecovery -ShutdownWsl)) 'Failed termination was ignored'
+}
+
+Run-Test 'accepted termination cannot hide surviving Docker processes' {
+    function Get-Process { [pscustomobject]@{Id=424242;ProcessName='mock-docker';StartTime=(Get-Date)} }
+    function Stop-Process { }
+    function Start-DockerRetrySleep { }
+    Assert-True (-not (Stop-DockerDesktopProcessTree)) 'Accepted termination was mistaken for actual process exit'
+    $script:calls = 0
+    function Get-Process { $script:calls++; if ($script:calls -eq 1) { [pscustomobject]@{Id=424242;ProcessName='mock-docker';StartTime=(Get-Date)} } }
+    Assert-True (Stop-DockerDesktopProcessTree) 'Confirmed process exit was rejected'
 }
 
 Run-Test 'targeted repair retries a missing maintenance channel and retains cleanup for partial success' {
