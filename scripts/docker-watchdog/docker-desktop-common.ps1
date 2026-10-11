@@ -9,7 +9,9 @@ $DockerCliPath = "C:\Program Files\Docker\Docker\resources\bin\docker.exe"
 $DockerLogFilePath = "E:\Scripts\Logs\docker-desktop-logs.txt"
 $DockerMaintenanceLockPath = "E:\Scripts\Logs\docker-maintenance.lock"
 $DockerKumaMaintenanceIdPath = "E:\Scripts\Logs\docker-kuma-maintenance.id"
-$DockerKumaMaintenanceTtlMinutes = 30
+# Covers the scheduled task's two-hour execution limit plus cleanup/reboot grace.
+# Successful recovery still closes maintenance immediately in its finally block.
+$DockerKumaMaintenanceTtlMinutes = 150
 $DockerOperationLockPath = "E:\Scripts\Logs\docker-health-monitor.lock"
 $DockerRecoveryInventoryPath = "E:\Scripts\Logs\docker-recovery-services.json"
 $DockerHostRebootPath = "E:\Scripts\Logs\docker-host-reboot.json"
@@ -442,18 +444,26 @@ function Invoke-WindowsDockerCompose {
     return Invoke-DockerCli -Arguments $dockerArguments -TimeoutSeconds 300 -Quiet:$Quiet
 }
 
-function Get-RunningWslComposeServiceNames {
-    $result = Invoke-DockerCli -Arguments @('ps', '--format', '{{.Names}}') -Quiet
+function Get-WslComposeContainers {
+    param ([switch]$All)
+    $arguments = @('ps')
+    if ($All) { $arguments += '--all' }
+    $arguments += @('--format', '{{.Names}}|{{.Label "com.docker.compose.project.working_dir"}}|{{.State}}')
+    $result = Invoke-DockerCli -Arguments $arguments -Quiet
     if ($result.ExitCode -ne 0) {
         throw "Cannot capture running Compose services through the Windows Docker CLI: $($result.Output)"
     }
+    foreach ($line in ($result.Output -split "`n")) {
+        $parts = $line.Trim() -split '\|', 3
+        if ($parts.Count -ne 3 -or $parts[1] -cnotmatch '^/mnt/e/Docker/([a-zA-Z0-9][a-zA-Z0-9_.-]*)/?$') { continue }
+        $project = $Matches[1]
+        if ($project -eq 'cadvisor' -or -not (Test-Path (Join-Path $DockerProjectRoot "$project/docker-compose.yml"))) { continue }
+        [pscustomobject]@{ Project = $project; Container = $parts[0]; Status = $parts[2] }
+    }
+}
 
-    return @(
-        $result.Output -split "`n" |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -match '^[a-zA-Z0-9][a-zA-Z0-9_.-]*$' -and $_ -ne 'cadvisor' -and (Test-Path (Join-Path $DockerProjectRoot "$_/docker-compose.yml")) } |
-            Sort-Object -Unique
-    )
+function Get-RunningWslComposeServiceNames {
+    return @(Get-WslComposeContainers | Select-Object -ExpandProperty Project | Sort-Object -Unique)
 }
 
 function Repair-WindowsComposeServices {
@@ -1083,6 +1093,11 @@ function Repair-PlexHostPort {
 
     Write-DockerLog "Plex internal probe works, but host port 32400 failed."
     if (-not $RestartOnFailure) {
+        return $false
+    }
+
+    if (-not (Test-DockerServiceOutage -ServiceNames @('plex'))) {
+        Write-DockerLog 'Plex restart withheld: host/LAN checks do not confirm sustained Plex unavailability.'
         return $false
     }
 

@@ -100,6 +100,14 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             INSTALL["common_hooks"]("a different script")
 
+    def test_versioned_watchdog_and_nightly_wrapper_already_have_hooks(self):
+        for name, transform in [
+            ("docker-desktop-common.ps1", "common_hooks"),
+            ("docker-desktop-nightly-maintenance.ps1", "nightly_hooks"),
+        ]:
+            source = (ROOT / "docker-watchdog" / name).read_text()
+            self.assertEqual(INSTALL[transform](source), source)
+
 
 if __name__ == "__main__":
     unittest.main()

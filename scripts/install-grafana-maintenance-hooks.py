@@ -19,9 +19,12 @@ def replace_once(text, old, new):
 
 
 def common_hooks(text):
-    text = replace_once(text,
-        '# Shared Docker Desktop maintenance helpers.\n',
-        '# Shared Docker Desktop maintenance helpers.\n. "E:\\Docker\\scripts\\grafana-maintenance.ps1"\n')
+    # The versioned watchdog already imports the helper after its param block.
+    # Do not insert executable code before param (invalid PowerShell syntax).
+    if ". (Join-Path $ProjectRoot 'scripts\\grafana-maintenance.ps1')" not in text:
+        text = replace_once(text,
+            '# Shared Docker Desktop maintenance helpers.\n',
+            '# Shared Docker Desktop maintenance helpers.\n. "E:\\Docker\\scripts\\grafana-maintenance.ps1"\n')
     start = text.index('function Start-UptimeKumaMaintenance {')
     end = text.index('function Stop-UptimeKumaMaintenance {')
     block = text[start:end]
@@ -44,6 +47,9 @@ def common_hooks(text):
 
 
 def nightly_hooks(text):
+    if "& (Join-Path $PSScriptRoot 'start-docker-desktop.ps1') -ValidateOnly:$ValidateOnly" in text:
+        # The retired nightly entry point delegates to the integrated watchdog.
+        return text
     return replace_once(text,
         '} finally {\n    Remove-Item -Path $DockerMaintenanceLockPath',
         '} finally {\n    Stop-GrafanaMaintenance\n    Remove-Item -Path $DockerMaintenanceLockPath')
