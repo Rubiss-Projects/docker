@@ -361,7 +361,8 @@ verify_stack_readiness() {
       ;;
     plex)
       wait_container_ready plex 240
-      wait_container_url plex http://localhost:32400/identity 240
+      # Large library upgrades vacuum both SQLite databases before serving HTTP.
+      wait_container_url plex http://localhost:32400/identity 1800
       ;;
     swag)
       wait_container_ready swag 240
