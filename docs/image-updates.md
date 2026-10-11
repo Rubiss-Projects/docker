@@ -19,6 +19,8 @@ existing Java-specific Minecraft channels. Always include the digest. Database
 major and Java runtime changes need deliberate compatibility/migration review.
 Timescale extension migrations are performed by the deployment helper after a
 database backup; updating its container alone leaves installed SQL extensions old.
+The workflow loads that helper from the trusted deployment commit before the
+helper updates the canonical checkout, including on its first deployment.
 
 Dependabot checks run each Saturday, staggered from 06:00 through 10:10
 America/Chicago. Both Dockerfiles have `docker` entries; Compose-only checks do not
