@@ -719,10 +719,15 @@ function Start-UptimeKumaMaintenance {
     param (
         [int]$TtlMinutes = $DockerKumaMaintenanceTtlMinutes,
         [string]$Reason = "nightly-docker-desktop-restart",
+        [hashtable]$State = @{},
         [switch]$AutoExpireOnly
     )
 
-    $grafanaStarted = Start-GrafanaMaintenance -TtlMinutes $TtlMinutes -Reason $Reason
+    # State is scoped to one recovery invocation; retry only the missing channel
+    # after critical services become ready, while preserving partial cleanup.
+    if (-not $State.Grafana) { $State.Grafana = Start-GrafanaMaintenance -TtlMinutes $TtlMinutes -Reason $Reason }
+    $grafanaStarted = [bool]$State.Grafana
+    if ($State.Kuma) { return $true }
 
     Write-DockerLog "Creating Uptime Kuma maintenance window for Docker Desktop maintenance."
     if ($AutoExpireOnly) {
@@ -744,10 +749,12 @@ function Start-UptimeKumaMaintenance {
 
     if ($AutoExpireOnly) {
         Write-DockerLog "Created Uptime Kuma maintenance window $maintenanceId; it will expire automatically after $TtlMinutes minutes."
+        $State.Kuma = $true
         return $true
     }
 
     Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token $maintenanceId
+    $State.Kuma = $true
     Write-DockerLog "Created Uptime Kuma maintenance window $maintenanceId."
     return $true
 }
