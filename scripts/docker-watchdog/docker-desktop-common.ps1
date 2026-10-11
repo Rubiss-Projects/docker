@@ -383,11 +383,14 @@ function Request-DockerHostRecoveryReboot {
         # Persist before requesting a restart so another task cannot create a reboot loop.
         $rebootState = @{ RequestedAt = [DateTimeOffset]::UtcNow.ToString('o'); Reason = $Reason; Status = 'pending' }
         Write-DockerStateJson -Path $DockerHostRebootPath -Value $rebootState
+        # The command may be accepted even if its wrapper never returns.
+        $script:DockerHostRebootRequested = $true
         $result = Invoke-ProcessWithTimeout -FilePath 'shutdown.exe' -Arguments @('/r', '/t', '30', '/d', 'p:4:1', '/c', 'Recover unresponsive WSL after bounded Docker recovery failed') -TimeoutSeconds 10
         if ($result.ExitCode -ne 0) {
             # A timeout is ambiguous: shutdown may already have been accepted.
             # Definite command rejection must not consume the six-hour cooldown.
             if ($result.ExitConfirmed -and $result.ExitCode -ne 124) {
+                $script:DockerHostRebootRequested = $false
                 $rebootState.Status = 'rejected'
                 Write-DockerStateJson -Path $DockerHostRebootPath -Value $rebootState
             }
@@ -441,7 +444,10 @@ function Invoke-DockerDesktopHardRecovery {
     Write-DockerLog "Attempting hard Docker Desktop recovery. Elevated=$((Test-CurrentProcessElevated).ToString())."
 
     Invoke-DockerCliWithTimeout -Arguments @("desktop", "stop", "--timeout", "60") -TimeoutSeconds 90 -Quiet | Out-Null
-    Stop-DockerDesktopProcessTree | Out-Null
+    if (-not (Stop-DockerDesktopProcessTree)) {
+        Write-DockerLog 'Hard recovery stopped: Docker processes could not be terminated; leaving WSL untouched.'
+        return $false
+    }
 
     if ($ShutdownWsl) {
         Write-DockerLog "Shutting down WSL after stopping stale Docker Desktop processes."

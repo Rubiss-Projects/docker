@@ -188,7 +188,7 @@ function Restart-DockerDesktop {
         return $true
     } finally {
         if ($maintenanceStarted -and -not $script:DockerHostRebootRequested) { Stop-UptimeKumaMaintenance | Out-Null }
-        elseif ($maintenanceStarted) { Write-Log 'Leaving auto-expiring maintenance active through the scheduled Windows reboot.' }
+        elseif ($maintenanceStarted) { Write-Log 'Leaving auto-expiring maintenance active while a Windows reboot may be pending.' }
     }
 }
 
@@ -257,8 +257,12 @@ function Invoke-DockerHealthMonitor {
     if ($health.Kind -in @('CriticalService', 'Sentinel')) {
         if (-not (Test-DockerServiceRepairAllowed -Health $health)) { return 1 }
         Write-Log "=== REPAIRING DOCKER SERVICES === $($health.Kind)|$($health.FailedServices -join ',')"
-        $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-service-repair'
+        $maintenanceState = @{}
+        $maintenanceStarted = Start-UptimeKumaMaintenance -Reason 'watchdog-service-repair' -State $maintenanceState
         try {
+            if (-not ($maintenanceState.Kuma -and $maintenanceState.Grafana)) {
+                $maintenanceStarted = (Start-UptimeKumaMaintenance -Reason 'watchdog-service-repair' -State $maintenanceState) -or $maintenanceStarted
+            }
             Repair-ConfirmedDockerServiceHealth -Health $health | Out-Null
             $health = Get-ConfirmedDockerHealth
         } finally {
@@ -296,7 +300,7 @@ function Invoke-DockerHealthMonitor {
     }
     Write-Log '=== Docker Health Check FAILED - Manual intervention may be required ==='
     if ($script:DockerHostRebootRequested) {
-        Send-DiscordAlert -title '[WARNING] Windows Recovery Restart' -description 'WSL could not shut down. A controlled Windows reboot is scheduled; Docker service recovery will resume afterward. Automatic host reboots are limited to one per six hours.' -color '15105570'
+        Send-DiscordAlert -title '[WARNING] Windows Recovery Restart' -description 'WSL could not shut down. A Windows reboot was requested and may be pending; Docker service recovery will resume afterward. Automatic host reboots are limited to one per six hours.' -color '15105570'
         return 1
     }
     Send-DiscordAlert -title '[ERROR] Docker Desktop Recovery Failed' -description 'Automatic recovery failed. See E:\Scripts\Logs\docker-desktop-logs.txt.' -color '15158332'

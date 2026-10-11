@@ -332,8 +332,10 @@ Run-Test 'definite reboot rejection does not consume cooldown while ambiguous ti
     function Invoke-ProcessWithTimeout { $script:calls++; [pscustomobject]@{ExitCode=$script:rebootCode;ExitConfirmed=($script:rebootCode -ne 124);Output='command result'} }
     try {
         Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Rejected reboot reported accepted'
+        Assert-True (-not $script:DockerHostRebootRequested) 'Definite rejection retained reboot maintenance'
         $script:rebootCode = 124
         Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Timed out reboot reported accepted'
+        Assert-True ($script:DockerHostRebootRequested) 'Ambiguous reboot would close maintenance too early'
         Assert-True ($script:calls -eq 2) 'Rejection incorrectly consumed cooldown'
         Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Ambiguous reboot allowed another attempt'
         Assert-True ($script:calls -eq 2) 'Ambiguous timeout did not retain cooldown'
@@ -505,4 +507,39 @@ Run-Test 'Discord transport failures have a bounded request and do not escape in
     function Write-Log { param($Message) Assert-True ($Message -notmatch 'test-secret') 'Notification credential leaked' }
     Send-DiscordAlert -title 'test' -description 'test'
     Assert-True ($script:calls -eq 1) 'Notification failure prevented return to recovery'
+}
+
+Run-Test 'failed Docker process termination aborts hard recovery before WSL shutdown or relaunch' {
+    function Invoke-DockerCliWithTimeout { [pscustomobject]@{ExitCode=1;Output='failed'} }
+    function Stop-DockerDesktopProcessTree { $false }
+    function Stop-DockerWslForRecovery { throw 'Shut down WSL with surviving Docker processes' }
+    function Start-DockerDesktopServiceIfAvailable { throw 'Launched against surviving Docker processes' }
+    Assert-True (-not (Invoke-DockerDesktopHardRecovery -ShutdownWsl)) 'Failed termination was ignored'
+}
+
+Run-Test 'targeted repair retries a missing maintenance channel and retains cleanup for partial success' {
+    function Get-ConfirmedDockerHealth { Health 'Sentinel' $true @('homepage') }
+    function Start-UptimeKumaMaintenance {
+        param($State)
+        $script:calls++
+        $State.Grafana=$true
+        if ($script:calls -eq 2) { $State.Kuma=$true }
+        $true
+    }
+    function Repair-ConfirmedDockerServiceHealth {
+        Assert-True ($maintenanceState.Kuma -and $maintenanceState.Grafana) 'Missing maintenance channel not retried before targeted mutation'
+        $true
+    }
+    Assert-True ((Invoke-DockerHealthMonitor) -eq 1) 'Persistent sentinel falsely reported recovered'
+    Assert-True ($script:calls -eq 2 -and ($script:events -join ',') -eq 'maintenance-stop') 'Missing channel retry or partial cleanup was lost'
+}
+
+Run-Test 'final health cannot be Healthy while the independent Windows Plex endpoint fails' {
+    function Test-DockerDaemon { $true }
+    function Invoke-WslCommand { [pscustomobject]@{ExitCode=0;Output=''} }
+    function Test-RequiredDockerNetwork { $true }
+    function Test-DockerContainerReady { $true }
+    function Test-ContainerUrl { $true }
+    function Test-HostUrl { param($Url) Assert-True ($Url -eq 'http://127.0.0.1:32400/identity') 'Wrong host endpoint'; $false }
+    Assert-True ((Get-DockerHealthSnapshot).Kind -eq 'CriticalService') 'Failed Windows forwarding reported Healthy'
 }
