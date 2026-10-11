@@ -55,11 +55,13 @@ function Run-Test([string]$Name, [scriptblock]$Body) {
             $realAvailability = ${function:Get-DockerServiceAvailability}
             $realOutage = ${function:Test-DockerServiceOutage}
             $realRecoveryAllowed = ${function:Test-DockerAutomaticRecoveryAllowed}
+            $realBackendRequired = ${function:Test-DockerBackendRecoveryRequired}
             $realPendingTargets = ${function:Get-DockerPendingRecoveryTargets}
             function Test-WslDockerIntegration { $true }
             function Wait-WslDockerIntegration { $true }
             function Test-DockerServiceOutage { $true }
             function Test-DockerAutomaticRecoveryAllowed { $true }
+            function Test-DockerBackendRecoveryRequired { $true }
             function Get-DockerPendingRecoveryTargets { param($ServiceNames) [pscustomobject]@{Valid=$true;Services=$ServiceNames} }
             & $Body
         }

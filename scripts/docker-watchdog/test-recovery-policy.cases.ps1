@@ -553,3 +553,42 @@ Run-Test 'final health cannot be Healthy while the independent Windows Plex endp
     function Test-HostUrl { param($Url) Assert-True ($Url -eq 'http://127.0.0.1:32400/identity') 'Wrong host endpoint'; $false }
     Assert-True ((Get-DockerHealthSnapshot).Kind -eq 'CriticalService') 'Failed Windows forwarding reported Healthy'
 }
+
+Run-Test 'backend recovery during setup vetoes CLI restart and hard escalation despite unavailable applications' {
+    Set-Item Function:Test-DockerBackendRecoveryRequired $realBackendRequired
+    function Get-DockerHealthSnapshot { Health 'CriticalService' }
+    function Invoke-DockerCliWithTimeout { throw 'Mutated a recovered engine' }
+    function Stop-DockerDesktopProcessTree { throw 'Stopped a recovered engine' }
+    Assert-True (-not (Restart-DockerDesktopClean -ExpectedKind WslTransport)) 'Recovered backend still restarted'
+    Assert-True (-not (Invoke-DockerDesktopHardRecovery)) 'Recovered backend still escalated'
+    function Get-DockerHealthSnapshot { Health 'Daemon' }
+    Assert-True (-not (Restart-DockerDesktopClean -ExpectedKind WslTransport)) 'Changed backend failure matched stale admission'
+}
+
+Run-Test 'maintenance ID write failures clean up returned windows and do not abort recovery' {
+    Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    function Add-DockerMaintenanceToken { throw 'ID file temporarily unwritable' }
+    function Invoke-WslCommand {
+        param($Command)
+        $script:events += $Command
+        $token = if ($Command -match 'grafana-maintenance.py') { '11111111-1111-1111-1111-111111111111:22222222-2222-2222-2222-222222222222' } else { '123' }
+        [pscustomobject]@{ExitCode=0;Output=$(if ($Command -match '.py start ') {$token} else {''})}
+    }
+    function Restart-DockerDesktopClean { $true }
+    function Start-CriticalDockerServices { $true }
+    function Repair-WslComposeBindServices { $script:calls++; $true }
+    function Repair-WindowsComposeServices { $true }
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True (Restart-DockerDesktop) 'Optional maintenance storage failure aborted recovery'
+    Assert-True ($script:calls -eq 1) 'Repair did not continue after maintenance failure'
+    Assert-True (@($script:events | Where-Object { $_ -match ' stop ' }).Count -eq 4) 'Created remote windows were not cleaned up when their IDs could not be saved'
+}
+
+Run-Test 'unexpected maintenance setup exceptions preserve existing partial cleanup state' {
+    Set-Item Function:Start-UptimeKumaMaintenance $realMaintenanceStart
+    function Write-DockerLog { throw 'logger unavailable' }
+    $state = @{Grafana=$true}
+    Assert-True (Start-UptimeKumaMaintenance -State $state) 'Setup exception discarded existing Grafana cleanup'
+    Assert-True (-not $state.Kuma) 'Failed Kuma setup was marked ready'
+}

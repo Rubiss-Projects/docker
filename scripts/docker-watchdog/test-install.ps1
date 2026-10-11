@@ -46,3 +46,17 @@ try {
 $guard = Enter-WatchdogInstallationLock -Directory $scratch
 $guard.Dispose()
 Write-Host 'PASS installer lock rejects concurrent task-state ownership and releases cleanly'
+$manifestFixture = Join-Path $scratch 'installation.json'
+Write-WatchdogInstallationManifest -Path $manifestFixture -Value @{Hashes=@{common='first'}}
+Write-WatchdogInstallationManifest -Path $manifestFixture -Value @{Hashes=@{common='second'}}
+$savedManifest = Get-Content -LiteralPath $manifestFixture -Raw
+if (($savedManifest | ConvertFrom-Json).Hashes.common -ne 'second') { throw 'Manifest replacement did not preserve valid JSON.' }
+$rejected = $false
+try {
+    & {
+        function Set-Content { param($LiteralPath) [IO.File]::WriteAllText($LiteralPath, '{partial'); throw 'interrupted manifest write' }
+        Write-WatchdogInstallationManifest -Path $manifestFixture -Value @{Hashes=@{common='third'}}
+    }
+} catch { $rejected = $true }
+if (-not $rejected -or (Get-Content -LiteralPath $manifestFixture -Raw) -cne $savedManifest) { throw 'Interrupted manifest write damaged installed state.' }
+Write-Host 'PASS interrupted manifest write retains the last complete installation state'

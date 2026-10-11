@@ -445,6 +445,10 @@ function Invoke-DockerDesktopHardRecovery {
     # Recheck after the startup wait. A missing integration socket must not kill
     # containers that have already resumed serving users.
     if (-not (Test-DockerAutomaticRecoveryAllowed)) { return $false }
+    if (-not (Test-DockerBackendRecoveryRequired)) {
+        Write-DockerLog 'Hard recovery withheld: the Docker/WSL backend no longer requires recovery.'
+        return $false
+    }
     Write-DockerLog "Attempting hard Docker Desktop recovery. Elevated=$((Test-CurrentProcessElevated).ToString())."
 
     Invoke-DockerCliWithTimeout -Arguments @("desktop", "stop", "--timeout", "60") -TimeoutSeconds 90 -Quiet | Out-Null
@@ -732,7 +736,7 @@ function Start-UptimeKumaMaintenance {
         [hashtable]$State = @{},
         [switch]$AutoExpireOnly
     )
-
+    try {
     # State is scoped to one recovery invocation; retry only the missing channel
     # after critical services become ready, while preserving partial cleanup.
     if (-not $State.Grafana) { $State.Grafana = Start-GrafanaMaintenance -TtlMinutes $TtlMinutes -Reason $Reason }
@@ -763,10 +767,22 @@ function Start-UptimeKumaMaintenance {
         return $true
     }
 
-    Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token $maintenanceId
+    try { Add-DockerMaintenanceToken -Path $DockerKumaMaintenanceIdPath -Token $maintenanceId }
+    catch {
+        # The remote window exists, but we cannot retain it for later cleanup.
+        try { Invoke-WslCommand -Command "cd /mnt/e/Docker && python3 scripts/kuma-maintenance.py --strict stop $maintenanceId" -TimeoutSeconds 45 -MaxAttempts 1 | Out-Null } catch { }
+        Write-DockerLog 'Could not save Kuma maintenance ID; immediate cleanup attempted, TTL remains the fallback.'
+        return $grafanaStarted
+    }
     $State.Kuma = $true
     Write-DockerLog "Created Uptime Kuma maintenance window $maintenanceId."
     return $true
+    } catch {
+        # Maintenance is optional for recovery; even a failed logger must not
+        # turn its setup exception into a failure of the health monitor.
+        Write-Host 'Maintenance setup failed; continuing recovery with any established window.'
+        return [bool]($State.Kuma -or $State.Grafana)
+    }
 }
 
 function Stop-UptimeKumaMaintenance {
@@ -1306,11 +1322,16 @@ function Test-CriticalDockerReadiness {
 function Restart-DockerDesktopClean {
     param (
         [int]$TimeoutSeconds = 600,
+        [string]$ExpectedKind,
         [switch]$ShutdownWslOnFallback
     )
 
     if (-not (Test-DockerServiceOutage -Attempts 1)) {
         Write-DockerLog 'Desktop restart withheld: service availability changed before recovery.'
+        return $false
+    }
+    if (-not (Test-DockerBackendRecoveryRequired -ExpectedKind $ExpectedKind)) {
+        Write-DockerLog 'Desktop restart withheld: the admitted Docker/WSL failure changed during recovery setup.'
         return $false
     }
     $cliRestartSeconds = [Math]::Min($TimeoutSeconds, 180)

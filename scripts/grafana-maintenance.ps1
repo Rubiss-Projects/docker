@@ -37,7 +37,12 @@ function Start-GrafanaMaintenance {
         Write-DockerLog 'Grafana is unavailable for maintenance setup; retaining nightly mute fallback and continuing Docker recovery.'
         return $false
     }
-    Add-DockerMaintenanceToken -Path $DockerGrafanaMaintenanceIdPath -Token $token
+    try { Add-DockerMaintenanceToken -Path $DockerGrafanaMaintenanceIdPath -Token $token }
+    catch {
+        try { Invoke-WslCommand -Command "cd /mnt/e/Docker && python3 scripts/grafana-maintenance.py stop $token" -TimeoutSeconds 75 -MaxAttempts 1 | Out-Null } catch { }
+        Write-DockerLog 'Could not save Grafana maintenance IDs; immediate cleanup attempted, TTL remains the fallback.'
+        return $false
+    }
     Write-DockerLog "Created Sunday Edge Grafana maintenance for $TtlMinutes minutes plus restart grace."
     return $true
 }
