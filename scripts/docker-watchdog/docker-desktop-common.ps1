@@ -182,7 +182,7 @@ function Invoke-ProcessWithTimeout {
             if (-not $Quiet) {
                 Write-DockerLog "Process timed out after $TimeoutSeconds seconds: $FilePath $($Arguments -join ' ')"
             }
-            return [pscustomobject]@{ ExitCode = 124; Output = "Timed out after $TimeoutSeconds seconds" }
+            return [pscustomobject]@{ ExitCode = 124; ExitConfirmed = $false; Output = "Timed out after $TimeoutSeconds seconds" }
         }
 
         $process.WaitForExit()
@@ -191,12 +191,12 @@ function Invoke-ProcessWithTimeout {
         $stdout = Get-Content -Path $stdoutPath -Raw -ErrorAction SilentlyContinue
         $stderr = Get-Content -Path $stderrPath -Raw -ErrorAction SilentlyContinue
         $outputText = (@($stdout, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
-        return [pscustomobject]@{ ExitCode = [int]$exitCode; Output = $outputText.Replace([string][char]0, '').Trim() }
+        return [pscustomobject]@{ ExitCode = [int]$exitCode; ExitConfirmed = $true; Output = $outputText.Replace([string][char]0, '').Trim() }
     } catch {
         if (-not $Quiet) {
             Write-DockerLog "Process failed: $FilePath $($Arguments -join ' ') Error: $($_.Exception.Message)"
         }
-        return [pscustomobject]@{ ExitCode = 1; Output = $_.Exception.Message }
+        return [pscustomobject]@{ ExitCode = 1; ExitConfirmed = $false; Output = $_.Exception.Message }
     } finally {
         if ($process) { $process.Dispose() }
         Remove-Item -Path $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
@@ -297,8 +297,9 @@ function Save-DockerRecoveryInventory {
     param ([string[]]$ServiceNames)
     # Keep the original inventory across failed recovery attempts and host boots.
     if (-not (Test-Path -LiteralPath $DockerRecoveryInventoryPath)) {
-        @{ Services = @($ServiceNames); CapturedAt = [DateTimeOffset]::UtcNow.ToString('o') } |
-            ConvertTo-Json | Set-Content -LiteralPath $DockerRecoveryInventoryPath -ErrorAction Stop
+        Write-DockerStateJson -Path $DockerRecoveryInventoryPath -Value @{
+            Services = @($ServiceNames); CapturedAt = [DateTimeOffset]::UtcNow.ToString('o')
+        }
     }
 }
 
@@ -322,13 +323,21 @@ function Save-DockerHealthyInventory {
     # Refresh only during a fully healthy observation, never from a partially
     # restarted engine. Atomic replacement preserves the prior snapshot on error.
     $names = @(Get-RunningWslComposeServiceNames)
-    $temporary = $DockerHealthyInventoryPath + ".$PID.tmp"
+    Write-DockerStateJson -Path $DockerHealthyInventoryPath -Value @{
+        Services = $names; CapturedAt = [DateTimeOffset]::UtcNow.ToString('o')
+    }
+}
+
+function Write-DockerStateJson {
+    param ([string]$Path, $Value)
+    # Write alongside the destination so the final rename stays on one volume.
+    # A killed writer leaves either the old complete state or the new one.
+    $temporary = $Path + ".$PID.tmp"
     try {
-        @{ Services = $names; CapturedAt = [DateTimeOffset]::UtcNow.ToString('o') } |
-            ConvertTo-Json | Set-Content -LiteralPath $temporary -ErrorAction Stop
-        if (Test-Path -LiteralPath $DockerHealthyInventoryPath) {
-            [IO.File]::Replace($temporary, $DockerHealthyInventoryPath, [NullString]::Value)
-        } else { [IO.File]::Move($temporary, $DockerHealthyInventoryPath) }
+        $Value | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $temporary -ErrorAction Stop
+        if (Test-Path -LiteralPath $Path) {
+            [IO.File]::Replace($temporary, $Path, [NullString]::Value)
+        } else { [IO.File]::Move($temporary, $Path) }
     } finally {
         Remove-Item -LiteralPath $temporary -ErrorAction SilentlyContinue
     }
@@ -348,16 +357,24 @@ function Request-DockerHostRecoveryReboot {
         if (Test-Path -LiteralPath $DockerHostRebootPath) {
             $previous = Get-Content -LiteralPath $DockerHostRebootPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
             $requested = [DateTimeOffset]::Parse($previous.RequestedAt)
-            if ([DateTimeOffset]::UtcNow -lt $requested.AddHours(6)) {
+            if ($previous.Status -ne 'rejected' -and [DateTimeOffset]::UtcNow -lt $requested.AddHours(6)) {
                 Write-DockerLog 'Host recovery reboot suppressed: a reboot was already requested within six hours. Manual intervention is required if WSL remains unavailable.'
                 return $false
             }
         }
         # Persist before requesting a restart so another task cannot create a reboot loop.
-        @{ RequestedAt = [DateTimeOffset]::UtcNow.ToString('o'); Reason = $Reason } |
-            ConvertTo-Json | Set-Content -LiteralPath $DockerHostRebootPath -ErrorAction Stop
+        $rebootState = @{ RequestedAt = [DateTimeOffset]::UtcNow.ToString('o'); Reason = $Reason; Status = 'pending' }
+        Write-DockerStateJson -Path $DockerHostRebootPath -Value $rebootState
         $result = Invoke-ProcessWithTimeout -FilePath 'shutdown.exe' -Arguments @('/r', '/t', '30', '/d', 'p:4:1', '/c', 'Recover unresponsive WSL after bounded Docker recovery failed') -TimeoutSeconds 10
-        if ($result.ExitCode -ne 0) { throw $result.Output }
+        if ($result.ExitCode -ne 0) {
+            # A timeout is ambiguous: shutdown may already have been accepted.
+            # Definite command rejection must not consume the six-hour cooldown.
+            if ($result.ExitConfirmed -and $result.ExitCode -ne 124) {
+                $rebootState.Status = 'rejected'
+                Write-DockerStateJson -Path $DockerHostRebootPath -Value $rebootState
+            }
+            throw $result.Output
+        }
         $script:DockerHostRebootRequested = $true
         Write-DockerLog "Controlled Windows recovery reboot scheduled in 30 seconds: $Reason"
         return $true

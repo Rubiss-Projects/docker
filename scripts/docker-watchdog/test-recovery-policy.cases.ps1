@@ -225,3 +225,36 @@ Run-Test 'critical startup clamps readiness waits to the same budget' {
     Assert-True (-not (Start-CriticalDockerServices -TimeoutSeconds 3)) 'Timed out wait reported success'
     Assert-True ($elapsed.Elapsed.TotalSeconds -lt 5) 'Readiness reset the critical-startup budget'
 }
+Run-Test 'interrupted journal writes retain the previous complete state' {
+    Save-DockerRecoveryInventory -ServiceNames @('plex')
+    function Set-Content { param($LiteralPath, $ErrorAction) [IO.File]::WriteAllText($LiteralPath, '{partial'); throw 'simulated interrupted writer' }
+    $failed = $false
+    try { Write-DockerStateJson -Path $DockerRecoveryInventoryPath -Value @{Services=@('sonarr')} } catch { $failed = $true }
+    Assert-True ($failed -and (@(Get-DockerRecoveryInventory) -join ',') -eq 'plex') 'Partial write damaged durable recovery state'
+    Remove-Item -LiteralPath $DockerRecoveryInventoryPath
+    try { Save-DockerRecoveryInventory -ServiceNames @('sonarr') } catch { }
+    Assert-True (-not (Test-Path -LiteralPath $DockerRecoveryInventoryPath)) 'Failed first write left a corrupt journal'
+}
+Run-Test 'definite reboot rejection does not consume cooldown while ambiguous timeout does' {
+    $script:DockerOperationLock = [pscustomobject]@{}
+    function Test-CurrentProcessElevated { $true }
+    $script:rebootCode = 5
+    function Invoke-ProcessWithTimeout { $script:calls++; [pscustomobject]@{ExitCode=$script:rebootCode;ExitConfirmed=($script:rebootCode -ne 124);Output='command result'} }
+    try {
+        Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Rejected reboot reported accepted'
+        $script:rebootCode = 124
+        Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Timed out reboot reported accepted'
+        Assert-True ($script:calls -eq 2) 'Rejection incorrectly consumed cooldown'
+        Assert-True (-not (Request-DockerHostRecoveryReboot -Reason test)) 'Ambiguous reboot allowed another attempt'
+        Assert-True ($script:calls -eq 2) 'Ambiguous timeout did not retain cooldown'
+    } finally { $script:DockerOperationLock = $null }
+}
+Run-Test 'broken optional notifications do not disable the health monitor' {
+    $path = Join-Path $scratch 'broken-notifications.json'
+    Set-Content -LiteralPath $path -Value '{truncated'
+    Assert-True ((Get-DockerNotificationWebhook -Path $path) -ceq '') 'Malformed notifications did not fail open'
+    function Get-Content { throw 'temporarily unreadable' }
+    Assert-True ((Get-DockerNotificationWebhook -Path $path) -ceq '') 'Unreadable notifications did not fail open'
+    function Get-ConfirmedDockerHealth { Health }
+    Assert-True ((Invoke-DockerHealthMonitor) -eq 0) 'Notification error stopped health monitoring'
+}

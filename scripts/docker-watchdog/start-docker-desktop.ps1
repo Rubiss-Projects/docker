@@ -11,8 +11,17 @@ $restartWindowMinutes = 60
 # Kept outside Git by the installer; never include the URL in diagnostic output.
 $discordWebhookUrl = ''
 $notificationPath = Join-Path $PSScriptRoot 'docker-watchdog-notifications.json'
-if (Test-Path -LiteralPath $notificationPath) {
-    $discordWebhookUrl = (Get-Content -LiteralPath $notificationPath -Raw | ConvertFrom-Json).DiscordWebhookUrl
+
+function Get-DockerNotificationWebhook {
+    param ([string]$Path)
+    try {
+        if (-not (Test-Path -LiteralPath $Path)) { return '' }
+        $settings = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        return [string]$settings.DiscordWebhookUrl
+    } catch {
+        Write-Log 'Notification settings could not be loaded; continuing watchdog checks without notifications.'
+        return ''
+    }
 }
 
 function Test-MaintenanceWindow {
@@ -294,6 +303,7 @@ function Invoke-DockerHealthMonitor {
 
 if (-not (Test-Path $commonScriptPath)) { throw "Missing common Docker script: $commonScriptPath" }
 . $commonScriptPath
+$discordWebhookUrl = Get-DockerNotificationWebhook -Path $notificationPath
 
 if ($ValidateOnly) {
     $health = Get-ConfirmedDockerHealth
