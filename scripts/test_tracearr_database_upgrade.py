@@ -11,7 +11,7 @@ SCRIPT = Path(__file__).resolve().parent.parent / "tracearr/upgrade-database.sh"
 
 @unittest.skipIf(os.name == "nt", "requires POSIX bash")
 class TracearrDatabaseUpgradeTests(unittest.TestCase):
-    def run_upgrade(self, failure="", current="old", pending="0"):
+    def run_upgrade(self, failure="", current="old", pending="0", state="running"):
         with tempfile.TemporaryDirectory() as directory:
             log = Path(directory) / "calls"
             stub = r'''
@@ -28,7 +28,17 @@ compose() {
   esac
 }
 docker() {
-  if [[ "$1" == image ]]; then printf 'new\n'; else printf '%s\n' "$CURRENT"; fi
+  printf 'docker %s\n' "$*" >> "$CALLS"
+  case "$1" in
+    image) printf 'new\n' ;;
+    ps) [[ "$STATE" == missing ]] || printf 'container-id\n' ;;
+    inspect)
+      if [[ "$*" == *State.Running* ]]; then
+        [[ "$STATE" != stopped ]] && printf 'true\n' || printf 'false\n'
+      else printf '%s\n' "$CURRENT"; fi ;;
+    volume) [[ "$FAILURE" != volume ]] || return 7 ;;
+    run) [[ "$FAILURE" != cold-backup ]] || return 8; tar -cf - --files-from /dev/null ;;
+  esac
 }
 log() { :; }
 source "$UPGRADE_SCRIPT"
@@ -36,7 +46,7 @@ upgrade_tracearr_database
 printf 'resume-app\n' >> "$CALLS"
 '''
             result = subprocess.run(["bash", "-c", stub], capture_output=True, text=True, env=os.environ | {
-                "CALLS": str(log), "FAILURE": failure, "CURRENT": current, "PENDING": pending,
+                "CALLS": str(log), "FAILURE": failure, "CURRENT": current, "PENDING": pending, "STATE": state,
                 "UPGRADE_SCRIPT": str(SCRIPT), "DOCKER_TRACEARR_BACKUP_DIR": directory,
             })
             return result, log.read_text().splitlines()
@@ -65,6 +75,24 @@ printf 'resume-app\n' >> "$CALLS"
         result, calls = self.run_upgrade(current="new", pending="1")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("stop tracearr", calls)
+
+    def test_stopped_database_starts_old_container_before_dumping(self):
+        result, calls = self.run_upgrade(state="stopped")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        start = calls.index("start --wait --wait-timeout 180 timescale")
+        self.assertLess(start, next(i for i, c in enumerate(calls) if "pg_dump" in c))
+        self.assertLess(start, next(i for i, c in enumerate(calls) if "pg_available_extensions" in c))
+
+    def test_removed_container_requires_cold_backup_before_creating_database(self):
+        result, calls = self.run_upgrade(state="missing")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(next(i for i, c in enumerate(calls) if c.startswith("docker run ")), next(i for i, c in enumerate(calls) if c.startswith("up ")))
+        for failure in ["volume", "cold-backup"]:
+            with self.subTest(failure=failure):
+                result, calls = self.run_upgrade(state="missing", failure=failure)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(c.startswith("up ") for c in calls))
+                self.assertNotIn("resume-app", calls)
 
 
 if __name__ == "__main__":
