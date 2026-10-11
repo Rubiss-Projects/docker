@@ -54,6 +54,15 @@ Requires:
 ### Default Port
 - 32400 - Main web UI and streaming
 
+### Image Updates and Database Migrations
+
+Keep `VERSION=docker` and the Compose image's numeric version plus digest pin.
+During upgrades, Plex may return HTTP 503 from `/identity` while migrating,
+analyzing, and vacuuming its library and blobs databases. The deploy helper waits
+up to 30 minutes for HTTP readiness before continuing to dependent services.
+Inspect migration progress in the Plex server log; do not restart it simply
+because a database migration takes longer than a normal container startup.
+
 ## Direct Client Networking
 
 LAN clients connect directly to port `32400`. Remote IPv4 clients use native
