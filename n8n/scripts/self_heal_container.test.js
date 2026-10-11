@@ -16,11 +16,17 @@ function state(status, health = 'unhealthy', startedAt = 'old') {
     ExitCode: status === 'exited' ? 137 : 0, StartedAt: startedAt, Health: { Status: health } } };
 }
 
-async function scenario(t, handler) {
+async function scenario(t, handler, hostHandler) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'self-heal-test-'));
   const actions = [];
   let current = state('running');
   const server = http.createServer((request, response) => {
+    if (request.url.endsWith('/ping')) {
+      if (hostHandler?.(request, response)) return;
+      response.setHeader('Content-Type', 'application/json');
+      response.end(JSON.stringify({ status: 'OK' }));
+      return;
+    }
     if (request.url.includes('/stats?')) {
       response.setHeader('Content-Type', 'application/json');
       response.end(JSON.stringify({ memory_stats: { usage: 123 }, cpu_stats: {} }));
@@ -49,6 +55,8 @@ async function scenario(t, handler) {
       '--requestTimeoutMs=1000', '--restartTimeoutSeconds=0.01', '--verifyTimeoutMs=500',
       '--pollIntervalMs=15', '--graceMs=0', '--healthyWindowMs=50', ...extra], {
       env: { ...process.env, DOCKER_API_URL: `http://127.0.0.1:${server.address().port}`,
+        RECOVERY_SONARR_HEALTH_URL: `http://127.0.0.1:${server.address().port}/sonarr/ping`,
+        RECOVERY_RADARR_HEALTH_URL: `http://127.0.0.1:${server.address().port}/radarr/ping`,
         RECOVERY_STATE_DIR: dir, RECOVERY_LOCK_DIR: path.join(dir, 'locks'),
         RECOVERY_DIAGNOSTICS_DIR: path.join(dir, 'diagnostics') },
     });
@@ -91,6 +99,46 @@ test('healthy recovery preserves the cooldown across flaps until its original ex
   s.set(state('running', 'unhealthy', 'old'));
   assert.equal((await s.run()).payload.result, 'recovered');
   assert.equal(s.actions.filter((a) => a === 'restart').length, 2);
+});
+
+test('a host-wide application stall defers restart without creating intent or cooldown', async (t) => {
+  const s = await scenario(t, undefined, (_request, _response) => true);
+  const began = performance.now();
+  const result = await s.run(['--hostProbeTimeoutMs=100']);
+  assert.equal(result.code, 1);
+  assert.equal(result.payload.result, 'host_unresponsive_recovery_deferred');
+  assert.ok(performance.now() - began < 2000);
+  assert.ok(!s.actions.includes('restart'));
+  assert.ok(!fs.existsSync(s.pendingPath));
+  assert.ok(!fs.existsSync(s.cooldownPath));
+});
+
+test('one responsive app permits Transmission recovery when the other app is down', async (t) => {
+  const s = await scenario(t, ({ action, response, set }) => {
+    if (action !== 'restart') return;
+    set(state('running', 'healthy', 'new'));
+    response.writeHead(204).end();
+    return true;
+  }, (request, response) => {
+    if (!request.url.startsWith('/sonarr/')) return;
+    response.writeHead(503).end('unavailable');
+    return true;
+  });
+  assert.equal((await s.run()).payload.result, 'recovered');
+  assert.equal(s.actions.filter((action) => action === 'restart').length, 1);
+});
+
+test('invalid app health replies defer an owned late start and preserve its intent', async (t) => {
+  const s = await scenario(t, undefined, (_request, response) => {
+    response.end('<html>proxy error</html>');
+    return true;
+  });
+  const intent = { containerId: 'container-1', attemptedAt: Date.now(), kind: 'restart', startedAt: 'old' };
+  fs.writeFileSync(s.pendingPath, JSON.stringify(intent));
+  s.set(state('exited'));
+  assert.equal((await s.run(['--watchdog=true'])).payload.result, 'host_unresponsive_recovery_deferred');
+  assert.ok(!s.actions.includes('start'));
+  assert.deepEqual(JSON.parse(fs.readFileSync(s.pendingPath)), intent);
 });
 
 test('upgrades existing pending intent without renewing or losing its cooldown', async (t) => {

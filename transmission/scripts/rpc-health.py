@@ -149,8 +149,11 @@ def main():
         def deadline(_signal, _frame):
             raise ProbeError("deadline_exceeded")
         signal.signal(signal.SIGALRM, deadline)
-        signal.alarm(8)
-        result = collect(RPC("http://127.0.0.1:9091/transmission/rpc"), args.metrics)
+        # Keep fast telemetry sensitive to latency, while recovery health tolerates
+        # busy downloads. The absolute budget includes session negotiation/body reads.
+        signal.alarm(8 if args.metrics else 30)
+        result = collect(RPC("http://127.0.0.1:9091/transmission/rpc",
+                             timeout=3 if args.metrics else 25), args.metrics)
         signal.alarm(0)
         if args.metrics:
             fields = ",".join(f"{key}={value}" for key, value in result.items() if key != "error")

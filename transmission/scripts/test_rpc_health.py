@@ -1,4 +1,6 @@
 import importlib.util
+import contextlib
+import io
 import json
 import fcntl
 from pathlib import Path
@@ -33,6 +35,8 @@ class ProbeTests(unittest.TestCase):
                 if mode == "timeout":
                     time.sleep(0.2)
                     return
+                if mode == "busy":
+                    time.sleep(3.2)
                 if mode == "trickle":
                     self.send_response(200)
                     self.end_headers()
@@ -56,7 +60,10 @@ class ProbeTests(unittest.TestCase):
                     body = b"not-json"
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(body)
+                try:
+                    self.wfile.write(body)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass  # The timeout tests deliberately close their connections.
         server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
@@ -90,6 +97,30 @@ class ProbeTests(unittest.TestCase):
         rpc.session = "expired"
         self.assertEqual(probe.collect(rpc)["rpc_up"], 1)
         self.assertEqual(len(calls), 2)
+
+    def test_recovery_health_accepts_busy_rpc_beyond_the_telemetry_timeout(self):
+        rpc, _ = self.server("busy")
+        rpc_type = probe.RPC
+        def local_rpc(_url, timeout):
+            return rpc_type(rpc.url, timeout=timeout)
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['probe']), patch.object(probe, 'RPC', side_effect=local_rpc), \
+             contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(), 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result['rpc_up'], 1)
+        self.assertGreater(result['rpc_seconds'], 3)
+
+    def test_fast_metrics_still_report_busy_rpc_as_a_failure(self):
+        rpc, _ = self.server("busy")
+        rpc_type = probe.RPC
+        def local_rpc(_url, timeout):
+            return rpc_type(rpc.url, timeout=timeout)
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['probe', '--metrics']), patch.object(probe, 'RPC', side_effect=local_rpc), \
+             contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(), 0)
+        self.assertIn('rpc_up=0', output.getvalue())
 
     def test_absolute_deadline_bounds_trickling_response(self):
         rpc, _ = self.server("trickle")
