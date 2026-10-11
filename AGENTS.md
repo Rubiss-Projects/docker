@@ -171,8 +171,11 @@ The watchdog can recreate all running WSL Compose stacks to repair Docker Deskto
 bind mounts. That operation produces a burst of Uptime Kuma alerts unless a
 maintenance window is active. Before manual Docker Desktop recovery, check the
 task state and either let it own recovery or temporarily disable it; always
-re-enable it afterward. The nightly maintenance task uses the same shared startup
-logic and a maintenance lock, so never run a competing manual restart.
+re-enable it afterward. The former nightly restart task is disabled; its entry
+point now delegates to the same service-aware watchdog. Never run a competing
+manual restart. See `scripts/docker-watchdog/README.md` for restart admission,
+validation, installation, and backout. Control-plane failure alone must not
+interrupt working services.
 
 # New Service Setup
 
