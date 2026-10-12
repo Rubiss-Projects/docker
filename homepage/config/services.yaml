@@ -21,6 +21,7 @@
 - Hardware:
     - APC UPS:
         icon: mdi-power-plug-battery
+        href: https://grafana.benlawson.dev/d/apc-ups
         description: BR1500MS2 · monitoring only
         widget:
           type: apcups

@@ -2,8 +2,10 @@
 
 The BR1500MS2 data cable is connected directly to Ben-server. Native Windows
 apcupsd reads USB telemetry; Homepage's official `apcups` widget reads its NIS
-status protocol. This is a host service, not a Docker Compose stack. No USB/IP,
-public proxy, additional container or firewall opening is needed.
+status protocol. This directory configures a native host service. The separate
+[apcupsd-exporter](../apcupsd-exporter/README.md) container reads the same NIS
+endpoint for Prometheus/Grafana history. No USB/IP, public proxy or new firewall
+opening is needed.
 
 **Monitoring only:** this setup cannot provide unattended safe shutdown.
 `apccontrol.bat` deliberately performs no actions, and battery/runtime/time
@@ -30,7 +32,8 @@ shutdown plan. Do not use `apctest`, `--killpower`, or an unplug test for teleme
   NIS has no authentication; keep it off the LAN and public internet.
 
 The files here are the reproducible configuration. Changing them in Git does
-**not** deploy the native service; deployment automation only updates Homepage.
+**not** deploy the native service. Homepage, the exporter and the existing
+Prometheus/Grafana containers use the normal repository deployment process.
 
 ## Reinstall or update deliberately
 
@@ -83,6 +86,11 @@ do not transplant this Windows configuration. Review the service's packaged
 shutdown/kill-power hooks, Docker-to-host routing and local firewall together.
 The current localhost/`host.docker.internal` pairing is specifically verified
 for Docker Desktop and must be replaced or explicitly tested on native Linux.
+Both Homepage and the exporter need the new route; adding only a `host-gateway`
+alias does not expose a Linux loopback-only NIS listener to bridge containers.
+Preserve the exporter scrape's stable labels and migrate the Prometheus data
+volume to retain UPS history. Verify fresh readings after changing USB access,
+the host UPS service and the restricted listener/firewall path.
 Keep network equipment powered for shutdown signaling and finish server writes
 before stopping NAS storage. That coordinated policy remains separate work.
 
