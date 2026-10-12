@@ -40,7 +40,13 @@ a tested policy; monitoring alone does not protect against battery exhaustion.
 - Prometheus uses job `apcupsd`, target `apcupsd-exporter:9162`, and stable
   instance label `ben-server-ups` at a 15-second interval.
 
-Start or update from WSL using the usual deployment process:
+### Required first-deployment handoff
+
+The push-to-main runner intentionally leaves stopped/new stacks stopped
+(`DOCKER_DEPLOY_START_STOPPED=false`). Merging this change therefore does not
+bootstrap the exporter. After the merge-triggered deployment finishes, the
+deployment operator must run the following from WSL in the clean canonical
+checkout before declaring this integration live:
 
 ```bash
 cd /mnt/e/Docker/apcupsd-exporter
@@ -49,7 +55,10 @@ docker compose up -d
 docker logs --tail 30 apcupsd-exporter
 ```
 
-Validate Prometheus configuration before reloading it without a restart:
+The runner's `docker compose up -d` also does not reload changes inside the
+Prometheus configuration bind mount. As part of that same first deployment,
+validate the installed configuration and reload the running process without a
+restart. Run the second command only if validation succeeds:
 
 ```bash
 docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
@@ -61,6 +70,13 @@ Check the `apcupsd` target and live metric values in Prometheus/Grafana against
 that the USB device is communicating. Confirm the current UPS state and timestamp;
 missing communication must not appear as a healthy cached reading. Do not test
 the integration by unplugging power or running `apctest`/`--killpower`.
+
+Complete the handoff only after `up{job="apcupsd"}` is `1`, UPS status is current,
+the Grafana panels show fresh data, and the Homepage card opens the dashboard.
+Repeat the validated reload whenever the scrape configuration changes; later
+exporter updates can use the runner once the stack is running. This explicit
+bootstrap preserves the repository policy of not starting unrelated stopped
+services.
 
 ## Backout and native Linux migration
 
