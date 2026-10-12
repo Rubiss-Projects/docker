@@ -19,6 +19,12 @@
         siteMonitor: http://192.168.50.40:18089/healthz
 
 - Hardware:
+    - APC UPS:
+        icon: mdi-power-plug-battery
+        description: BR1500MS2 · monitoring only
+        widget:
+          type: apcups
+          url: tcp://host.docker.internal:3551
     - NVIDIA GPU:
         icon: nvidia.svg
         description: GPU stats
