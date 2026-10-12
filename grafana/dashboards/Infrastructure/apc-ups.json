@@ -1,0 +1,1225 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "APC UPS monitoring adapted from Grafana.com dashboard 21119, revision 1, by racefpv. Observations only; no shutdown or restart actions.",
+  "editable": false,
+  "gnetId": 21119,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Community dashboard source",
+      "type": "link",
+      "url": "https://grafana.com/grafana/dashboards/21119-apc-ups-dashboard/",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "none",
+          "displayName": "${__field.labels.status}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "type": "stat",
+      "id": 14,
+      "title": "UPS status",
+      "description": "Current status reported by apcupsd, including ONBATT and COMMLOST. An unavailable scrape must not be read as ONLINE.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "apcupsd_info{job=\"apcupsd\"} and on(job, instance) (up{job=\"apcupsd\"} == 1)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "noValue": "Unavailable",
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 25,
+      "title": "Exporter scrape",
+      "description": "Whether Prometheus successfully read the exporter and apcupsd NIS. Check UPS status for USB communication faults. This is not a battery self-test.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "up{job=\"apcupsd\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 10,
+      "title": "Battery charge",
+      "description": "Reported charge level. A full charge does not establish battery health or available runtime.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_charge_percent{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "percent",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 15,
+      "title": "UPS load",
+      "description": "Reported output load as a percentage of the UPS nominal watt rating.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_ups_load_percent{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "watt",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 26,
+      "title": "Estimated load",
+      "description": "Estimated output watts = nominal watts × load percent ÷ 100. This is not measured wall-input power.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_nominal_power_watts{job=\"apcupsd\"} * apcupsd_ups_load_percent{job=\"apcupsd\"} / 100) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 11,
+      "title": "Estimated runtime",
+      "description": "UPS estimate at the current load, in seconds. Not a tested runtime guarantee.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_time_left_seconds{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_nominal_power_watts{job=\"apcupsd\"} * apcupsd_ups_load_percent{job=\"apcupsd\"} / 100) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Estimated load over time",
+      "type": "timeseries",
+      "description": "Nominal output watts × load percent ÷ 100. Missing or failed telemetry leaves a gap."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_time_left_seconds{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Estimated runtime over time",
+      "type": "timeseries",
+      "description": "Reported remaining runtime at the load present at each sample; not an outage-duration guarantee."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "volt",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 7
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_line_volts{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Input",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_line_nominal_volts{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Nominal",
+          "refId": "B"
+        }
+      ],
+      "title": "AC input voltage",
+      "type": "timeseries",
+      "description": "AC input voltage reported by the UPS."
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "volt",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 7
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_volts{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Battery",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_nominal_volts{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Nominal",
+          "refId": "B"
+        }
+      ],
+      "title": "Battery voltage",
+      "type": "timeseries",
+      "description": "Battery-pack voltage reported by the UPS."
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 7,
+      "title": "Current time on battery",
+      "description": "Elapsed time on battery during the current power event.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_time_on_seconds{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 8,
+      "title": "Cumulative time on battery",
+      "description": "Daemon-reported cumulative time on battery; can reset when apcupsd restarts.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_cumulative_time_on_seconds_total{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 21,
+      "title": "Transfers to battery",
+      "description": "Daemon-reported transfer count; can reset when apcupsd restarts.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_battery_number_transfers_total{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "noValue": "Unavailable",
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 20,
+      "title": "Nominal capacity",
+      "description": "Maximum nominal output power reported by the UPS; 900 W for the BR1500MS2.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_nominal_power_watts{job=\"apcupsd\"}) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Not recorded"
+                }
+              }
+            }
+          ],
+          "noValue": "Unavailable",
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 19,
+      "title": "Last transfer to battery",
+      "description": "Last transfer recorded by apcupsd since its startup. Zero means no timestamp was recorded, not January 1970.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_last_transfer_on_battery_time_seconds{job=\"apcupsd\"} * 1000) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Not recorded"
+                }
+              }
+            }
+          ],
+          "noValue": "Unavailable",
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 18,
+      "title": "Last transfer to utility",
+      "description": "Last return to utility power recorded by apcupsd since its startup. Zero means no timestamp was recorded, not January 1970.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 22,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_last_transfer_off_battery_time_seconds{job=\"apcupsd\"} * 1000) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Not recorded"
+                }
+              }
+            }
+          ],
+          "noValue": "Unavailable",
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "type": "stat",
+      "id": 17,
+      "title": "Last self-test timestamp",
+      "description": "Last self-test timestamp reported by apcupsd. A timestamp alone does not indicate that the test passed. Zero means no timestamp was recorded, not January 1970.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 22,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(apcupsd_last_selftest_time_seconds{job=\"apcupsd\"} * 1000) and on(job, instance) (up{job=\"apcupsd\"} == 1) and on(job, instance, ups) apcupsd_info{job=\"apcupsd\",status!~\".*COMMLOST.*\"}",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{ups}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": [
+    "apc",
+    "ups"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "15s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "timezone": "browser",
+  "title": "APC UPS",
+  "uid": "apc-ups",
+  "version": 1
+}
