@@ -37,6 +37,7 @@ async function fixture(t, contents) {
     run: async (...args) => {
       const { stdout } = await execute(process.execPath, [
         path.join(__dirname, 'autobrr_irc_watchdog.js'), '--state-file', stateFile,
+        '--backup-dir', path.join(directory, 'private-backups'),
         '--secrets-file', secretsFile, '--api-base', `${base}/api`, '--metrics-url', `${base}/metrics`,
         '--failure-threshold', '1', ...args,
       ]);
@@ -51,6 +52,7 @@ test('zero-filled state is preserved and reset without bypassing cooldown', asyn
   const result = await f.run();
   assert.equal(result.stateRecovery.action, 'reset-corrupt-state');
   assert.deepEqual(fs.readFileSync(result.stateRecovery.backup), corrupt);
+  assert.equal(path.dirname(result.stateRecovery.backup), path.join(f.directory, 'private-backups'));
   assert.equal(result.networks[0].action, 'cooldown');
   assert.equal(f.restarts(), 0);
   const again = await f.run();
@@ -91,4 +93,18 @@ test('first run without state uses normal restart admission', async (t) => {
   assert.equal(result.stateRecovery, null);
   assert.equal(result.networks[0].action, 'restarted');
   assert.equal(f.restarts(), 1);
+});
+
+test('symlinked state fails without copying the target or restarting', { skip: process.platform === 'win32' }, async (t) => {
+  const f = await fixture(t);
+  const target = path.join(f.directory, 'private-secret.json');
+  fs.writeFileSync(target, '{"private":"test-only"}');
+  fs.symlinkSync(target, f.stateFile);
+  await assert.rejects(f.run(), (error) => {
+    assert.match(JSON.parse(error.stdout).error, /ELOOP/);
+    return true;
+  });
+  assert.equal(fs.existsSync(path.join(f.directory, 'private-backups')), false);
+  assert.equal(fs.lstatSync(f.stateFile).isSymbolicLink(), true);
+  assert.equal(f.restarts(), 0);
 });
