@@ -152,6 +152,11 @@ n8n can connect to all services in this infrastructure:
 - `irc-recovery-policies.json` is git-crypt protected because provider names, nicks, auth modes, and secret-key mappings are private.
 - `scripts/autobrr_irc_recovery.js` performs provider-specific recovery from Grafana alerts.
 - `scripts/autobrr_irc_watchdog.js` is the scheduled missed-alert fallback.
+- If watchdog state is malformed, the fallback preserves a `.corrupt-*` copy,
+  resets failure counters, and waits a full cooldown before restarting any
+  network. Dry runs only report the corruption. State writes are flushed before
+  atomic replacement. Run `node --test n8n/scripts/autobrr_irc_watchdog.test.js`
+  to verify recovery and cooldown behavior.
 - Recovery credentials and the recovery API key live only in git-crypt protected `irc-recovery-secrets.json`. This file is intentionally separate from Compose dotenv files so `$` and other password characters are never interpolated by Compose.
 
 ## Sunday Edge autoscaling

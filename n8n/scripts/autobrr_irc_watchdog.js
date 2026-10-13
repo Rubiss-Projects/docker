@@ -36,13 +36,28 @@ function readSecret(file, key) {
   return values[key];
 }
 
-function loadState() {
+function loadState(networks, now) {
   try {
     const value = JSON.parse(fs.readFileSync(config.stateFile, 'utf8'));
-    return value && typeof value === 'object' ? value : { networks: {} };
+    const isObject = (item) => item !== null && typeof item === 'object' && !Array.isArray(item);
+    if (!isObject(value) || !isObject(value.networks) || !Object.values(value.networks).every((item) =>
+      isObject(item) && Number.isSafeInteger(item.failures) && item.failures >= 0 &&
+      (item.lastRestartAt === null || (typeof item.lastRestartAt === 'string' && Number.isFinite(Date.parse(item.lastRestartAt))))
+    )) throw new SyntaxError('Invalid watchdog state structure');
+    return { state: value, stateRecovery: null };
   } catch (error) {
-    if (error.code === 'ENOENT') return { networks: {} };
-    throw new Error(`Cannot read watchdog state: ${error.message}`);
+    if (error.code === 'ENOENT') return { state: { networks: {} }, stateRecovery: null };
+    if (!(error instanceof SyntaxError)) throw new Error(`Cannot read watchdog state: ${error.message}`);
+
+    // Preserve evidence and wait a full cooldown when prior restart times are lost.
+    const backup = `${config.stateFile}.corrupt-${now}-${process.pid}`;
+    if (!config.dryRun) fs.copyFileSync(config.stateFile, backup, fs.constants.COPYFILE_EXCL);
+    return {
+      state: { networks: Object.fromEntries(networks.filter((network) => network.enabled).map((network) =>
+        [network.name, { failures: 0, lastRestartAt: new Date(now).toISOString() }]
+      )) },
+      stateRecovery: { action: config.dryRun ? 'would-reset-corrupt-state' : 'reset-corrupt-state', backup: config.dryRun ? null : backup },
+    };
   }
 }
 
@@ -50,7 +65,7 @@ function saveState(state) {
   if (config.dryRun) return;
   fs.mkdirSync(path.dirname(config.stateFile), { recursive: true });
   const temporary = `${config.stateFile}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+  fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600, flush: true });
   fs.renameSync(temporary, config.stateFile);
 }
 
@@ -87,9 +102,8 @@ async function main() {
   const metrics = await metricsResponse.text();
   const monitored = metricByNetwork(metrics, 'autobrr_irc_channel_monitored_total');
   const enabledChannels = metricByNetwork(metrics, 'autobrr_irc_channel_enabled_total');
-  const state = loadState();
-  state.networks ||= {};
   const now = Date.now();
+  const { state, stateRecovery } = loadState(networks, now);
   const cooldownMs = config.cooldownMinutes * 60_000;
   const results = [];
 
@@ -133,7 +147,7 @@ async function main() {
   saveState(state);
 
   const events = results.filter((item) => !item.healthy || item.action !== 'none');
-  process.stdout.write(`${JSON.stringify({ ok: true, checkedAt: new Date(now).toISOString(), dryRun: config.dryRun, events, networks: results })}\n`);
+  process.stdout.write(`${JSON.stringify({ ok: true, checkedAt: new Date(now).toISOString(), dryRun: config.dryRun, stateRecovery, events, networks: results })}\n`);
 }
 
 main().catch((error) => {
