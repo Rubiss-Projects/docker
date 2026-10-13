@@ -23,6 +23,7 @@ const config = {
   metricsUrl: option('metrics-url', process.env.AUTOBRR_METRICS_URL || 'http://autobrr:9074/metrics'),
   secretsFile: option('secrets-file', process.env.AUTOBRR_IRC_SECRETS_FILE || '/mnt/e/Docker/n8n/irc-recovery-secrets.json'),
   stateFile: option('state-file', process.env.AUTOBRR_IRC_STATE_FILE || '/mnt/e/Docker/autobrr/config/.irc-watchdog-state.json'),
+  backupDir: option('backup-dir', '/root/.n8n/recovery/irc-watchdog'),
   failureThreshold: Number(option('failure-threshold', process.env.AUTOBRR_IRC_FAILURE_THRESHOLD || 3)),
   cooldownMinutes: Number(option('cooldown-minutes', process.env.AUTOBRR_IRC_COOLDOWN_MINUTES || 30)),
   dryRun: process.argv.includes('--dry-run'),
@@ -37,8 +38,17 @@ function readSecret(file, key) {
 }
 
 function loadState(networks, now) {
+  let contents;
   try {
-    const value = JSON.parse(fs.readFileSync(config.stateFile, 'utf8'));
+    // Open once without following links from autobrr's writable config directory.
+    const descriptor = fs.openSync(config.stateFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      if (!fs.fstatSync(descriptor).isFile()) throw new Error('Watchdog state must be a regular file');
+      contents = fs.readFileSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    const value = JSON.parse(contents.toString('utf8'));
     const isObject = (item) => item !== null && typeof item === 'object' && !Array.isArray(item);
     if (!isObject(value) || !isObject(value.networks) || !Object.values(value.networks).every((item) =>
       isObject(item) && Number.isSafeInteger(item.failures) && item.failures >= 0 &&
@@ -50,8 +60,11 @@ function loadState(networks, now) {
     if (!(error instanceof SyntaxError)) throw new Error(`Cannot read watchdog state: ${error.message}`);
 
     // Preserve evidence and wait a full cooldown when prior restart times are lost.
-    const backup = `${config.stateFile}.corrupt-${now}-${process.pid}`;
-    if (!config.dryRun) fs.copyFileSync(config.stateFile, backup, fs.constants.COPYFILE_EXCL);
+    const backup = path.join(config.backupDir, `state.corrupt-${now}-${process.pid}`);
+    if (!config.dryRun) {
+      fs.mkdirSync(config.backupDir, { recursive: true, mode: 0o700 });
+      fs.writeFileSync(backup, contents, { flag: 'wx', mode: 0o600, flush: true });
+    }
     return {
       state: { networks: Object.fromEntries(networks.filter((network) => network.enabled).map((network) =>
         [network.name, { failures: 0, lastRestartAt: new Date(now).toISOString() }]
