@@ -1,0 +1,20 @@
+# Merge this job into config/prometheus.yml ONLY after the live validation
+# described in README.md. This file is outside the mounted config directory.
+# NAS_LAN_IP is an explicit placeholder, not Prometheus environment expansion.
+scrape_configs:
+  - job_name: qnap-snmp
+    scrape_interval: 60s
+    scrape_timeout: 45s
+    metrics_path: /snmp
+    params:
+      auth: [qnap_v3]
+      module: [qnap, qnap_interfaces]
+    static_configs:
+      - targets: [NAS_LAN_IP]
+        labels:
+          instance: qnap-nas
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: snmp-exporter:9116
