@@ -19,6 +19,13 @@
         siteMonitor: http://192.168.50.40:18089/healthz
 
 - Hardware:
+    - QNAP NAS:
+        icon: qnap.png
+        href: https://nas.benlawson.dev/
+        description: TS-664 · awaiting drive installation
+        siteMonitor: http://192.168.50.91:8080/
+        # Enable the authenticated widget after initialization and storage validation.
+        # See docs/qnap-monitoring.md for the account, secrets and acceptance checks.
     - APC UPS:
         icon: mdi-power-plug-battery
         href: https://grafana.benlawson.dev/d/apc-ups

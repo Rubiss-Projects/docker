@@ -1,0 +1,37 @@
+# Candidate collection set, not an snmp_exporter runtime configuration.
+# Generate against NAS.mib downloaded from the initialized QuTS hero NAS;
+# confirm each object's type, unit and presence before enabling collection.
+# Empty auths deliberately provide no default SNMP v1/v2 community.
+auths: {}
+modules:
+  qnap:
+    walk:
+      # Names used by Grafana community dashboard 9330, revision 1.
+      - cpuUsage
+      - systemCPU-UsageEX
+      - systemTemperatureEX
+      - enclosureSystemTemp
+      - hdTemperatureEX
+      - diskSmartInfo
+      # Inspect these fields first: some firmware exposes formatted strings.
+      # No memory/volume arithmetic is provisioned until their units are proven.
+      - systemTotalMemEX
+      - systemFreeMemEX
+      - sysVolumeTotalSizeEX
+      - sysVolumeFreeSizeEX
+    timeout: 5s
+    retries: 1
+  qnap_interfaces:
+    walk:
+      - IF-MIB::ifHCInOctets
+      - IF-MIB::ifHCOutOctets
+      - IF-MIB::ifHighSpeed
+      - IF-MIB::ifOperStatus
+    lookups:
+      - source_indexes: [ifIndex]
+        lookup: IF-MIB::ifName
+    overrides:
+      ifName:
+        ignore: true
+    timeout: 5s
+    retries: 1
