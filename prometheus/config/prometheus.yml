@@ -44,6 +44,43 @@ scrape_configs:
         labels:
           instance: ben-server-ups
 
+  # Read-only NAS telemetry. No disk tests or recovery actions are triggered.
+  - job_name: qnap-snmp
+    scrape_interval: 60s
+    scrape_timeout: 45s
+    metrics_path: /snmp
+    params:
+      auth: [qnap_v3]
+      module: [qnap, qnap_interfaces]
+    static_configs:
+      - targets: ['192.168.50.91']
+        labels:
+          instance: qnap-nas
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: snmp-exporter:9116
+    metric_relabel_configs:
+      # SNMP diskID includes the two M.2 slots; it is not the SATA bay number.
+      # Require both native ID and recorded serial so a move/replacement is visible.
+      - source_labels: [__name__]
+        regex: 'disk(Status|Temperature)'
+        target_label: bay
+        replacement: unmapped
+      - source_labels: [diskID, diskSerialNumber]
+        regex: '3;ZR90KK6H'
+        target_label: bay
+        replacement: '1'
+      - source_labels: [diskID, diskSerialNumber]
+        regex: '4;ZR90KJ5M'
+        target_label: bay
+        replacement: '2'
+      - source_labels: [diskID, diskSerialNumber]
+        regex: '5;ZR90KN6W'
+        target_label: bay
+        replacement: '3'
+
   # Native Ubuntu proxy: this exposes metrics, not Caddy's configuration API.
   - job_name: caddy
     scrape_interval: 15s

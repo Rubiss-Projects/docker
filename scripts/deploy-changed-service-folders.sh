@@ -17,7 +17,7 @@ LOCK_WAIT_SECONDS=${DOCKER_DEPLOY_LOCK_WAIT_SECONDS:-600}
 KUMA_MAINTENANCE_ENABLED=${DOCKER_DEPLOY_KUMA_MAINTENANCE:-true}
 KUMA_MAINTENANCE_TTL_MINUTES=${DOCKER_DEPLOY_KUMA_MAINTENANCE_TTL_MINUTES:-120}
 CRITICAL_STACK_ORDER=(socket-proxy uptime-kuma plex swag)
-PRIORITY_STACK_ORDER=(tracearr)
+PRIORITY_STACK_ORDER=(tracearr snmp-exporter)
 WINDOWS_COMPOSE_STACKS=(cadvisor)
 WINDOWS_POWERSHELL=${DOCKER_DEPLOY_WINDOWS_POWERSHELL:-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}
 KUMA_MAINTENANCE_IDS=()
@@ -93,6 +93,9 @@ deploy_windows_stack() {
 
 stack_dependencies() {
   case "$1" in
+    prometheus)
+      printf '%s\n' snmp-exporter
+      ;;
     tracearr)
       printf '%s\n' plex
       ;;
@@ -330,6 +333,9 @@ verify_stack_readiness() {
   local stack_dir=$1
 
   case "$stack_dir" in
+    snmp-exporter)
+      wait_container_ready snmp-exporter 120
+      ;;
     ai-assistant)
       wait_container_ready ai-assistant-reviewer 180
       wait_container_ready ai-assistant-browser 180
