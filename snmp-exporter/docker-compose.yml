@@ -29,13 +29,8 @@ services:
       retries: 3
       start_period: 10s
     networks: [proxynet]
+    # Access NAS metrics through the existing Grafana entry on Homepage.
     labels:
-      - homepage.group=Observability
-      - homepage.name=QNAP Metrics
-      - homepage.icon=prometheus.png
-      - homepage.href=https://grafana.benlawson.dev/d/qnap-nas
-      - homepage.description=NAS temperatures and system history
-      - homepage.siteMonitor=http://snmp-exporter:9116/metrics
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.url=http://snmp-exporter:9116/metrics
       - swag.uptime-kuma.monitor.parent=Observability
