@@ -609,6 +609,41 @@ refresh_dependent_stack() {
   )
 }
 
+reload_prometheus_configuration() {
+  local runtime_url=http://127.0.0.1:9090/api/v1/status/runtimeinfo
+  local deadline=$((SECONDS + 60))
+  local previous_reload= runtime_info
+
+  docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
+  # A recreated container may still be starting after Compose returns.
+  while (( SECONDS < deadline )); do
+    if previous_reload=$(docker exec prometheus wget -q -T 5 -O - "$runtime_url" \
+      | jq -er 'select(.status == "success") | .data.lastConfigTime | select(type == "string" and length > 0)'); then
+      break
+    fi
+    sleep 2
+  done
+  [[ -n "$previous_reload" ]] || die "Prometheus runtime information is unavailable before configuration reload"
+
+  # The runtime API timestamp has second precision; avoid matching a reload
+  # that just completed during container startup.
+  sleep 1
+  # Signal inside it: Docker's kill API can mark it manually stopped.
+  docker exec prometheus /bin/sh -c 'kill -HUP 1'
+  deadline=$((SECONDS + 60))
+  while (( SECONDS < deadline )); do
+    if runtime_info=$(docker exec prometheus wget -q -T 5 -O - "$runtime_url") \
+      && jq -e --arg previous "$previous_reload" \
+        '.status == "success" and .data.reloadConfigSuccess == true and (.data.lastConfigTime | type == "string") and .data.lastConfigTime > $previous' \
+        <<<"$runtime_info" >/dev/null; then
+      log "Validated and confirmed Prometheus configuration reload"
+      return 0
+    fi
+    sleep 2
+  done
+  die "Prometheus did not confirm a successful new configuration reload"
+}
+
 deploy_stack() {
   local stack_dir=$1
   local stack_path="$REPO_DIR/$stack_dir"
@@ -662,6 +697,18 @@ deploy_stack() {
     if [[ "$DRY_RUN" != "true" ]]; then
       verify_config_mounts "$stack_dir"
       verify_stack_readiness "$stack_dir"
+      case "$stack_dir" in
+        prometheus)
+          # Compose does not recreate a container for bind-mounted YAML changes.
+          reload_prometheus_configuration
+          ;;
+        snmp-exporter)
+          # The SWAG mod normally syncs only at SWAG startup. Sync the new
+          # monitor explicitly without restarting the shared reverse proxy.
+          wait_container_url swag http://uptime-kuma:3001/ 60
+          docker exec swag python3 /app/auto-uptime-kuma.py
+          ;;
+      esac
       if [[ "$stack_dir" == "sunday-edge" ]]; then
         python3 "$REPO_DIR/scripts/sunday-edge-autoscale.py" --reset-control
       fi
