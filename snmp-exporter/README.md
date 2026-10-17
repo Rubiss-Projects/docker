@@ -99,6 +99,10 @@ not backfilled into this time series database.
 Use the repository PR/review workflow. The deploy helper orders this exporter
 before Prometheus and waits for its HTTP health check. It deliberately does not
 restart Prometheus merely because the exporter changed.
+After deploying Prometheus it validates the mounted configuration, sends HUP
+inside the container, and confirms a new successful reload through the runtime
+API, so config-only changes take effect. After deploying this
+exporter it invokes SWAG's Kuma sync script without restarting SWAG.
 
 The deployment runner does not start previously stopped/new stacks. For first
 activation, explicitly bootstrap this service from WSL under the existing
