@@ -1,0 +1,57 @@
+auths: {}
+modules:
+  qnap:
+    walk:
+      - QTS-MIB::systemCPU-Usage
+      - QTS-MIB::cpuTemperature
+      - QTS-MIB::systemTemperature
+      - QTS-MIB::enclosureSystemTemp
+      - QTS-MIB::diskTemperature
+      - QTS-MIB::diskStatus
+      - QTS-MIB::systemTotalMem
+      - QTS-MIB::systemAvailableMem
+      - QTS-MIB::sysFanSpeed
+    lookups:
+      - source_indexes: [diskIndex]
+        lookup: QTS-MIB::diskSerialNumber
+      - source_indexes: [diskIndex]
+        lookup: QTS-MIB::diskID
+      - source_indexes: [enclosureIndex]
+        lookup: QTS-MIB::enclosureName
+      - source_indexes: [sysFanIndex]
+        lookup: QTS-MIB::sysFanDescr
+    overrides:
+      diskSerialNumber:
+        type: DisplayString
+        ignore: true
+      diskID:
+        ignore: true
+      diskStatus:
+        type: DisplayString
+      enclosureName:
+        type: DisplayString
+        ignore: true
+      sysFanDescr:
+        type: DisplayString
+        ignore: true
+      # QNAP declares these as Counter64, but memory levels are gauges.
+      systemTotalMem:
+        type: gauge
+      systemAvailableMem:
+        type: gauge
+    timeout: 5s
+    retries: 1
+  qnap_interfaces:
+    walk:
+      - IF-MIB::ifHCInOctets
+      - IF-MIB::ifHCOutOctets
+      - IF-MIB::ifHighSpeed
+      - IF-MIB::ifOperStatus
+    lookups:
+      - source_indexes: [ifIndex]
+        lookup: IF-MIB::ifName
+    overrides:
+      ifName:
+        ignore: true
+    timeout: 5s
+    retries: 1

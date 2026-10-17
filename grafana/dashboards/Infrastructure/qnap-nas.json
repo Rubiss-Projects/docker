@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "QNAP NAS monitoring. Collection is staged until NAS initialization and validation. CPU and temperature query candidates are based on Grafana.com dashboard 9330 revision 1; no metric compatibility or device health is implied by this template.",
+  "description": "Read-only QuTS hero telemetry collected every minute. Drive status is the NAS report, not qualification acceptance. Invalid temperature readings remain unavailable.",
   "editable": false,
   "graphTooltip": 1,
   "id": null,
@@ -14,15 +14,15 @@
       "targetBlank": true
     },
     {
-      "title": "Setup and activation",
+      "title": "Monitoring runbook",
       "type": "link",
       "url": "https://github.com/Rubiss-Projects/docker/blob/main/docs/qnap-monitoring.md",
       "targetBlank": true
     },
     {
-      "title": "Community dashboard reference",
+      "title": "Migration progress",
       "type": "link",
-      "url": "https://grafana.com/grafana/dashboards/9330-qnap-snmp/",
+      "url": "https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress",
       "targetBlank": true
     }
   ],
@@ -31,7 +31,7 @@
       "id": 1,
       "type": "stat",
       "title": "SNMP collection",
-      "description": "No configured scrape target exists during diskless preparation. Collecting means Prometheus can scrape the NAS through the exporter; it does not certify the disks or pool.",
+      "description": "Prometheus can collect the configured SNMP modules. This does not certify any drive or pool.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -39,13 +39,13 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 8,
-        "h": 5
+        "w": 5,
+        "h": 4
       },
       "fieldConfig": {
         "defaults": {
           "unit": "none",
-          "noValue": "Awaiting SNMP setup",
+          "noValue": "Collection unavailable",
           "color": {
             "mode": "thresholds"
           },
@@ -112,30 +112,30 @@
     {
       "id": 2,
       "type": "text",
-      "title": "Setup pending",
+      "title": "Drive qualification",
       "gridPos": {
-        "x": 8,
+        "x": 5,
         "y": 0,
-        "w": 16,
-        "h": 5
+        "w": 19,
+        "h": 4
       },
       "options": {
         "mode": "markdown",
-        "content": "The NAS is diskless and has not been initialized. SNMP collection will be enabled after the drives arrive and monitoring access is configured.\n\nThe charts below have no samples yet. CPU, temperature and network values must be checked against QuTS hero before activation. RAM, pool capacity and drive health panels will follow that validation.\n\n[Activation steps](https://github.com/Rubiss-Projects/docker/blob/main/docs/qnap-monitoring.md) · Monitoring only; no restart or shutdown automation."
+        "content": "Readings refresh every minute; history starts when collection begins and is retained for 15 days.\n\nDrive status comes directly from the NAS and does **not** mean a drive passed qualification. Bay 3 has a known fault; its unsupported temperature stays unavailable. Pool capacity will be added after pool creation and validation.\n\n[Erase/scan progress and next steps](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress)"
       }
     },
     {
       "id": 3,
       "type": "timeseries",
       "title": "CPU usage",
-      "description": "Candidate QNAP numeric gauges from community dashboard 9330. Confirm QuTS hero supplies percent values and matching names before enabling this collector.",
+      "description": "QuTS hero numeric CPU usage in percent, compared with Resource Monitor.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
       },
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 4,
         "w": 12,
         "h": 8
       },
@@ -157,7 +157,9 @@
             "scaleDistribution": {
               "type": "linear"
             }
-          }
+          },
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
@@ -179,38 +181,28 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "systemCPU_UsageEX{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "expr": "systemCPU_Usage{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
           "legendFormat": "System",
           "refId": "A",
           "instant": false,
-          "range": true
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "adw07verg2qrkd"
-          },
-          "editorMode": "code",
-          "expr": "cpuUsage{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "CPU {{cpuIndex}}",
-          "refId": "B",
-          "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         }
-      ]
+      ],
+      "interval": "1m"
     },
     {
       "id": 4,
       "type": "timeseries",
       "title": "Temperatures",
-      "description": "Candidate QNAP sensors from community dashboard 9330. Validate numeric Celsius values, sensor labels and unsupported/sentinel values against the NAS before activation.",
+      "description": "Celsius, compared with Hardware Information. Zero/negative sentinel readings are excluded; Bay 3 reports -1 and must not appear as 0\u00b0C.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
       },
       "gridPos": {
         "x": 12,
-        "y": 5,
+        "y": 4,
         "w": 12,
         "h": 8
       },
@@ -254,11 +246,12 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "systemTemperatureEX{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "System",
+          "expr": "(cpuTemperature{job=\"qnap-snmp\",instance=\"qnap-nas\"} > 0) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "CPU",
           "refId": "A",
           "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -266,11 +259,12 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "enclosureSystemTemp{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "Enclosure {{enclosureIndex}}",
+          "expr": "(systemTemperature{job=\"qnap-snmp\",instance=\"qnap-nas\"} > 0) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "System",
           "refId": "B",
           "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -278,27 +272,29 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "hdTemperatureEX{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "Disk {{hdIndex}}",
+          "expr": "(diskTemperature{job=\"qnap-snmp\",instance=\"qnap-nas\"} > 0) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "Bay {{bay}} \u00b7 {{diskSerialNumber}}",
           "refId": "C",
           "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         }
-      ]
+      ],
+      "interval": "1m"
     },
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Network throughput",
-      "description": "Standard IF-MIB 64-bit octet counters converted to bits per second. Confirm interface labels map to the active physical port. No packet counter is used as a byte count.",
+      "title": "10 GbE network throughput",
+      "description": "eth2 (IF-MIB index 4) is the installed 10GbE NIC, verified with the NAS. Counter64 octets are converted to bits/second. A 1-minute minimum interval gives rate queries at least four scrape intervals.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
       },
       "gridPos": {
         "x": 0,
-        "y": 13,
-        "w": 24,
+        "y": 12,
+        "w": 12,
         "h": 8
       },
       "fieldConfig": {
@@ -341,11 +337,12 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "(rate(ifHCInOctets{job=\"qnap-snmp\",instance=\"qnap-nas\"}[$__rate_interval]) * 8) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "Receive {{ifName}} ({{ifIndex}})",
+          "expr": "(rate(ifHCInOctets{job=\"qnap-snmp\",instance=\"qnap-nas\",ifName=\"eth2\"}[$__rate_interval]) * 8) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "Receive",
           "refId": "A",
           "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         },
         {
           "datasource": {
@@ -353,42 +350,264 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "(rate(ifHCOutOctets{job=\"qnap-snmp\",instance=\"qnap-nas\"}[$__rate_interval]) * 8) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
-          "legendFormat": "Send {{ifName}} ({{ifIndex}})",
+          "expr": "(rate(ifHCOutOctets{job=\"qnap-snmp\",instance=\"qnap-nas\",ifName=\"eth2\"}[$__rate_interval]) * 8) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "Send",
           "refId": "B",
           "instant": false,
-          "range": true
+          "range": true,
+          "interval": "1m"
         }
-      ]
+      ],
+      "interval": "1m"
     },
     {
       "id": 6,
-      "type": "text",
-      "title": "Memory and storage",
+      "type": "timeseries",
+      "title": "Memory usage",
+      "description": "Total and available memory are bytes, verified against Resource Monitor (7.55 GiB usable). QNAP declares Counter64 storage but these levels are gauges. Usage = 100 \u00d7 (1 \u2212 available / total).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
       "gridPos": {
-        "x": 0,
-        "y": 21,
+        "x": 12,
+        "y": 12,
         "w": 12,
-        "h": 4
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "No samples",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "spanNulls": false,
+            "showPoints": "never",
+            "axisPlacement": "auto",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
       },
       "options": {
-        "mode": "markdown",
-        "content": "Awaiting the NAS's MIB and real measurements. QNAP memory and volume fields can contain formatted text. Capacity and utilization will be added once numeric units and ZFS pool/shared-folder meanings are verified.\n\nRAID creation and drive acceptance remain separate setup steps."
-      }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(100 * (1 - systemAvailableMem{job=\"qnap-snmp\",instance=\"qnap-nas\"} / systemTotalMem{job=\"qnap-snmp\",instance=\"qnap-nas\"})) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "Used",
+          "refId": "A",
+          "instant": false,
+          "range": true,
+          "interval": "1m"
+        }
+      ],
+      "interval": "1m"
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "System fans",
+      "description": "Fan RPM compared with Hardware Information. Invalid negative readings are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rotrpm",
+          "noValue": "No samples",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "spanNulls": false,
+            "showPoints": "never",
+            "axisPlacement": "auto",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "(sysFanSpeed{job=\"qnap-snmp\",instance=\"qnap-nas\"} >= 0) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "{{sysFanDescr}}",
+          "refId": "A",
+          "instant": false,
+          "range": true,
+          "interval": "1m"
+        }
+      ],
+      "interval": "1m"
     },
     {
       "id": 7,
-      "type": "text",
-      "title": "Drive health",
+      "type": "table",
+      "title": "NAS-reported drive status",
+      "description": "Raw NAS status, not a completed test. A new or moved drive is shown as unmapped until its native disk ID and serial are reconciled with the physical bay. No result is synthesized for missing drives.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 20,
         "w": 12,
-        "h": 4
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "diskStatus{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "interval": "1m",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "diskIndex": true,
+              "diskID": true
+            },
+            "indexByName": {
+              "bay": 0,
+              "diskSerialNumber": 1,
+              "diskStatus": 2
+            },
+            "renameByName": {
+              "bay": "Bay",
+              "diskSerialNumber": "Drive serial",
+              "diskStatus": "NAS status"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Unknown",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NAS status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Good": {
+                        "text": "Good (NAS report)",
+                        "color": "green"
+                      },
+                      "Abnormal": {
+                        "text": "Abnormal",
+                        "color": "red"
+                      },
+                      "Warning": {
+                        "text": "Warning",
+                        "color": "orange"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "mode": "markdown",
-        "content": "Awaiting drive installation and qualification. SMART states and disk indexes must be matched to physical bays before health panels are added.\n\nA successful SNMP scrape is not a drive-test result."
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Bay",
+            "desc": false
+          }
+        ]
       }
     }
   ],
@@ -415,5 +634,5 @@
   "timezone": "browser",
   "title": "QNAP NAS",
   "uid": "qnap-nas",
-  "version": 1
+  "version": 2
 }

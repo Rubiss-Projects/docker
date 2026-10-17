@@ -1,0 +1,10 @@
+auths:
+  qnap_v3:
+    version: 3
+    security_level: authPriv
+    username: ${QNAP_SNMP_USERNAME}
+    password: ${QNAP_SNMP_AUTH_PASSWORD}
+    auth_protocol: SHA
+    priv_password: ${QNAP_SNMP_PRIV_PASSWORD}
+    # QuTS hero h6.0.2.3591 exposes fixed CBC-DES privacy, not AES.
+    priv_protocol: DES

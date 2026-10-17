@@ -28,6 +28,8 @@ channels-dvr/recordings/*
 
 # Operator-managed configuration that is safe to review/change in GitHub.
 !prometheus/config/prometheus.yml
+!snmp-exporter/config/auth.yml
+!snmp-exporter/config/snmp.yml
 !recyclarr/config/recyclarr.yml
 !recyclarr/config/settings.yml
 !valheim/config/adminlist.txt
