@@ -6,7 +6,7 @@ services:
       - path: .env
       - path: .env.secret
         required: false
-    image: ghcr.io/bitwarden/lite:latest@sha256:f42c5a256face5c59990d515e7d672ff4f029c6d03acb8f0cb0c5839cd27fe2a
+    image: ghcr.io/bitwarden/lite:latest@sha256:94484fe9382df51ad755151ea360663e922e60a32385500454dd1f38045bf6a6
     container_name: bitwarden
     # The image consumes these settings when creating its unprivileged app user.
     environment:
