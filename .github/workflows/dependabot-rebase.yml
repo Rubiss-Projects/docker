@@ -71,7 +71,7 @@ jobs:
             --repo "$REPOSITORY" \
             --state open \
             --author app/dependabot \
-            --json number,body,mergeStateStatus,headRefOid,autoMergeRequest,isDraft \
+            --json number,body,mergeStateStatus,headRefOid,autoMergeRequest,isDraft,statusCheckRollup \
             --limit 100 > "$prs_json"
 
           python3 - "$prs_json" > "$rebase_list" <<'PY'
@@ -83,7 +83,8 @@ jobs:
           from pathlib import Path
 
           prs = json.loads(Path(sys.argv[1]).read_text())
-          update_pattern = re.compile(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)")
+          update_pattern = re.compile(r"Updates `[^`]+` from `?([^`\s]+)`? to `?([^`\s]+)`?")
+          digest_pattern = re.compile(r"^[0-9a-f]{7,64}$")
           version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[-+][0-9A-Za-z._-]+)?$")
           date_pattern = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
           latest_pattern = re.compile(r"^latest-(\d+)$")
@@ -96,7 +97,7 @@ jobs:
                   return False
 
               for old, new in update_pairs:
-                  if old == new:
+                  if old == new or (digest_pattern.fullmatch(old) and digest_pattern.fullmatch(new)):
                       continue
 
                   old_match = version_pattern.fullmatch(old)
@@ -132,7 +133,25 @@ jobs:
           main_sha = subprocess.check_output(['gh', 'api', f'repos/{repo}/branches/main', '--jq', '.commit.sha'], text=True).strip()
           # GitHub can temporarily report UNKNOWN after a merge. Compare commit
           # ancestry instead, and rebase only one PR per successful deployment.
-          candidates = sorted((pr for pr in prs if eligible(pr)), key=lambda pr: pr['number'])
+          def checks_failed(pr):
+              for check in pr.get('statusCheckRollup') or []:
+                  if check.get('__typename') == 'StatusContext':
+                      if check.get('state') in {'ERROR', 'FAILURE'}:
+                          return True
+                  elif check.get('status') == 'COMPLETED' and check.get('conclusion') not in {'SUCCESS', 'NEUTRAL', 'SKIPPED'}:
+                      return True
+              return False
+
+          # Leave broken updates open for repair without blocking unrelated services.
+          # Pending checks still retain their place, preserving serialized deployments.
+          candidates = []
+          for pr in sorted(prs, key=lambda pr: pr['number']):
+              if not eligible(pr):
+                  continue
+              if checks_failed(pr):
+                  print(f'Skipping PR #{pr["number"]}: checks failed', file=sys.stderr)
+                  continue
+              candidates.append(pr)
           selected = candidates[0] if candidates else None
           # Dependabot may rebase other PRs automatically. Only this queue can
           # grant merge eligibility, so those rebases cannot bypass deployment.

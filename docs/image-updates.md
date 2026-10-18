@@ -33,6 +33,10 @@ PR validation runs `python3 scripts/check_image_pins.py` to enforce pins, stable
 LinuxServer aliases, and weekly coverage. Existing Dependabot queue rules still
 require passing PR checks and the previous deployment, and hold major version
 changes for review. Weekly checks do not guarantee that every PR deploys that day.
+The PR workflow only classifies eligibility. The main-push/hourly queue enables
+one update at a time, skips updates with failed checks, and leaves those PRs open
+for repair. Pending checks keep their queue position. Digest-only updates may
+appear as unchanged version tags or as backtick-wrapped hexadecimal hashes.
 New app releases after a check, publisher image build delays, and beta release
 notifications can legitimately appear before the next stable image update.
 

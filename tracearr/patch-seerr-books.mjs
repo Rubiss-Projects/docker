@@ -1,5 +1,5 @@
 // Compatibility for the Seerr books fork; remove when Tracearr supports it upstream.
-// Only the verified Tracearr 2.5.1 modules are accepted. Image updates must review this patch.
+// Only reviewed modules through Tracearr 2.8.3 are accepted. Image updates must review this patch.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -10,7 +10,7 @@ const marker = '// tracearr-seerr-books-compat-v1\n';
 export const patches = [
   {
     file: 'seerrClient.js',
-    hash: 'b97dcc33edbd15729aa5cb295adb4eb2c1ac2e27237248fcf5df8429fea71ed7',
+    hashes: ['b97dcc33edbd15729aa5cb295adb4eb2c1ac2e27237248fcf5df8429fea71ed7'],
     replacements: [
       ['    results: z.array(seerrRequestSchema),', '    results: z.array(seerrRequestSchema),\n    rawResultCount: z.number().int().nonnegative().optional(),'],
       ['        const json = await response.json();', `        const json = await response.json();
@@ -25,7 +25,11 @@ export const patches = [
   },
   {
     file: 'sync.js',
-    hash: '577a716f72a0225be63d4aefbc9095d5ce9a7ce77c30389321be1c9b226ae519',
+    hashes: [
+      '577a716f72a0225be63d4aefbc9095d5ce9a7ce77c30389321be1c9b226ae519',
+      // 2.8.3 records the Seerr version during sync; fetchRows is unchanged.
+      '873982bc2705340fe66601c179a73a6696ed57d655d37eac6b424c1b1c3bddf3',
+    ],
     replacements: [
       ['result.results.length < PAGE_SIZE', '(result.rawResultCount ?? result.results.length) < PAGE_SIZE'],
     ],
@@ -40,10 +44,10 @@ export function transform(source, patch) {
       if (original.split(after).length !== 2) throw new Error(`Invalid patched anchor: ${patch.file}`);
       original = original.replace(after, before);
     }
-    if (sha(original) !== patch.hash) throw new Error(`Changed patched module: ${patch.file}`);
+    if (!patch.hashes.includes(sha(original))) throw new Error(`Changed patched module: ${patch.file}`);
     return source;
   }
-  if (sha(source) !== patch.hash) throw new Error(`Unsupported upstream module: ${patch.file}; review the Seerr books compatibility patch before upgrading`);
+  if (!patch.hashes.includes(sha(source))) throw new Error(`Unsupported upstream module: ${patch.file}; review the Seerr books compatibility patch before upgrading`);
   let result = source;
   for (const [before, after] of patch.replacements) {
     if (result.split(before).length !== 2) throw new Error(`Unexpected upstream anchor: ${patch.file}`);
