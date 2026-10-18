@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   enable-automerge:
-    name: Enable Dependabot auto-merge
+    name: Classify Dependabot update
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.repository == 'Rubiss-Projects/docker' && github.actor == 'dependabot[bot]' && github.event.sender.login == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
@@ -42,7 +42,8 @@ jobs:
           body = pr.get("body") or ""
           title = pr.get("title") or ""
 
-          update_pairs = re.findall(r"Updates `[^`]+` from ([^`\s]+) to ([^`\s]+)", body)
+          update_pairs = re.findall(r"Updates `[^`]+` from `?([^`\s]+)`? to `?([^`\s]+)`?", body)
+          digest_pattern = re.compile(r"^[0-9a-f]{7,64}$")
           version_pattern = re.compile(r"^(?:version-)?v?(\d+)\.(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[-+][0-9A-Za-z._-]+)?$")
           date_pattern = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
           latest_pattern = re.compile(r"^latest-(\d+)$")
@@ -54,7 +55,7 @@ jobs:
               reasons.append("no Dependabot update pairs found")
 
           for old, new in update_pairs:
-              if old == new:
+              if old == new or (digest_pattern.fullmatch(old) and digest_pattern.fullmatch(new)):
                   update_types.append("digest")
                   continue
 
@@ -109,8 +110,10 @@ jobs:
       - name: Report skipped update
         if: steps.classify.outputs.eligible != 'true'
         shell: bash
+        env:
+          REASON: ${{ steps.classify.outputs.reason }}
         run: |
-          printf 'Skipping auto-merge: %s\n' "${{ steps.classify.outputs.reason }}"
+          printf 'Skipping auto-merge: %s\n' "$REASON"
 
       - name: Report queued update
         if: steps.classify.outputs.eligible == 'true'

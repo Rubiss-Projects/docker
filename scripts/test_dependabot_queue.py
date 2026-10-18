@@ -65,6 +65,60 @@ class DependabotQueueTests(unittest.TestCase):
     def test_major_update_not_automerged(self):
         self.assertEqual(self.select([self.pr(292, body='Updates `vendor/app` from 1.0.0 to 2.0.0'), self.pr(293)], {'293': 1}), ['293'])
 
+    def test_failed_checks_release_queue_and_disable_old_automerge(self):
+        for conclusion in ['FAILURE', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED']:
+            with self.subTest(conclusion=conclusion):
+                failed = self.pr(292)
+                failed['statusCheckRollup'] = [dict(status='COMPLETED', conclusion=conclusion)]
+                failed['autoMergeRequest'] = {'mergeMethod': 'REBASE'}
+                self.assertEqual(self.select([failed, self.pr(293)], {'293': 1}), ['293'])
+                self.assertIn('--disable-auto', self.mutations[0])
+                self.assertEqual(self.mutations[0][3], '292')
+
+    def test_failed_legacy_status_releases_queue(self):
+        failed = self.pr(292)
+        failed['statusCheckRollup'] = [{'__typename': 'StatusContext', 'state': 'ERROR'}]
+        self.assertEqual(self.select([failed, self.pr(293)], {'293': 1}), ['293'])
+
+    def test_pending_checks_keep_queue_position(self):
+        pending = self.pr(292)
+        pending['statusCheckRollup'] = [dict(status='IN_PROGRESS', conclusion=None)]
+        self.select([pending, self.pr(293)], {'292': 0})
+        self.assertEqual(self.mutations[0][3], '292')
+
+    def test_no_healthy_candidate_disables_automerge(self):
+        failed = self.pr(292)
+        failed['statusCheckRollup'] = [dict(status='COMPLETED', conclusion='FAILURE')]
+        failed['autoMergeRequest'] = {'mergeMethod': 'REBASE'}
+        self.assertEqual(self.select([failed], {}), [])
+        self.assertEqual(len(self.mutations), 1)
+        self.assertIn('--disable-auto', self.mutations[0])
+
+    def test_both_classifiers_agree_on_supported_updates(self):
+        workflow = WORKFLOW.with_name('dependabot-auto-merge.yml')
+        run = yaml.safe_load(workflow.read_text())['jobs']['enable-automerge']['steps'][0]['run']
+        classifier = re.search(r"<<'PY'.*?\n(.*?)\nPY", run, re.S).group(1)
+        cases = [
+            ('1.2.0', '1.3.0', True),
+            ('`1.2.0`', '`1.2.1`', True),
+            ('`4813745`', '`d6caeca`', True),
+            ('5.8.0', '5.8.0', True),
+            ('`1.2.0`', '`2.0.0`', False),
+            ('1.3.0', '1.2.0', False),
+            ('`unknown`', '`another`', False),
+        ]
+        for old, new, eligible in cases:
+            with self.subTest(old=old, new=new):
+                pr = self.pr(292, body=f'Updates `vendor/app` from {old} to {new}')
+                self.assertEqual(self.select([pr], {'292': 1}), ['292'] if eligible else [])
+                with tempfile.TemporaryDirectory() as directory:
+                    event = Path(directory) / 'event.json'
+                    event.write_text(json.dumps({'pull_request': pr}))
+                    output = io.StringIO()
+                    with patch.dict(os.environ, {'GITHUB_EVENT_PATH': str(event)}), contextlib.redirect_stdout(output):
+                        exec(classifier, {})
+                    self.assertIn(f'eligible={str(eligible).lower()}', output.getvalue())
+
     def test_failed_deployment_blocks_rebase(self):
         def gh(args, **kwargs):
             if args[2].endswith('branches/main'):
