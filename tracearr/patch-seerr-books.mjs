@@ -1,5 +1,5 @@
 // Compatibility for the Seerr books fork; remove when Tracearr supports it upstream.
-// Only reviewed modules through Tracearr 2.8.3 are accepted. Image updates must review this patch.
+// Only reviewed modules through Tracearr 3.1.1 are accepted. Image updates must review this patch.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -27,7 +27,7 @@ export const patches = [
     file: 'sync.js',
     hashes: [
       '577a716f72a0225be63d4aefbc9095d5ce9a7ce77c30389321be1c9b226ae519',
-      // 2.8.3 records the Seerr version during sync; fetchRows is unchanged.
+      // 2.8.3 records the Seerr version during sync; 3.1.1 ships the identical module.
       '873982bc2705340fe66601c179a73a6696ed57d655d37eac6b424c1b1c3bddf3',
     ],
     replacements: [
