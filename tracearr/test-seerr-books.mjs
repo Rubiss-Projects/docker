@@ -1,7 +1,7 @@
 // Run inside the pinned Tracearr image with this directory mounted at /compat.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
-import { patches, transform } from './patch-seerr-books.mjs';
+import { apply, patches, transform } from './patch-seerr-books.mjs';
 
 const directory = '/app/apps/server/dist/services/requests';
 const originals = patches.map((patch) => readFileSync(`${directory}/${patch.file}`, 'utf8'));
@@ -24,6 +24,12 @@ try {
   let parsed = await client.requestsPage(0, 100);
   assert.equal(parsed.rawResultCount, 100);
   assert.equal(parsed.results.length, 1);
+  const tv = {...movie, id: 2, type: 'tv', media: {...movie.media, mediaType: 'tv'}, seasons: [{seasonNumber: 1, status: 2}]};
+  response = page([{type: 'book'}, tv, movie]);
+  parsed = await client.requestsPage(0, 100);
+  assert.equal(parsed.rawResultCount, 3);
+  assert.deepEqual(parsed.results.map((row) => row.type), ['tv', 'movie']);
+  assert.deepEqual(parsed.results[0].seasons, tv.seasons);
   response = page(Array.from({length: 100}, () => ({type: 'book'})));
   parsed = await client.requestsPage(100, 100);
   assert.equal(parsed.rawResultCount, 100);
@@ -49,7 +55,13 @@ try {
   }}, 'full', null);
   assert.deepEqual(offsets, [0,100,200]);
   assert.equal(rows.length, 2);
-  console.log('PASS: hashes, repeat startup, mixed/all-book pagination, unknown-type validation, movie validation');
+  // Exercise the startup patch's file writes and a second startup in this disposable image.
+  apply(directory);
+  apply(directory);
+  for (let i = 0; i < patches.length; i++) {
+    assert.equal(readFileSync(`${directory}/${patches[i].file}`, 'utf8'), transform(originals[i], patches[i]));
+  }
+  console.log('PASS: hashes, repeat startup, mixed/all-book pagination, unknown-type validation, movie/TV validation');
 } finally {
   unlinkSync(temporary);
 }
