@@ -18,7 +18,7 @@ x-worker: &worker
 services:
   dfs:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.47@sha256:528c10c876eb0399a880e11e32fe7c1aa7b328b9983c6a5f52525b7197e09308
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.48@sha256:343ffbcf68fa2a033fd915ad3c2dcafd959fcbab1d00a2a7d1ce391b1e9946cf
     # No container_name: Compose must generate a name for each replica.
     scale: ${DFS_REPLICAS:-2}
     env_file:
@@ -58,7 +58,7 @@ services:
 
   checkpoint-recovery:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.47@sha256:528c10c876eb0399a880e11e32fe7c1aa7b328b9983c6a5f52525b7197e09308
+    image: ghcr.io/rubiss/sunday-edge-compute:v0.2.48@sha256:343ffbcf68fa2a033fd915ad3c2dcafd959fcbab1d00a2a7d1ce391b1e9946cf
     container_name: sunday-edge-checkpoint-recovery
     hostname: ben-server
     entrypoint: [node, --import, tsx]
@@ -94,7 +94,7 @@ services:
 
   analytics:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.47@sha256:d4da07b787db79a1d03a474dd68db81ec8a66168fa86fca2176a476fa19f7464
+    image: ghcr.io/rubiss/sunday-edge-analytics:v0.2.48@sha256:55a04a27623795ea2bdecb3d2431a1f1a119d9c2a1d5d1895e73a9fbeb5c08d7
     container_name: sunday-edge-analytics
     env_file:
       - path: analytics.env.secret
@@ -130,7 +130,7 @@ services:
 
   maintenance:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.47@sha256:87ac1b0b9b326b3963533d8f07e9a212ac7077ab510f54d4a5f43a3c8b9bffe3
+    image: ghcr.io/rubiss/sunday-edge-maintenance:v0.2.48@sha256:4cd7c786fa21b19574c1f44cd545e274d72f8850dbba971508aca0b5122c7175
     container_name: sunday-edge-maintenance
     env_file:
       - path: maintenance.env.secret
@@ -155,7 +155,7 @@ services:
 
   research:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-research:v0.2.47@sha256:b9fba57774a364d208aedf79f7755786cc32aad5ada0ddc0e66501a484c558b8
+    image: ghcr.io/rubiss/sunday-edge-research:v0.2.48@sha256:387649041f0f7b44f63f492c708a3f8d48f83171287195548c81632da510d200
     container_name: sunday-edge-research
     environment:
       TZ: ${TZ}
@@ -172,7 +172,7 @@ services:
 
   sunday-edge:
     <<: *worker
-    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.47@sha256:b257189ce00ac649fb22211e1635c11e6d1d24511dddb10b289b6bfe2fb4f498
+    image: ghcr.io/rubiss/sunday-edge-watchdog:v0.2.48@sha256:d9eec87e4ef69b0cc96b85b418cc1ba4224572fb9c381c1901eaca2047156604
     container_name: sunday-edge
     env_file:
       - path: watchdog.env.secret
