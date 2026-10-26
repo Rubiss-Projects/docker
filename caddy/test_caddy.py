@@ -195,8 +195,12 @@ class ProxyTests(unittest.TestCase):
         shutil.copyfile(self.root / 'key.pem', directory / 'privkey.pem')
         certificate.validate(directory)
         with patch.object(certificate, 'HOST', 'wrong.example'):
-            with self.assertRaises(ValueError):
+            # OpenSSL versions differ: a mismatch either exits nonzero or
+            # returns text that validate() converts into a ValueError.
+            with self.assertRaises((ValueError, subprocess.CalledProcessError)) as rejected:
                 certificate.validate(directory)
+            if isinstance(rejected.exception, subprocess.CalledProcessError):
+                self.assertEqual(rejected.exception.cmd[-2:], ['-checkhost', 'wrong.example'])
         subprocess.run(['openssl', 'genrsa', '-out', str(directory / 'privkey.pem'), '2048'],
                        check=True, capture_output=True)
         with self.assertRaises(ssl.SSLError):
