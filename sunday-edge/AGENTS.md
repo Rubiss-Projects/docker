@@ -801,3 +801,7 @@ candidate concurrency, volumes, snapshots, leases, and completed trials. The old
 workers reintroduce the locked-OUT evidence failure, so verify affected task
 behavior again; do not replace current snapshots with older evidence or reset
 failed jobs.
+
+### Native iPhone notification delivery
+
+Release v0.2.48 adds APNs delivery to the watchdog. Its encrypted `watchdog.env.secret` supplies `APNS_TEAM_ID`, `APNS_KEY_ID`, `APNS_PRIVATE_KEY`, and `APNS_ENABLED`; do not place the private key in Compose, public environment files, images, or logs. The app database migration `20261026040000_ios_push_notifications` must precede this rollout. Existing leagues keep Discord enabled and push disabled. Enable production web app-only selection only after the new watchdog is running and fresh monitor success is verified. The APNs key supports sandbox and production; per-device environment selects delivery. Keep v0.2.47 image pins available for rollback and leave the additive database schema in place.
