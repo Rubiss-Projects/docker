@@ -1,6 +1,6 @@
 services:
   tracearr:
-    image: ghcr.io/connorgallopo/tracearr:3.1.1@sha256:d0fe66480953c51da9bf82c3909799e80a4d24165962c747e756be31fcd0fb8f
+    image: ghcr.io/connorgallopo/tracearr:3.1.2@sha256:bc2af6ba8a605036f9d2a9f39862947d11000d73a111792c6e3e7ba49f9aa30c
     container_name: tracearr
     # Preserve the image entrypoint; validate/apply the Seerr fork compatibility before Node starts.
     command: ["/bin/sh", "-c", "node /opt/tracearr/patch-seerr-books.mjs && exec node apps/server/dist/index.js"]
@@ -47,7 +47,7 @@ services:
     - homepage.widget.key=${TRACEARR_API_KEY}
     - homepage.widget.view=summary
   timescale:
-    image: timescale/timescaledb-ha:pg18@sha256:aa23a2bd3568f8055f6f73688771a60aed2d0f7ff25f0c5d12c8992d89a8f50f
+    image: timescale/timescaledb-ha:pg18@sha256:ad8b5095c9e9f19b3c97794133f1dd80f09da9566a5687f79b6208324b98a388
     container_name: tracearr-db
     shm_size: 512mb
     ulimits:
