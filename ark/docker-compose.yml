@@ -2,7 +2,7 @@ services:
   server:
     restart: unless-stopped
     container_name: ark
-    image: hermsi/ark-server:latest-1792393175@sha256:e525789887dde29b3003d0639ac69bc34eb9fc127ef7ae0549fb60957c263ada
+    image: hermsi/ark-server:latest-1792998421@sha256:2305b8e24f71a8700877cadf64048cd1ce3a78ccc6b992af9aeda2fa4d031cb6
     volumes:
       - ${HOME}/ark-server:/app
       - ${HOME}/ark-server-backups:/home/steam/ARK-Backups
