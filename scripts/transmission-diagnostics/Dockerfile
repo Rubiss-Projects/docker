@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/transmission:4.1.3@sha256:55aaeedf9fc354d34136387e15ee0ba4679096f20398dd2875867e5cd5cf8be5
+FROM lscr.io/linuxserver/transmission:4.1.4@sha256:5b3c27a96c8a37c878a525ebf377a32032c3a3acfe845ecaa7c3eb10b09c2caa
 RUN apk add --no-cache strace
 LABEL diagnostic.role="transmission-linux-timing-v1"
 HEALTHCHECK NONE
