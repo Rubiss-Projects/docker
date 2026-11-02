@@ -1,0 +1,267 @@
+rule_files:
+- ../../prometheus/config/nut-recording-rules.yml
+evaluation_interval: 15s
+tests:
+- name: online with fresh data
+  interval: 15s
+  input_series:
+  - &id007
+    series: up{job="nut",instance="nas-ups"}
+    values: 1+0x8
+  - &id001
+    series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OL"}
+    values: 1+0x8
+  - &id002
+    series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OB"}
+    values: 0+0x8
+  - &id003
+    series: network_ups_tools_battery_charge{job="nut",instance="nas-ups"}
+    values: 97+0x8
+  - &id004
+    series: network_ups_tools_battery_runtime{job="nut",instance="nas-ups"}
+    values: 600+0x8
+  - &id005
+    series: network_ups_tools_ups_load{job="nut",instance="nas-ups"}
+    values: 60+0x8
+  - &id006
+    series: network_ups_tools_ups_realpower_nominal{job="nut",instance="nas-ups"}
+    values: 900+0x8
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_charge_percent",instance="nas-ups",job="nut"}'
+      value: 97
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:estimated_load_watts",instance="nas-ups",job="nut"}'
+      value: 540
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",instance="nas-ups",job="nut",flag="OB"}'
+      value: 0
+- name: on battery is independent of online
+  interval: 15s
+  input_series:
+  - series: up{job="nut",instance="nas-ups"}
+    values: 1+0x8
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OL"}
+    values: 0+0x8
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OB"}
+    values: 1+0x8
+  - series: network_ups_tools_battery_charge{job="nut",instance="nas-ups"}
+    values: 97+0x8
+  - series: network_ups_tools_battery_runtime{job="nut",instance="nas-ups"}
+    values: 600+0x8
+  - series: network_ups_tools_ups_load{job="nut",instance="nas-ups"}
+    values: 60+0x8
+  - series: network_ups_tools_ups_realpower_nominal{job="nut",instance="nas-ups"}
+    values: 900+0x8
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_charge_percent",instance="nas-ups",job="nut"}'
+      value: 97
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:estimated_load_watts",instance="nas-ups",job="nut"}'
+      value: 540
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",instance="nas-ups",job="nut",flag="OB"}'
+      value: 1
+- name: failed scrape hides otherwise retained values
+  interval: 15s
+  input_series:
+  - series: up{job="nut",instance="nas-ups"}
+    values: 0+0x8
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []
+- name: successful HTTP with no status is unavailable
+  interval: 15s
+  input_series:
+  - *id007
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []
+- name: empty status and default zero flags are unavailable
+  interval: 15s
+  input_series:
+  - *id007
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OL"}
+    values: 0+0x8
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag=""}
+    values: 1+0x8
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []
+- name: old UPS data cannot survive lookback
+  interval: 15s
+  input_series:
+  - *id007
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OL"}
+    values: 1 _ _ _ _ _ _ _ _
+  - series: network_ups_tools_ups_status{job="nut",instance="nas-ups",flag="OB"}
+    values: 0 _ _ _ _ _ _ _ _
+  - series: network_ups_tools_battery_charge{job="nut",instance="nas-ups"}
+    values: 97 _ _ _ _ _ _ _ _
+  - series: network_ups_tools_battery_runtime{job="nut",instance="nas-ups"}
+    values: 600 _ _ _ _ _ _ _ _
+  - series: network_ups_tools_ups_load{job="nut",instance="nas-ups"}
+    values: 60 _ _ _ _ _ _ _ _
+  - series: network_ups_tools_ups_realpower_nominal{job="nut",instance="nas-ups"}
+    values: 900 _ _ _ _ _ _ _ _
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []
+- name: old scrape success cannot survive lookback
+  interval: 15s
+  input_series:
+  - series: up{job="nut",instance="nas-ups"}
+    values: 1 _ _ _ _ _ _ _ _
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []
+- name: missing nominal watts stays missing
+  interval: 15s
+  input_series:
+  - *id007
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_charge_percent",instance="nas-ups",job="nut"}'
+      value: 97
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",instance="nas-ups",job="nut",flag="OB"}'
+      value: 0
+- name: no exporter target is unavailable
+  interval: 15s
+  input_series: []
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_charge_percent
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"} and on() (nut:telemetry_available == 1)
+    eval_time: 1m
+    exp_samples: []

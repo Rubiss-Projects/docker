@@ -28,6 +28,7 @@ channels-dvr/recordings/*
 
 # Operator-managed configuration that is safe to review/change in GitHub.
 !prometheus/config/prometheus.yml
+!prometheus/config/nut-recording-rules.yml
 !snmp-exporter/config/auth.yml
 !snmp-exporter/config/snmp.yml
 !recyclarr/config/recyclarr.yml

@@ -33,6 +33,36 @@
         widget:
           type: apcups
           url: tcp://host.docker.internal:3551
+    - NAS UPS telemetry:
+        icon: mdi-power-plug-battery
+        href: https://grafana.benlawson.dev/d/nut-ups
+        description: NUT handoff pending · APC above remains current
+        widget:
+          type: prometheusmetric
+          url: http://prometheus:9090
+          refreshInterval: 15000
+          metrics:
+            - label: Data available (1=yes)
+              query: nut:telemetry_available
+              format:
+                type: number
+            - label: Charge
+              query: nut:battery_charge_percent
+              format:
+                type: number
+                suffix: "%"
+            - label: Runtime estimate
+              query: nut:battery_runtime_seconds / 60
+              format:
+                type: number
+                suffix: " min"
+                options:
+                  maximumFractionDigits: 1
+            - label: Load
+              query: nut:load_percent
+              format:
+                type: number
+                suffix: "%"
     - NVIDIA GPU:
         icon: nvidia.svg
         description: GPU stats

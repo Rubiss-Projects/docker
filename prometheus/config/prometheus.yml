@@ -9,6 +9,9 @@ global:
   external_labels:
       monitor: 'ben-server'
 
+rule_files:
+  - /etc/prometheus/nut-recording-rules.yml
+
 # A scrape configuration containing exactly one endpoint to scrape:
 # Here it's Prometheus itself.
 scrape_configs:
@@ -43,6 +46,17 @@ scrape_configs:
       - targets: ['apcupsd-exporter:9162']
         labels:
           instance: ben-server-ups
+
+  # Separate history for the planned NAS USB handoff; retain apcupsd above.
+  # Until the NAS has the UPS and trusted-client access, this target is down.
+  - job_name: nut
+    metrics_path: /ups_metrics
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['nut-exporter:9199']
+        labels:
+          instance: nas-ups
 
   # Read-only NAS telemetry. No disk tests or recovery actions are triggered.
   - job_name: qnap-snmp

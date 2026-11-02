@@ -1,0 +1,40 @@
+# Observations only. No alert, shutdown or recovery action is defined here.
+groups:
+  - name: nut-telemetry
+    interval: 15s
+    rules:
+      # Reject old values even while Prometheus's normal lookback retains them.
+      - record: nut:ups_status
+        expr: >-
+          network_ups_tools_ups_status{job="nut"}
+          and (time() - timestamp(network_ups_tools_ups_status{job="nut"}) < 45)
+          and on(job, instance) (up{job="nut"} == 1)
+          and on(job, instance) (time() - timestamp(up{job="nut"}) < 45)
+      # A working HTTP process or an empty status is not usable UPS telemetry.
+      # This is availability, not a claim that the power supply is healthy.
+      - record: nut:telemetry_available
+        expr: >-
+          (count(nut:ups_status{flag=~"OL|OB|LB|HB|RB|CHRG|DISCHRG|BYPASS|CAL|OFF|OVER|TRIM|BOOST|FSD|SD"} == 1) > bool 0)
+          or vector(0)
+      - record: nut:battery_charge_percent
+        expr: >-
+          network_ups_tools_battery_charge{job="nut"}
+          and (time() - timestamp(network_ups_tools_battery_charge{job="nut"}) < 45)
+          and on() (nut:telemetry_available == 1)
+      - record: nut:battery_runtime_seconds
+        expr: >-
+          network_ups_tools_battery_runtime{job="nut"}
+          and (time() - timestamp(network_ups_tools_battery_runtime{job="nut"}) < 45)
+          and on() (nut:telemetry_available == 1)
+      - record: nut:load_percent
+        expr: >-
+          network_ups_tools_ups_load{job="nut"}
+          and (time() - timestamp(network_ups_tools_ups_load{job="nut"}) < 45)
+          and on() (nut:telemetry_available == 1)
+      - record: nut:nominal_watts
+        expr: >-
+          network_ups_tools_ups_realpower_nominal{job="nut"}
+          and (time() - timestamp(network_ups_tools_ups_realpower_nominal{job="nut"}) < 45)
+          and on() (nut:telemetry_available == 1)
+      - record: nut:estimated_load_watts
+        expr: nut:load_percent * on(job, instance) nut:nominal_watts / 100
