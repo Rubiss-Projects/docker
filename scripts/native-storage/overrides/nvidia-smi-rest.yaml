@@ -1,0 +1,4 @@
+# Native NVIDIA Container Toolkit supplies driver libraries; no WSL binds.
+services:
+  nvidia-smi-rest:
+    volumes: !reset []

@@ -1,0 +1,14 @@
+# Windows drive widgets need a separate native configuration review.
+services:
+  homepage:
+    volumes: !override
+      - type: bind
+        source: ./config
+        target: /app/config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./config/icons
+        target: /app/public/icons
+        bind:
+          create_host_path: false

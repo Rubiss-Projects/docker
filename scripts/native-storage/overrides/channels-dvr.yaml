@@ -1,0 +1,24 @@
+# Prepared only: preserve state, recordings and sessions; remove WSL libraries.
+services:
+  channels-dvr:
+    volumes: !override
+      - type: bind
+        source: ./config
+        target: /channels-dvr
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./recordings
+        target: /shares/DVR
+        bind:
+          create_host_path: false
+      - type: volume
+        source: streaming-sessions
+        target: /shares/DVR/Streaming/sessions
+        volume:
+          nocopy: true
+      - type: bind
+        source: ../../Media/channels-dvr
+        target: /shares/DVR/TV
+        bind:
+          create_host_path: false
