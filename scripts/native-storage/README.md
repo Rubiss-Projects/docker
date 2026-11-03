@@ -90,3 +90,43 @@ either working Desktop host. Native public-port/firewall, mount, per-application
 state, writer handoff and hardware-transcode acceptance still precede activation.
 
 Reference: [Compose merge and replacement semantics](https://docs.docker.com/reference/compose-file/merge/).
+
+## n8n: hold restored schedules before server startup
+
+The exact deployed n8n 2.45.5 image supports `unpublish:workflow --all` without
+starting a scheduler. In an isolated restore of the existing encrypted checkpoint,
+all captured bytes/database counts matched; that supported CLI unpublished all
+seven workflows. Workflow export confirmed all seven inactive. Credential export
+successfully decrypted both stored records into container tmpfs, inspected only
+for count/object shape and removed without displaying values. No provider test,
+workflow execution, n8n server or production state change occurred. This was an
+online checkpoint; refresh authoritative state at the actual handoff.
+
+The native n8n override bypasses `/files/import-workflows.sh`, removes its old
+writable autobrr/cross-seed recovery binds, mounts the repository read-only at
+`/srv/Docker`, and retains the original `N8N_USER_FOLDER` nesting/config bind.
+Its entrypoint preserves `tini` and calls a read-only database admission check
+before the image's ordinary entrypoint. A missing private `n8n/native-startup-policy.json`
+fails closed; copy/review the supplied policy example during native preparation.
+The default admits **no active or published workflow** and no pending/unknown
+execution state. It passed against the restored inactive clone with the exact
+image's Node SQLite runtime. Four focused tests cover legacy active workflows,
+read-only bytes, exact Sunday version admission and pending execution rejection.
+
+Only after native Sunday SSH/resource/lock/cooldown/missing-telemetry/scale-down
+acceptance may the private policy name the single approved Sunday workflow ID,
+its exact published version and `nativeValidationCompleted: true`. A different
+version, another active workflow or restored pending execution holds startup.
+Use supported n8n CLI operations for workflow changes; this guard never writes
+the database and never automatically unpublishes Sunday on a later restart.
+It checks startup only, not subsequent UI/API edits; maintain the reviewed
+activation and single-writer rules. Reinstall any required community modules
+from reviewed manifests and validate the native workflow before enabling it.
+
+No n8n service is started by these preparation tools. The clone is a CLI recovery
+fixture, not a native functional autoscaler or full application handoff pass.
+Do not use this guard as a substitute for frozen recovery, console, per-app,
+power or production ownership acceptance. `validate-n8n-native-candidate.py`
+renders the candidate without resolving secrets or contacting the engine.
+
+Reference: [n8n Server CLI](https://docs.n8n.io/hosting/cli-commands/).
