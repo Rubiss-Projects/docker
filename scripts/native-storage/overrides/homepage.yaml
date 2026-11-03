@@ -1,4 +1,4 @@
-# Windows drive widgets need a separate native configuration review.
+# Native only: use the reviewed widget paths and the admitted NAS mount.
 services:
   homepage:
     volumes: !override
@@ -10,5 +10,17 @@ services:
       - type: bind
         source: ./config/icons
         target: /app/public/icons
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/Media
+        target: /media
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../scripts/native-storage/homepage-widgets.native.yaml
+        target: /app/config/widgets.yaml
+        read_only: true
         bind:
           create_host_path: false

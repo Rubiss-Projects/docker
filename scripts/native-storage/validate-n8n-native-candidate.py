@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Render the n8n candidate without reading service secrets or starting a server."""
-import json, subprocess
+import json, os, subprocess
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;REPO=HERE.parent.parent
 def render(candidate):
-    args=['docker','compose','--env-file','/dev/null','--project-directory',str(REPO/'n8n'),'-f',str(REPO/'n8n/docker-compose.yml')]
+    args=['docker','compose','--env-file',os.devnull,'--project-directory',str(REPO/'n8n'),'-f',str(REPO/'n8n/docker-compose.yml')]
     if candidate:args+=['-f',str(HERE/'overrides/n8n.yaml')]
     return json.loads(subprocess.check_output([*args,'config','--no-env-resolution','--no-interpolate','--no-path-resolution','--format','json'],text=True,stderr=subprocess.PIPE))
 base,native=render(False),render(True)

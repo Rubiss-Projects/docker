@@ -88,13 +88,44 @@ NVIDIA runtime; config rendering is not a GPU or application acceptance test.
 
 `validate-native-overrides.py` performs only `compose config`, with interpolation
 and service env-file resolution disabled, and checks the intended differences.
-It never starts, pulls, installs or restarts a service. Homepage widgets still
-need native path review; cAdvisor launch context and n8n's native mounts/workflow
-deactivation/importer bypass are separate work. Do not apply these candidates to
-either working Desktop host. Native public-port/firewall, mount, per-application
+It never starts, pulls, installs or restarts a service. Homepage adds a read-only
+NAS bind at `/media` and a read-only file bind for `homepage-widgets.native.yaml`.
+The latter reports the local application-config filesystem and NAS filesystem,
+replacing the old `/c` and `/e` widget paths. Weather/date/resource options remain
+unchanged and no host-root filesystem bind is added. The resources widget's
+CPU/memory readings describe its container, not host-level metrics; native
+sensors and actual filesystem reporting still need runtime acceptance.
+
+Do not apply these candidates to either working Desktop host. Native cAdvisor
+data-root/containerd/cgroup/metrics, public-port/firewall, mount, per-application
 state, writer handoff and hardware-transcode acceptance still precede activation.
 
 Reference: [Compose merge and replacement semantics](https://docs.docker.com/reference/compose-file/merge/).
+See also [Homepage resources](https://gethomepage.dev/widgets/info/resources/).
+
+## Deferred native deployment context
+
+`examples/native-host-context.patch` is an **unapplied** host-context candidate,
+not a migration installer. It preserves the current Windows/WSL default, adds an
+explicit `native-linux` dispatch that avoids Windows cAdvisor delegation, and
+proposes native runner labels and `/srv/Docker` for the main-host workflow. The
+trusted-main restriction, read-only workflow token, stopped-service behavior and
+Pi jobs remain. The native job omits the contribution-fork installer because that
+installer enables a deferred timer and immediately starts a job.
+
+Check applicability without modifying the checkout:
+
+```sh
+git apply --check scripts/native-storage/examples/native-host-context.patch
+```
+
+Keep the patch unapplied while Windows owns production. Host context alone does
+not complete native deployment admission: finish the actual base/override
+definitions and per-service/schedule allowlist first, then prove mount/state/
+permissions, native cAdvisor and trusted deployment behavior. Register and enable
+the destination runner last, without overlapping deployment owners. Do not apply
+the context patch and assume that legacy service definitions or installers are
+safe on Ubuntu. Actual network/firewall, native runtime and handoff gates remain.
 
 ## n8n: hold restored schedules before server startup
 
