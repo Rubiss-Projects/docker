@@ -35,6 +35,33 @@ class AdmissionTests(unittest.TestCase):
         for info in (record()+record(target='/srv/Media/data', source='other:/tree'), record()+record()):
             with self.assertRaises(guard.AdmissionError): guard.validate_mount(self.policy, guard.parse_mountinfo(info))
 
+    def test_hidden_nfs_record_does_not_probe_visible_local_roots(self):
+        info = record() + '40 20 0:60 / /srv rw - tmpfs tmpfs rw\n'
+        with patch.object(guard, 'visible_mount_id', return_value=40), patch.object(guard, 'probe_roots') as probe:
+            with self.assertRaisesRegex(guard.AdmissionError, 'hidden'):
+                guard.check(self.policy, info)
+            probe.assert_not_called()
+
+    def test_visibility_is_checked_again_after_directory_probe(self):
+        for ids, allowed in (([25, 25], True), ([25, 40], False)):
+            with self.subTest(ids=ids), patch.object(guard, 'visible_mount_id', side_effect=ids) as visible, patch.object(guard, 'probe_roots') as probe:
+                if allowed:
+                    guard.check(self.policy, record())
+                else:
+                    with self.assertRaisesRegex(guard.AdmissionError, 'hidden'):
+                        guard.check(self.policy, record())
+                self.assertEqual(visible.call_count, 2)
+                probe.assert_called_once_with(self.policy)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux fdinfo mount identity')
+    def test_visible_mount_id_is_a_live_kernel_mount_and_symlink_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mounts = guard.parse_mountinfo(Path('/proc/self/mountinfo').read_text())
+            self.assertIn(guard.visible_mount_id(directory), {m.mount_id for m in mounts})
+            link = Path(directory) / 'redirect'
+            link.symlink_to(directory, target_is_directory=True)
+            with self.assertRaises(OSError): guard.visible_mount_id(str(link))
+
     def test_valid_mount_and_escaped_kernel_target(self):
         policy = guard.Policy.load({'mountpoint':'/srv/Media Files', 'source':'nas.example:/Media', 'access':'rw', 'required_roots':['data']})
         self.assertEqual(guard.validate_mount(policy, guard.parse_mountinfo(record(target=r'/srv/Media\040Files'))).target, '/srv/Media Files')
@@ -47,6 +74,8 @@ class AdmissionTests(unittest.TestCase):
         for roots in ([], ['../other'], ['/data'], ['data/../other'], ['data//movies'], ['link\\outside']):
             with self.subTest(roots=roots), self.assertRaises(guard.AdmissionError): guard.Policy.load({'mountpoint':'/srv/Media','source':'nas:/Media','access':'rw','required_roots':roots})
         with self.assertRaises(guard.AdmissionError): guard.parse_mountinfo('malformed')
+        for mount_id in ('invalid', '0', '-1'):
+            with self.assertRaises(guard.AdmissionError): guard.parse_mountinfo(record().replace('25 ', mount_id+' ', 1))
 
     def test_missing_directory_and_symlink_do_not_admit(self):
         with tempfile.TemporaryDirectory() as directory:

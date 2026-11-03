@@ -8,6 +8,10 @@ Do not apply the examples to either working Docker Desktop host.
 `check-media-mount.py` reads the kernel mount table before touching media paths.
 It rejects an absent/duplicate mount, a different server/export or filesystem,
 wrong read/write mode, soft NFS, an untested protocol, or nested shadow mounts.
+Linux `O_PATH` plus the descriptor's `mnt_id` verifies that pathname lookup
+actually reaches the admitted mount, rather than a hidden mountinfo record
+under an overmounted ancestor. This identity is checked before and after root
+probes. It is a startup observation, not a lock against later namespace changes.
 It then requires existing readable/searchable directories and rejects symlinks.
 It never creates mountpoints, directories or sentinel files and never writes media.
 This checks root/daemon traversal; per-application UID/GID and effective writes
@@ -68,7 +72,8 @@ startup gate. Guard admission alone cannot establish health, frozen verification
 ownership, application correctness or absence of competing writers.
 
 References: [systemd unit dependencies](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html),
-[service prestart behavior](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
+[service prestart behavior](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
+[Linux descriptor mount identity](https://man7.org/linux/man-pages/man5/proc_pid_fdinfo.5.html).
 
 ## Native Compose candidates
 

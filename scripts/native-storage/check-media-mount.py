@@ -17,6 +17,7 @@ class AdmissionError(ValueError):
 
 @dataclass(frozen=True)
 class Mount:
+    mount_id: int
     target: str
     source: str
     fstype: str
@@ -60,7 +61,9 @@ def parse_mountinfo(text: str) -> list[Mount]:
         fields, fs = before.split(), after.split(maxsplit=2)
         if not separator or len(fields) < 6 or len(fs) != 3:
             raise AdmissionError("Malformed kernel mount record")
-        mounts.append(Mount(decode_mount_field(fields[4]), decode_mount_field(fs[1]), fs[0], frozenset(fields[5].split(',')), frozenset(fs[2].split(','))))
+        if not fields[0].isdecimal() or int(fields[0]) <= 0:
+            raise AdmissionError("Malformed kernel mount ID")
+        mounts.append(Mount(int(fields[0]), decode_mount_field(fields[4]), decode_mount_field(fs[1]), fs[0], frozenset(fields[5].split(',')), frozenset(fs[2].split(','))))
     return mounts
 
 
@@ -84,6 +87,26 @@ def validate_mount(policy: Policy, mounts: list[Mount]) -> Mount:
     return mount
 
 
+def visible_mount_id(path: str) -> int:
+    # fdinfo identifies the mount reached by pathname lookup, including overmounts.
+    if not hasattr(os, 'O_PATH'):
+        raise AdmissionError("Mount visibility admission requires Linux O_PATH")
+    descriptor = os.open(path, os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info = Path(f'/proc/self/fdinfo/{descriptor}').read_text()
+        ids = re.findall(r'^mnt_id:\s*(\d+)\s*$', info, re.MULTILINE)
+        if len(ids) != 1:
+            raise AdmissionError("Cannot identify the visible media mount")
+        return int(ids[0])
+    finally:
+        os.close(descriptor)
+
+
+def verify_mount_visibility(policy: Policy, mount: Mount) -> None:
+    if visible_mount_id(policy.mountpoint) != mount.mount_id:
+        raise AdmissionError("Reviewed NFS mount is hidden at the media path")
+
+
 def probe_roots(policy: Policy) -> None:
     # Only touch NAS paths after mount identity has passed. lstat rejects redirects.
     for root in policy.required_roots:
@@ -98,8 +121,10 @@ def probe_roots(policy: Policy) -> None:
 
 
 def check(policy: Policy, mountinfo: str) -> None:
-    validate_mount(policy, parse_mountinfo(mountinfo))
+    mount = validate_mount(policy, parse_mountinfo(mountinfo))
+    verify_mount_visibility(policy, mount)
     probe_roots(policy)
+    verify_mount_visibility(policy, mount)
 
 
 def main() -> int:
