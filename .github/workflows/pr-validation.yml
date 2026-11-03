@@ -337,7 +337,7 @@ jobs:
           & ./scripts/host-memory/test-collector.ps1
           & ./scripts/host-memory/test-install.ps1
 
-      - name: Test Tracearr Seerr compatibility against the pinned image
+      - name: Test Tracearr compatibility against the pinned image
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -345,6 +345,9 @@ jobs:
           docker run --rm --network none --entrypoint node \
             --mount "type=bind,source=$PWD/tracearr,target=/compat,readonly" \
             "$image" /compat/test-seerr-books.mjs
+          docker run --rm --network none --entrypoint node \
+            --mount "type=bind,source=$PWD/tracearr,target=/compat,readonly" \
+            "$image" /compat/test-login-case.mjs
 
       - name: Scan for obvious committed secrets
         shell: bash
