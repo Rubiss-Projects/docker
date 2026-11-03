@@ -1,0 +1,12 @@
+# Opt-in preparation only. The default Compose stack does not load this file.
+services:
+  tracearr:
+    # Keep the image entrypoint and the existing Seerr compatibility step.
+    command: ["/bin/sh", "-c", "node /opt/tracearr/patch-seerr-books.mjs && node /opt/tracearr/patch-login-case.mjs && exec node apps/server/dist/index.js"]
+    volumes:
+      - type: bind
+        source: ./patch-login-case.mjs
+        target: /opt/tracearr/patch-login-case.mjs
+        read_only: true
+        bind:
+          create_host_path: false
