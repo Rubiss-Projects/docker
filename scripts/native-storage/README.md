@@ -13,12 +13,16 @@ It never creates mountpoints, directories or sentinel files and never writes med
 This checks root/daemon traversal; per-application UID/GID and effective writes
 still need the real application fixtures and later acceptance.
 
-The example mounts the Media share root at `/srv/Media`; the preseeded media tree
-is **under `data/`**. Final Compose paths must explicitly resolve to that tree,
-without accidentally using the share root, fixture directory or recycle bin.
-Review the exact native mount/path layout and every required library root before
-replacing example values. Do not infer final production admission from `data/`
-existing while the online copy is still running.
+The example mounts the tested `Media/data` NFS subdirectory directly at
+`/srv/Media`. A normal read-only NFS 4.1 controller fixture verified the same
+directory inode/children as the existing share-root mount's `data/` directory;
+write attempts were rejected and only that disposable mount was released.
+With the repository at `/srv/Docker`, existing `../../Media` binds then resolve
+to the actual media tree, preserving container paths and one filesystem for
+hardlinks. The share root's fixture/recycle directories are not media roots.
+The running source copy mount was unchanged. Confirm the actual native RW mount,
+numeric permissions and every required library root after complete inventory;
+the example's `.` alone does not establish full library or production readiness.
 
 For the later native installation, stage a root-owned policy and checker, the
 reviewed `srv-Media.mount` unit and the Docker service drop-in shown here.
@@ -65,3 +69,24 @@ ownership, application correctness or absence of competing writers.
 
 References: [systemd unit dependencies](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html),
 [service prestart behavior](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
+
+## Native Compose candidates
+
+`overrides/` contains explicit, unapplied candidates for Plex, Channels,
+GPU telemetry and Homepage. Compose `!override`/`!reset` replaces the complete
+volume list, removing WSL GPU libraries or Windows drive mounts while preserving
+application state, media targets, images, GPU reservations, limits and ports.
+Long bind syntax disables automatic host-path creation. Keep the base file first
+and use its service directory as the project directory so relative paths retain
+their meaning. These files require Compose 2.24.4 or later and the reviewed native
+NVIDIA runtime; config rendering is not a GPU or application acceptance test.
+
+`validate-native-overrides.py` performs only `compose config`, with interpolation
+and service env-file resolution disabled, and checks the intended differences.
+It never starts, pulls, installs or restarts a service. Homepage widgets still
+need native path review; cAdvisor launch context and n8n's native mounts/workflow
+deactivation/importer bypass are separate work. Do not apply these candidates to
+either working Desktop host. Native public-port/firewall, mount, per-application
+state, writer handoff and hardware-transcode acceptance still precede activation.
+
+Reference: [Compose merge and replacement semantics](https://docs.docker.com/reference/compose-file/merge/).

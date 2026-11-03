@@ -253,7 +253,7 @@
         "calibre"
       ],
       "disposition": "keep",
-      "group": "scope-review",
+      "group": "native-after-temporary-handoff",
       "after": [],
       "releaseGates": [
         "reviewed-native-config",
@@ -261,10 +261,9 @@
         "compatible-current-state-restore",
         "no-competing-writer",
         "application-acceptance",
-        "explicit-authoritative-state-handoff",
-        "owner-scope-decision"
+        "explicit-authoritative-state-handoff"
       ],
-      "note": "Retain complete active library on local SSD. Inclusion in temporary hosting and library write handoff needs explicit scope acceptance."
+      "note": "Owner approved leaving Calibre offline until Ubuntu is ready. Preserve the complete active library on local SSD; no temporary-host activation. Native restore/write ownership acceptance remains required."
     },
     {
       "stack": "channels-dvr",
@@ -273,7 +272,7 @@
         "channels-dvr"
       ],
       "disposition": "keep",
-      "group": "scope-review",
+      "group": "temporary-handoff-included",
       "after": [],
       "releaseGates": [
         "reviewed-native-config",
@@ -281,10 +280,11 @@
         "compatible-current-state-restore",
         "no-competing-writer",
         "application-acceptance",
-        "explicit-authoritative-state-handoff",
-        "owner-scope-decision"
+        "explicit-authoritative-state-handoff"
       ],
-      "note": "Retain recordings, schedules and LAN/keyed-relay behavior. Resolve temporary-host inclusion, WAN exposure and direct-native route acceptance before enabling a host-networked listener."
+      "note": "Owner approved Channels in the temporary-host scope on November3. Preserve recordings/schedules and LAN/keyed-relay behavior; actual restore, DVR/transcode, WAN exposure and direct-native routing acceptance remain required before handoff.",
+      "nativeOverride": "scripts/native-storage/overrides/channels-dvr.yaml",
+      "nativeOverrideStatus": "rendered_candidate_not_runtime_accepted"
     },
     {
       "stack": "cloudflare-duc",
@@ -382,7 +382,9 @@
         "no-competing-writer",
         "application-acceptance"
       ],
-      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal.",
+      "nativeOverride": "scripts/native-storage/overrides/homepage.yaml",
+      "nativeOverrideStatus": "rendered_candidate_not_runtime_accepted"
     },
     {
       "stack": "influxdb",
@@ -533,7 +535,9 @@
         "application-acceptance",
         "disposition-specific-review-before-any-activation"
       ],
-      "note": "Remove WSL GPU library binds in the native definition and prove native NVIDIA runtime/telemetry; do not apply native changes to Windows."
+      "note": "Remove WSL GPU library binds in the native definition and prove native NVIDIA runtime/telemetry; do not apply native changes to Windows.",
+      "nativeOverride": "scripts/native-storage/overrides/nvidia-smi-rest.yaml",
+      "nativeOverrideStatus": "rendered_candidate_not_runtime_accepted"
     },
     {
       "stack": "palworld",
@@ -574,7 +578,9 @@
         "application-acceptance",
         "explicit-authoritative-state-handoff"
       ],
-      "note": "Keep exact identity, state and container paths. Prove direct play and real hardware transcode, secure remote path/source IPs and coordinated route handoff before production release."
+      "note": "Keep exact identity, state and container paths. Prove direct play and real hardware transcode, secure remote path/source IPs and coordinated route handoff before production release.",
+      "nativeOverride": "scripts/native-storage/overrides/plex.yaml",
+      "nativeOverrideStatus": "rendered_candidate_not_runtime_accepted"
     },
     {
       "stack": "portainer",
@@ -832,7 +838,7 @@
         "application-acceptance",
         "explicit-authoritative-state-handoff"
       ],
-      "note": "Restore the exact compatible PostgreSQL/Timescale layout and Redis before app startup; preserve history and prove Plex integration."
+      "note": "Restore the exact compatible PostgreSQL/Timescale layout and Redis before app startup; preserve history and prove Plex integration. Owner explicitly included Tracearr playback policy in temporary-host scope; validate that policy and Plex integration before handoff."
     },
     {
       "stack": "transmission",
@@ -984,5 +990,18 @@
     "Do not merge Linux-only definitions into the active Windows deployment runner.",
     "No repository-wide compose up, workflow activation, timer import or enable-all operation.",
     "The live source inventory can include ephemeral recovery helpers. They are not destination production services."
-  ]
+  ],
+  "temporaryHostCoverage": {
+    "ownerConfirmedAt": "2026-11-03T01:08:24.975Z",
+    "included": [
+      "plex",
+      "audiobookshelf",
+      "ai-assistant",
+      "channels-dvr",
+      "tracearr"
+    ],
+    "calibre": "Keep offline until Ubuntu is ready",
+    "scopeDecisionSatisfied": true,
+    "downtimeOrProductionHandoffAuthorizedByThisRecord": false
+  }
 }

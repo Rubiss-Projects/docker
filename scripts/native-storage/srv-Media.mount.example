@@ -4,7 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Mount]
-What=REVIEWED_NAS_ADDRESS:/Media
+What=REVIEWED_NAS_ADDRESS:/Media/data
 Where=/srv/Media
 Type=nfs4
 Options=rw,vers=4.1,hard,proto=tcp,noresvport,_netdev
