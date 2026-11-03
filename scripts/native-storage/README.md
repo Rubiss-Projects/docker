@@ -120,9 +120,46 @@ git apply --check scripts/native-storage/examples/native-host-context.patch
 ```
 
 Keep the patch unapplied while Windows owns production. Host context alone does
-not complete native deployment admission: finish the actual base/override
-definitions and per-service/schedule allowlist first, then prove mount/state/
-permissions, native cAdvisor and trusted deployment behavior. Register and enable
+not establish native acceptance. The example now checks the entire changed,
+dependency and dependent stack plan before creating monitoring maintenance or
+running container operations. It selects the reviewed base plus required native
+overlay and rejects newly introduced Compose service keys. Required overlays
+cannot silently disappear and fall back to Windows definitions. The media mount
+guard also runs before deployment.
+
+`check-deployment-admission.py` reads a **separate private**
+`/etc/nas-migration/native-deployment-policy.json`. The supplied
+`native-deployment-policy.example.json` deliberately denies all deployment.
+The private directory/file must be root-owned and not writable by group/others;
+the loader rejects policy-file symlinks and duplicate JSON keys. Do not place the
+private policy in the deployment checkout. A `keep` disposition in
+`startup-plan.json` remains planning intent and never grants activation by itself.
+
+After the actual native phase, per-application, state/writer and route/power
+gates pass, a reviewed private policy may set `nativeAcceptanceCompleted: true`
+and individually name accepted `releasedStacks`. It binds the startup plan's
+canonical JSON digest, obtainable without granting release:
+
+```sh
+python3 scripts/native-storage/check-deployment-admission.py --repo /srv/Docker --plan-digest
+```
+
+Formatting and line endings do not change that semantic digest. Changing a
+service list or disposition requires a new reviewed release. Unknown, deferred,
+archived and replacement stacks are held even if someone lists them in a private
+policy. Every selected stack's compiled service keys must still match the plan;
+`docker compose config --services` is the only Docker command used by this
+checker, with renderer diagnostics kept private. Its recipe query returns paths
+only; it never starts an app, downloads an image or applies the patch.
+
+Maintenance installers default to an empty allowlist. A later native installer
+step must explicitly invoke the checker's `--installer scripts/<name>` mode
+against its reviewed SHA-256 before execution. That check never executes an
+installer. The current candidate removes the main-host contribution-fork step;
+it adds no automatic installer/schedule step, and Pi jobs remain separate.
+
+Finish the actual native definitions and prove mount/state/permissions, native
+cAdvisor and trusted deployment behavior. Register and enable
 the destination runner last, without overlapping deployment owners. Do not apply
 the context patch and assume that legacy service definitions or installers are
 safe on Ubuntu. Actual network/firewall, native runtime and handoff gates remain.
