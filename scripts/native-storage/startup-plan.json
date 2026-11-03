@@ -1,0 +1,988 @@
+{
+  "schemaVersion": 1,
+  "state": "preparation_only",
+  "automaticStartAllowed": false,
+  "sourceRevision": "4bde31e83f36fe7f1f5484a3b062447e54942d15",
+  "scope": "Native destination planning only. No service launch/install, workflow activation, ingress handoff or downtime authorization.",
+  "globalGates": [
+    "all-qualified-storage-and-capacity",
+    "copy-explicit-exit-and-review",
+    "frozen-final-comparison-before-dependent-handoff",
+    "independent-recovery-and-current-authoritative-state",
+    "approved-downtime-before-any-source-freeze",
+    "native-mount-before-daemon-and-local-SSD-identity",
+    "coordinated-power-acceptance-before-NAS-backed-production",
+    "per-application-and-route-acceptance"
+  ],
+  "stacks": [
+    {
+      "stack": "ai-assistant",
+      "compose": "ai-assistant/docker-compose.yml",
+      "services": [
+        "ai-assistant",
+        "browser",
+        "reviewer"
+      ],
+      "disposition": "keep",
+      "group": "stateful-apps",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Retain bot/browser/reviewer isolation, limits and exact matching release. Reconcile separate native AI identity and schedules; no duplicate bot/outbox/provider actions during rehearsal."
+    },
+    {
+      "stack": "apcupsd-exporter",
+      "compose": "apcupsd-exporter/docker-compose.yml",
+      "services": [
+        "apcupsd-exporter"
+      ],
+      "disposition": "defer",
+      "group": "monitoring-review",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Legacy monitoring candidate stays deferred pending current NAS NUT/collector ownership review. Do not reattach UPS USB or disable the running source exporter as part of preparation."
+    },
+    {
+      "stack": "ark-ascended",
+      "compose": "ark-ascended/docker-compose.yml",
+      "services": [
+        "ark-ascended"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "ark",
+      "compose": "ark/docker-compose.yml",
+      "services": [
+        "server"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "astroneer",
+      "compose": "astroneer/docker-compose.yml",
+      "services": [
+        "astroneer"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "audiobookshelf",
+      "compose": "audiobookshelf/docker-compose.yml",
+      "services": [
+        "audiobookshelf"
+      ],
+      "disposition": "keep",
+      "group": "playback",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Keep exact identity and current listening state. Require complete verified restore and real playback; final state must come from the newest stopped authoritative host at each handoff."
+    },
+    {
+      "stack": "autobrr",
+      "compose": "autobrr/docker-compose.yml",
+      "services": [
+        "autobrr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "bazarr",
+      "compose": "bazarr/docker-compose.yml",
+      "services": [
+        "bazarr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "bitwarden",
+      "compose": "bitwarden/docker-compose.yml",
+      "services": [
+        "bitwarden",
+        "db"
+      ],
+      "disposition": "keep",
+      "group": "stateful-apps",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Restore compatible DB roles/extensions before application; verify representative records and attachments, independent recovery keys and no duplicate writers."
+    },
+    {
+      "stack": "bookshelf-audio",
+      "compose": "bookshelf-audio/docker-compose.yml",
+      "services": [
+        "bookshelf-audio"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "bookshelf",
+      "compose": "bookshelf/docker-compose.yml",
+      "services": [
+        "bookshelf"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "cadvisor",
+      "compose": "cadvisor/docker-compose.yml",
+      "services": [
+        "cadvisor"
+      ],
+      "disposition": "replace",
+      "group": "platform-replacement",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Replace Windows Compose launch exception with reviewed native root/cgroup/Docker mounts and native deployment context."
+    },
+    {
+      "stack": "calibre",
+      "compose": "calibre/docker-compose.yml",
+      "services": [
+        "calibre"
+      ],
+      "disposition": "keep",
+      "group": "scope-review",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff",
+        "owner-scope-decision"
+      ],
+      "note": "Retain complete active library on local SSD. Inclusion in temporary hosting and library write handoff needs explicit scope acceptance."
+    },
+    {
+      "stack": "channels-dvr",
+      "compose": "channels-dvr/docker-compose.yml",
+      "services": [
+        "channels-dvr"
+      ],
+      "disposition": "keep",
+      "group": "scope-review",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff",
+        "owner-scope-decision"
+      ],
+      "note": "Retain recordings, schedules and LAN/keyed-relay behavior. Resolve temporary-host inclusion, WAN exposure and direct-native route acceptance before enabling a host-networked listener."
+    },
+    {
+      "stack": "cloudflare-duc",
+      "compose": "cloudflare-duc/docker-compose.yml",
+      "services": [
+        "cloudflare-duc"
+      ],
+      "disposition": "keep",
+      "group": "ingress",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "route-and-egress-release"
+      ],
+      "note": "Give each DNS record one updater owner; keep update egress held during rehearsal. Do not assume this replaces separate No-IP ownership."
+    },
+    {
+      "stack": "cloudflare-tunnel",
+      "compose": "cloudflare-tunnel/docker-compose.yml",
+      "services": [
+        "cloudflared"
+      ],
+      "disposition": "keep",
+      "group": "ingress",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "route-and-egress-release"
+      ],
+      "note": "External ingress and remote identity stay held until explicit route handoff; never start duplicate production tunnels in rehearsal."
+    },
+    {
+      "stack": "cross-seed",
+      "compose": "cross-seed/docker-compose.yml",
+      "services": [
+        "cross-seed"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "grafana",
+      "compose": "grafana/docker-compose.yml",
+      "services": [
+        "grafana"
+      ],
+      "disposition": "keep",
+      "group": "observability",
+      "after": [
+        "prometheus",
+        "influxdb"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve dashboards/history; route retained alerts to humans, hold legacy automation contact routes and avoid duplicate notification owners."
+    },
+    {
+      "stack": "homepage",
+      "compose": "homepage/docker-compose.yml",
+      "services": [
+        "homepage"
+      ],
+      "disposition": "keep",
+      "group": "interfaces",
+      "after": [
+        "socket-proxy"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "influxdb",
+      "compose": "influxdb/docker-compose.yml",
+      "services": [
+        "influxdb"
+      ],
+      "disposition": "keep",
+      "group": "observability",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "it-tools",
+      "compose": "it-tools/docker-compose.yml",
+      "services": [
+        "it-tools"
+      ],
+      "disposition": "keep",
+      "group": "interfaces",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "lazywarden",
+      "compose": "lazywarden/docker-compose.yml",
+      "services": [
+        "lazywarden"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "minecraft",
+      "compose": "minecraft/docker-compose.yml",
+      "services": [
+        "minecraft-server"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "mod-mc",
+      "compose": "mod-mc/docker-compose.yml",
+      "services": [
+        "minecraft-server"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "n8n",
+      "compose": "n8n/docker-compose.yml",
+      "services": [
+        "n8n"
+      ],
+      "disposition": "keep",
+      "group": "functional-automation",
+      "after": [
+        "socket-proxy"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Retain full state. Persistently deactivate restored workflows before scheduler/webhook startup and bypass startup importer. Release only the validated native Sunday autoscaling workflow; six historical recovery/cleanup workflows remain inactive."
+    },
+    {
+      "stack": "nut-exporter",
+      "compose": "nut-exporter/docker-compose.yml",
+      "services": [
+        "nut-exporter"
+      ],
+      "disposition": "keep",
+      "group": "observability",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Retain NAS-backed monitoring with no USB/Docker socket/public endpoint. Telemetry does not complete coordinated shutdown/outage acceptance."
+    },
+    {
+      "stack": "nvidia-smi-rest",
+      "compose": "nvidia-smi-rest/docker-compose.yml",
+      "services": [
+        "nvidia-smi-rest"
+      ],
+      "disposition": "replace",
+      "group": "platform-replacement",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Remove WSL GPU library binds in the native definition and prove native NVIDIA runtime/telemetry; do not apply native changes to Windows."
+    },
+    {
+      "stack": "palworld",
+      "compose": "palworld/docker-compose.yml",
+      "services": [
+        "palworld"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    },
+    {
+      "stack": "plex",
+      "compose": "plex/docker-compose.yml",
+      "services": [
+        "plex"
+      ],
+      "disposition": "keep",
+      "group": "playback",
+      "after": [
+        "socket-proxy",
+        "uptime-kuma"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Keep exact identity, state and container paths. Prove direct play and real hardware transcode, secure remote path/source IPs and coordinated route handoff before production release."
+    },
+    {
+      "stack": "portainer",
+      "compose": "portainer/docker-compose.yml",
+      "services": [
+        "portainer"
+      ],
+      "disposition": "keep",
+      "group": "administration",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Administrative management is last; prove endpoint ownership and restrict its UI before enabling actions."
+    },
+    {
+      "stack": "prometheus",
+      "compose": "prometheus/docker-compose.yml",
+      "services": [
+        "prometheus"
+      ],
+      "disposition": "keep",
+      "group": "observability",
+      "after": [
+        "snmp-exporter",
+        "nut-exporter"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "prowlarr",
+      "compose": "prowlarr/docker-compose.yml",
+      "services": [
+        "prowlarr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "radarr",
+      "compose": "radarr/docker-compose.yml",
+      "services": [
+        "radarr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "recyclarr",
+      "compose": "recyclarr/docker-compose.yml",
+      "services": [
+        "recyclarr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "seerr",
+      "compose": "seerr/docker-compose.yml",
+      "services": [
+        "seerr"
+      ],
+      "disposition": "keep",
+      "group": "interfaces",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "snmp-exporter",
+      "compose": "snmp-exporter/docker-compose.yml",
+      "services": [
+        "snmp-exporter"
+      ],
+      "disposition": "keep",
+      "group": "observability",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "socket-proxy",
+      "compose": "socket-proxy/docker-compose.yml",
+      "services": [
+        "socket-proxy"
+      ],
+      "disposition": "keep",
+      "group": "foundation",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "sonarr",
+      "compose": "sonarr/docker-compose.yml",
+      "services": [
+        "sonarr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "speedtesttracker",
+      "compose": "speedtesttracker/docker-compose.yml",
+      "services": [
+        "speedtest-tracker"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "sunday-edge",
+      "compose": "sunday-edge/docker-compose.yml",
+      "services": [
+        "analytics",
+        "checkpoint-recovery",
+        "dfs",
+        "maintenance",
+        "research",
+        "sunday-edge"
+      ],
+      "disposition": "keep",
+      "group": "functional-automation",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Retain application roles and state. Record safe fixed replica count before startup; no stale workers/leases or duplicate schedules. Native restricted SSH command, resource admission, cooldowns, missing-telemetry hold and graceful scale-down gate autoscaling."
+    },
+    {
+      "stack": "swag",
+      "compose": "swag/docker-compose.yml",
+      "services": [
+        "swag"
+      ],
+      "disposition": "keep",
+      "group": "ingress",
+      "after": [
+        "socket-proxy",
+        "uptime-kuma",
+        "plex"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "route-and-egress-release"
+      ],
+      "note": "Preserve normal web routing. Keep external ingress held until upstreams, certificates, source IPs and route ownership are accepted."
+    },
+    {
+      "stack": "tracearr",
+      "compose": "tracearr/docker-compose.yml",
+      "services": [
+        "redis",
+        "timescale",
+        "tracearr"
+      ],
+      "disposition": "keep",
+      "group": "stateful-apps",
+      "after": [
+        "plex"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Restore the exact compatible PostgreSQL/Timescale layout and Redis before app startup; preserve history and prove Plex integration."
+    },
+    {
+      "stack": "transmission",
+      "compose": "transmission/docker-compose.yml",
+      "services": [
+        "transmission"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve all torrents, partials, registrations and data. No delete, cleanup, duplicate-client activation or library-by-library hardlink expansion."
+    },
+    {
+      "stack": "unpackerr",
+      "compose": "unpackerr/docker-compose.yml",
+      "services": [
+        "unpackerr"
+      ],
+      "disposition": "keep",
+      "group": "intake-writers",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "explicit-authoritative-state-handoff"
+      ],
+      "note": "Preserve exact required application state and identities. Background jobs and production writes remain held during rehearsal."
+    },
+    {
+      "stack": "uptime-kuma",
+      "compose": "uptime-kuma/docker-compose.yml",
+      "services": [
+        "uptime-kuma"
+      ],
+      "disposition": "keep",
+      "group": "foundation",
+      "after": [
+        "socket-proxy"
+      ],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance"
+      ],
+      "note": "Human monitoring only initially; deactivate recovery webhooks/hidden mutation paths and use bounded maintenance suppression before controlled handoffs."
+    },
+    {
+      "stack": "valheim",
+      "compose": "valheim/docker-compose.yml",
+      "services": [
+        "valheim"
+      ],
+      "disposition": "archive",
+      "group": "dormant-games",
+      "after": [],
+      "releaseGates": [
+        "reviewed-native-config",
+        "mount-and-local-storage",
+        "compatible-current-state-restore",
+        "no-competing-writer",
+        "application-acceptance",
+        "disposition-specific-review-before-any-activation"
+      ],
+      "note": "Not observed as an active production container in this inventory; preserve game installs/worlds/backups and the recorded inactive state. No automatic activation."
+    }
+  ],
+  "excludedComposePaths": [
+    "pi/cadvisor/docker-compose.yml",
+    "pi/cloudflare-tunnel/docker-compose.yml",
+    "pi/glances/docker-compose.yml",
+    "pi/homebridge/docker-compose.yml",
+    "pi/node-exporter/docker-compose.yml",
+    "pi/pi-hole/docker-compose.yml",
+    "pi/speedtest-tracker/docker-compose.yml"
+  ],
+  "nativeResponsibilities": [
+    {
+      "component": "native OpenSSH and console",
+      "disposition": "keep",
+      "gate": "Independent administration and second verified session; keep available even if Docker/NAS admission fails."
+    },
+    {
+      "component": "T3 user service",
+      "disposition": "keep",
+      "gate": "Restore exact active managed runtime/state/permissions and prove user-service/lingering startup; old system-wide T3 remains archived."
+    },
+    {
+      "component": "native AI Assistant",
+      "disposition": "keep",
+      "gate": "Preserve separate state and reconcile identity/schedules with container AI before deciding destination ownership. No duplicate release."
+    },
+    {
+      "component": "Tailscale",
+      "disposition": "replace",
+      "gate": "Retain access, reestablish native network/DNS policy; omit WSL MAC/MTU/resolver prestart repair."
+    },
+    {
+      "component": "Caddy Plex/Channels routes",
+      "disposition": "defer",
+      "gate": "Omit only after direct replacement passes. Prepare minimal native fallback if needed; no custom health-restart loop."
+    },
+    {
+      "component": "GitHub deployment runner",
+      "disposition": "keep",
+      "gate": "Enable last after native paths/auth/labels/cAdvisor context and clean-main trusted-push-only deployment validation."
+    },
+    {
+      "component": "cron jobs and contribution/tunnel timers",
+      "disposition": "defer",
+      "gate": "Inventory individually; retain definitions privately. No wholesale crontab/unit/timer activation."
+    },
+    {
+      "component": "No-IP updater",
+      "disposition": "replace",
+      "gate": "Review record ownership and select one supported native/router updater; no duplicate DNS owner."
+    },
+    {
+      "component": "Windows/WSL watchdogs, diagnostics and keepalive",
+      "disposition": "omit",
+      "gate": "Archive for rollback; do not port periodic engine restart, Windows ETW/PLA, named-pipe probes or WSL repair."
+    },
+    {
+      "component": "old split AI and system T3 services",
+      "disposition": "archive",
+      "gate": "Keep recorded disabled state; never enable all restored units."
+    },
+    {
+      "component": "dormant Hyper-V VM and WindowsGSM/V Rising",
+      "disposition": "archive",
+      "gate": "Preserve data/configuration before source retirement; no boot, automatic activation or deletion."
+    }
+  ],
+  "unknownServices": "held; add an explicit reviewed row before activation",
+  "notes": [
+    "after dependencies constrain order only and never authorize a service start. Internal Compose database/helper dependencies remain required.",
+    "Do not merge Linux-only definitions into the active Windows deployment runner.",
+    "No repository-wide compose up, workflow activation, timer import or enable-all operation.",
+    "The live source inventory can include ephemeral recovery helpers. They are not destination production services."
+  ]
+}

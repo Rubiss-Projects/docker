@@ -36,11 +36,24 @@ The real absent-NAS boot and controlled outage acceptance remain pending, with
 owner approval before any disruptive test. This preparation does not complete
 that gate or coordinated UPS shutdown acceptance.
 
+`startup-plan.json` gives every tracked main-host Compose stack an explicit
+keep/replace/defer/archive disposition, startup dependencies and release gates.
+Pi definitions are explicitly excluded. Native responsibilities cover T3,
+separate native AI, SSH/Tailscale, Caddy fallback, runner and legacy controls.
+This is a reviewed-scope candidate, **not permission to activate services**.
+Live inventories may include an explicitly identified read-only recovery helper;
+it is excluded only when its isolated network and mount restrictions match.
+Unknown stacks, services, dependencies or live identities fail coverage review.
+The validator flags remaining Windows/WSL/host-gateway references without
+claiming the existing definitions are ready for Linux. It needs PyYAML on the
+preparation host; the actual mount checker uses only Python's standard library.
+
 Test without installing anything:
 
 ```sh
-python3 -m unittest discover -s scripts/native-storage -p 'test_*.py' -v
+python3 -B -m unittest discover -s scripts/native-storage -p 'test_*.py' -v
 python3 scripts/native-storage/check-media-mount.py --config /private/reviewed-ro-fixture-policy.json
+python3 -B scripts/native-storage/validate-startup-plan.py --live-inventory /private/source-service-inventory.json --exclude-helper EXACT_REVIEWED_READONLY_HELPER
 ```
 
 Use an exact read-only fixture policy only for the controller rehearsal. Native
