@@ -1,0 +1,42 @@
+# Candidate only: matching offline CLI must unpublish the restored clone first.
+# Retain original N8N_USER_FOLDER nesting; never invoke the legacy importer.
+services:
+  n8n:
+    entrypoint: [tini, --, /bin/sh, /opt/nas-migration/n8n-native-start.sh]
+    command: !reset null
+    volumes: !override
+      - type: bind
+        source: ./config
+        target: /root/.n8n
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./workflows
+        target: /files
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../
+        target: /srv/Docker
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../scripts/native-storage/n8n-startup-admission.cjs
+        target: /opt/nas-migration/n8n-startup-admission.cjs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../scripts/native-storage/n8n-native-start.sh
+        target: /opt/nas-migration/n8n-native-start.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./native-startup-policy.json
+        target: /opt/nas-migration/n8n-startup-policy.json
+        read_only: true
+        bind:
+          create_host_path: false

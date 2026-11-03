@@ -498,7 +498,9 @@
         "application-acceptance",
         "explicit-authoritative-state-handoff"
       ],
-      "note": "Retain full state. Persistently deactivate restored workflows before scheduler/webhook startup and bypass startup importer. Release only the validated native Sunday autoscaling workflow; six historical recovery/cleanup workflows remain inactive."
+      "note": "Retain full state; refresh final handoff checkpoint. Matching2.45.5 offlineCLI unpublish-all was tested on isolated clone, seven inactive/two credentials decrypted without output. Native entrypoint bypasses legacy importer, removes old writable recovery binds and checks database read-only before server startup: no unapproved active/published workflow or pending/unknown execution. Default private policy allows none; only exact validated native Sunday published version may later be admitted. Six historical recovery/cleanup workflows remain inactive. No automatic unpublish on every restart; no scheduler or native autoscaler acceptance claimed.",
+      "nativeOverride": "scripts/native-storage/overrides/n8n.yaml",
+      "nativeOverrideStatus": "rendered_with_offline_cli_and_readonly_admission_fixture_passed_not_runtime_accepted"
     },
     {
       "stack": "nut-exporter",
