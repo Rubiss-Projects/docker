@@ -12,7 +12,25 @@
 
  REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
  DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
-@@ -61,6 +67,7 @@
+@@ -57,10 +63,24 @@
+   [[ -f .env ]] && env_args+=(--env-file .env)
+   [[ -f .env.secret ]] && env_args+=(--env-file .env.secret)
+
+-  docker compose "${env_args[@]}" "$@"
++  local file_args=()
++  if [[ "$DEPLOY_HOST" == native-linux ]]; then
++    [[ "$PWD" == "$REPO_DIR/"* ]] || die "Native Compose must run inside its reviewed stack directory"
++    local stack_dir=${PWD#"$REPO_DIR/"}
++    local native_files native_file
++    native_files=$(python3 "$REPO_DIR/scripts/native-storage/check-deployment-admission.py" \
++      --repo "$REPO_DIR" --compose-stack "$stack_dir") || die "Native Compose recipe is not admitted"
++    [[ -n "$native_files" ]] || die "Native Compose recipe is empty"
++    while IFS= read -r native_file; do
++      file_args+=(--file "$native_file")
++    done <<<"$native_files"
++  fi
++
++  docker compose "${env_args[@]}" "${file_args[@]}" "$@"
  }
 
  is_windows_compose_stack() {
@@ -20,6 +38,32 @@
    local candidate=$1
    local stack
 
+@@ -740,6 +760,17 @@
+   done < <(stack_dependents "$stack_dir")
+ }
+
++native_deployment_preflight() {
++  [[ "$DEPLOY_HOST" == native-linux ]] || return 0
++  require_command python3
++  require_command timeout
++  python3 "$REPO_DIR/scripts/native-storage/check-deployment-admission.py" \
++    --repo "$REPO_DIR" --stacks "$@" || die "Native deployment release or service coverage is not admitted"
++  timeout --signal=TERM --kill-after=5s 20s python3 \
++    "$REPO_DIR/scripts/native-storage/check-media-mount.py" \
++    --config /etc/nas-migration/media-mount-policy.json || die "Native media mount is not admitted"
++}
++
+ main() {
+   require_command docker
+   require_command flock
+@@ -817,6 +848,7 @@
+     plan_parts+=("$service_dir:${service_dirs[$service_dir]}")
+   done
+   log "Dependency-aware deployment plan: ${plan_parts[*]}"
++  native_deployment_preflight "${service_dirs_sorted[@]}"
+
+   local kuma_targets
+   mapfile -t kuma_targets < <(resolve_kuma_maintenance_targets "${service_dirs_sorted[@]}")
 --- a/.github/workflows/deploy-service-changes.yml
 +++ b/.github/workflows/deploy-service-changes.yml
 @@ -97,8 +97,8 @@
@@ -33,7 +77,7 @@
      timeout-minutes: 90
 
      steps:
-@@ -107,10 +107,10 @@
+@@ -107,10 +107,11 @@
          env:
            DOCKER_DEPLOY_BRANCH: main
            DOCKER_DEPLOY_SCOPE: main
@@ -43,11 +87,12 @@
 -        # Most stacks use WSL Compose. The deploy script explicitly delegates
 -        # main-host cAdvisor to Windows Compose so its host mounts resolve there.
 +          DOCKER_REPO_DIR: /srv/Docker
-+        # Native-only candidate: release this runner last, after the native service allowlist and per-app admission pass.
++        # Release the native runner last; its private per-stack policy defaults to deny all.
++        # The helper admits all planned service keys and the media mount before maintenance/deployment.
          run: |
            set -Eeuo pipefail
            # Load the trusted deployment commit's helper before it updates the
-@@ -121,9 +121,6 @@
+@@ -121,9 +122,6 @@
            git -C "$DOCKER_REPO_DIR" show "${{ github.sha }}:scripts/deploy-changed-service-folders.sh" > "$deploy_script"
            bash "$deploy_script" "${{ github.event.before }}" "${{ github.sha }}"
 
