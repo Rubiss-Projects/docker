@@ -1,0 +1,59 @@
+--- a/scripts/deploy-changed-service-folders.sh
++++ b/scripts/deploy-changed-service-folders.sh
+@@ -1,5 +1,11 @@
+ #!/usr/bin/env bash
+ set -Eeuo pipefail
++
++DEPLOY_HOST=${DOCKER_DEPLOY_HOST:-windows-wsl}
++case "$DEPLOY_HOST" in
++  windows-wsl|native-linux) ;;
++  *) printf 'Unsupported deployment host context.\n' >&2; exit 1 ;;
++esac
+
+ REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
+ DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
+@@ -61,6 +67,7 @@
+ }
+
+ is_windows_compose_stack() {
++  [[ "$DEPLOY_HOST" == windows-wsl ]] || return 1
+   local candidate=$1
+   local stack
+
+--- a/.github/workflows/deploy-service-changes.yml
++++ b/.github/workflows/deploy-service-changes.yml
+@@ -97,8 +97,8 @@
+     permissions: {}
+     runs-on:
+       - self-hosted
+-      - wsl
+-      - docker-ops
++      - linux
++      - native-docker-ops
+     timeout-minutes: 90
+
+     steps:
+@@ -107,10 +107,10 @@
+         env:
+           DOCKER_DEPLOY_BRANCH: main
+           DOCKER_DEPLOY_SCOPE: main
++          DOCKER_DEPLOY_HOST: native-linux
+           DOCKER_DEPLOY_START_STOPPED: "false"
+-          DOCKER_REPO_DIR: /mnt/e/Docker
+-        # Most stacks use WSL Compose. The deploy script explicitly delegates
+-        # main-host cAdvisor to Windows Compose so its host mounts resolve there.
++          DOCKER_REPO_DIR: /srv/Docker
++        # Native-only candidate: release this runner last, after the native service allowlist and per-app admission pass.
+         run: |
+           set -Eeuo pipefail
+           # Load the trusted deployment commit's helper before it updates the
+@@ -121,9 +121,6 @@
+           git -C "$DOCKER_REPO_DIR" show "${{ github.sha }}:scripts/deploy-changed-service-folders.sh" > "$deploy_script"
+           bash "$deploy_script" "${{ github.event.before }}" "${{ github.sha }}"
+
+-      - name: Install main-host contribution fork maintenance
+-        shell: bash
+-        run: bash /mnt/e/Docker/scripts/install-contribution-fork-sync.sh
+
+   deploy-pi:
+     name: Deploy Raspberry Pi service folders
