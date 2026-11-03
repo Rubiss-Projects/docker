@@ -1,0 +1,8 @@
+[Unit]
+Wants=network-online.target
+After=network-online.target srv-Media.mount
+RequiresMountsFor=/srv/Media
+BindsTo=srv-Media.mount
+
+[Service]
+ExecStartPre=/usr/bin/timeout --signal=TERM --kill-after=5s 20s /usr/bin/python3 /usr/local/lib/nas-migration/check-media-mount.py --config /etc/nas-migration/media-mount-policy.json
