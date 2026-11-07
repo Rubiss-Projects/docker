@@ -1,0 +1,15 @@
+# Prepared only: base service directory first; do not apply on Windows/WSL.
+services:
+  plex:
+    volumes: !override
+      - type: bind
+        source: ./config
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../../Media
+        target: /data
+        read_only: true
+        bind:
+          create_host_path: false

@@ -1,0 +1,6 @@
+{
+  "mountpoint": "/srv/Media",
+  "source": "REVIEWED_NAS_ADDRESS:/Media/data",
+  "access": "rw",
+  "required_roots": ["."]
+}

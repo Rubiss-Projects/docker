@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "nativeAcceptanceCompleted": false,
+  "startupPlanSha256": "REPLACE_WITH_CANONICAL_PLAN_DIGEST_AFTER_REVIEW",
+  "releasedStacks": [],
+  "allowedMaintenanceInstallers": {}
+}
