@@ -1,6 +1,6 @@
 services:
   n8n:
-    image: n8nio/n8n:2.46.3@sha256:1a6e1865c5e917945ede13a05b71381e69bbf52f3a60cbaf22a1809760338091
+    image: n8nio/n8n:2.46.6@sha256:8602f5dfacbe2c931eeafd010de0e68182310e9f309921e780ab69182e92b3ae
     container_name: n8n
     restart: unless-stopped
     deploy:
