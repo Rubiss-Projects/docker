@@ -389,6 +389,8 @@
     {
       "stack": "influxdb",
       "compose": "influxdb/docker-compose.yml",
+      "nativeOverride": "scripts/native-storage/overrides/influxdb.yaml",
+      "nativeOverrideStatus": "rendered_candidate_not_runtime_accepted",
       "services": [
         "influxdb"
       ],

@@ -10,7 +10,7 @@ import stat
 import subprocess
 import sys
 
-REQUIRED_OVERRIDES = frozenset({'plex', 'channels-dvr', 'nvidia-smi-rest', 'homepage', 'n8n'})
+REQUIRED_OVERRIDES = frozenset({'plex', 'channels-dvr', 'nvidia-smi-rest', 'homepage', 'n8n', 'influxdb'})
 
 
 def unique_object(pairs):

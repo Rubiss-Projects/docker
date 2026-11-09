@@ -67,6 +67,14 @@ def main() -> None:
         assert not any('/usr/lib/wsl' in m.get('source','') or m.get('source') in ('/mnt/c','/mnt/e') for m in after)
         if stack=='homepage':validate_homepage_widgets(after)
         rows.append({'stack':stack,'removedTargets':sorted(removed),'retainedMountCount':len(after),'imagesEnvironmentPortsLimitsAndGpuReservationsUnchanged':True,'hostPathAutoCreationDisabled':True})
+    base,candidate=render('influxdb',False),render('influxdb',True)
+    assert set(base['services'])==set(candidate['services'])
+    assert {k:v for k,v in base.items() if k!='services'}=={k:v for k,v in candidate.items() if k!='services'}
+    original=base['services']['influxdb'];native=candidate['services']['influxdb']
+    assert native['stop_signal']=='SIGINT' and native['stop_grace_period'] in ('2m','2m0s')
+    shutdown_fields={'stop_signal','stop_grace_period'}
+    assert {k:v for k,v in original.items() if k not in shutdown_fields}=={k:v for k,v in native.items() if k not in shutdown_fields}
+    rows.append({'stack':'influxdb','stopSignal':'SIGINT','stopGracePeriodSeconds':120,'allOtherServiceSettingsUnchanged':True})
     print(json.dumps({'renderValidationPassed':True,'stacks':rows,'runtimeAccepted':False,'engineActions':0,'secretsExpanded':False}))
 
 

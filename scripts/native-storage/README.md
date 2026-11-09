@@ -78,7 +78,7 @@ References: [systemd unit dependencies](https://www.freedesktop.org/software/sys
 ## Native Compose candidates
 
 `overrides/` contains explicit, unapplied candidates for Plex, Channels,
-GPU telemetry and Homepage. Compose `!override`/`!reset` replaces the complete
+GPU telemetry, Homepage and InfluxDB. Compose `!override`/`!reset` replaces the complete
 volume list, removing WSL GPU libraries or Windows drive mounts while preserving
 application state, media targets, images, GPU reservations, limits and ports.
 Long bind syntax disables automatic host-path creation. Keep the base file first
@@ -95,6 +95,13 @@ replacing the old `/c` and `/e` widget paths. Weather/date/resource options rema
 unchanged and no host-root filesystem bind is added. The resources widget's
 CPU/memory readings describe its container, not host-level metrics; native
 sensors and actual filesystem reporting still need runtime acceptance.
+
+The InfluxDB candidate changes only its shutdown signal and grace period:
+`SIGINT` with two minutes to finish. A separate, network-isolated 2.9.1 cold-copy
+rehearsal listed 18 measurements and returned a historical row with the existing
+read token. `SIGTERM` reproduced exit code 2; the copy then recovered and exited
+cleanly with `SIGINT`. Original files remained unchanged and the original service
+stayed stopped. This does not establish native-host application acceptance.
 
 Do not apply these candidates to either working Desktop host. Native cAdvisor
 data-root/containerd/cgroup/metrics, public-port/firewall, mount, per-application
