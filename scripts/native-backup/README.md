@@ -41,3 +41,56 @@ recurring coverage, scheduling, encrypted repository admission, retention and
 failure alerts remain migration requirements until separately installed and
 verified. Do not point a timer at previously captured migration payloads and
 report them as fresh application backups.
+
+## Encrypted repository runner
+
+`repository.py` connects the fresh Portainer producer to an already initialized
+encrypted NAS repository. Copy `repository.example.json` into a root-owned 0600
+configuration, substituting the independently verified repository ID and pinned
+bbolt binary path. The runner refuses another NAS/share/filesystem, a local
+fallback, insufficient headroom, or an unexpected repository ID.
+
+Before enabling its timer, create an existing Uptime Kuma **push monitor with
+human notifications** and save its local `http://127.0.0.1:3001/api/push/TOKEN`
+URL in the protected `pushUrlFile`. Configure a heartbeat interval longer than
+the daily interval plus timer jitter and the two-hour job ceiling (for example
+28 hours). Prove both a failure and recovery notification. An unavailable sender
+fails the job; the monitor's missing-heartbeat detection also covers a stopped
+host or a process killed before it can report failure. This is alerting only;
+never connect the monitor to a container/host restart webhook.
+
+The supplied service/timer require explicit installation and activation. Create
+`/var/lib/native-backup` as root-owned 0700, install the Python modules read-only
+under `/usr/local/lib/native-backup`, and preserve the credential file separately.
+The service uses a private temporary directory and makes only its state and NAS
+mount writable. `systemd-analyze verify` must pass before installation.
+
+```sh
+sudo python3 -B /usr/local/lib/native-backup/repository.py /etc/native-backup/portainer.json
+```
+
+Each locked invocation creates a new private capture and records its phase.
+An uncertain API capture creates `capture-attention.json` and blocks another
+automatic API request until the retained intent/partial is reconciled. Do not
+remove that marker just to make a failed timer green. The runner never stops,
+restarts, recreates, or starts an application container.
+
+Success requires a fresh supported capture, encrypted backup, full repository
+data check, verified restore, matching archive SHA-256, and another full archive
+and bbolt check. The restored copy stays private and no restored application is
+started. Logs and captures remain for reconciliation; this initial runner
+does not automatically remove private local job directories.
+
+Retention keeps 14 daily, eight weekly and 12 monthly points for the exact
+`ben-server`/`native-recurring`/`scope=portainer` group. It first produces a dry-run
+plan. `applyRetention` defaults to false for admission. After the actual fixture
+and restore acceptance, true enables forgetting only the validated immutable IDs,
+with at least one owned snapshot retained. The runner verifies every unselected
+snapshot remains, prunes unreferenced data with a 1 GiB repack bound, and performs
+another full data check. Original migration snapshots lack both recurring tags
+and cannot enter this policy. See the upstream [tag filter and retention
+semantics](https://restic.readthedocs.io/en/stable/060_forget.html).
+
+This runner currently covers **Portainer only**. Its successful operation is not
+evidence of recurring backup coverage for Plex, Channels, databases or worker
+state. Those producers and their independent restore acceptance remain required.
