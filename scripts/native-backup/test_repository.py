@@ -95,6 +95,17 @@ class RepositoryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'identity'):
                 job.verify_identity()
 
+    def test_n8n_retention_cannot_select_portainer_or_migration_snapshots(self):
+        config = {**self.config, 'scope': 'n8n'}
+        job = repository.Repository(config, self.root)
+        with patch.object(job, 'run', return_value='[]') as command:
+            job.retention()
+            self.assertIn('native-recurring,scope=n8n', command.call_args.args)
+        row = {'id': 'a'*64, 'hostname': 'ben-server', 'tags': ['native-recurring', 'scope=portainer']}
+        with patch.object(job, 'run', return_value=json.dumps([{'remove': [row]}])):
+            with self.assertRaisesRegex(ValueError, 'unowned'):
+                job.retention(apply=True)
+
     def test_retention_applies_only_exact_owned_ids_and_preserves_migration_inventory(self):
         removed = {'id': 'a'*64, 'hostname': 'ben-server', 'tags': ['native-recurring', 'scope=portainer']}
         kept = {**removed, 'id': 'b'*64}

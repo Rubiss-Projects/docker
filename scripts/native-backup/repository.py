@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a fresh Portainer capture, encrypted NAS backup, and verified restore."""
+"""Run a fresh application capture, encrypted NAS backup, and verified restore."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ except ImportError:
     fcntl = None
 
 import portainer
+import n8n
 
 
 def sync_directory(path: Path) -> None:
@@ -89,6 +90,9 @@ def notify(config: dict, success: bool) -> None:
 
 class Repository:
     def __init__(self, config: dict, directory: Path):
+        self.scope = config.get('scope', 'portainer')
+        if self.scope not in {'portainer', 'n8n'}:
+            raise ValueError('Unsupported application backup scope')
         self.config = config
         self.directory = directory
         self.sequence = 0
@@ -117,14 +121,14 @@ class Repository:
         # One comma-separated filter requires BOTH tags. Separate --tag filters
         # have OR semantics and could select snapshots belonging to another scope.
         output = self.run('forget', '--dry-run', '--json', '--host', 'ben-server',
-            '--tag', 'native-recurring,scope=portainer', '--group-by', 'host,tags',
+            '--tag', 'native-recurring,scope='+self.scope, '--group-by', 'host,tags',
             '--keep-daily', '14', '--keep-weekly', '8', '--keep-monthly', '12')
         groups = json.loads(output)
         removal = set()
         for group in groups:
             for row in group.get('remove') or []:
                 if row.get('hostname') != 'ben-server' or set(row.get('tags') or []) != {
-                        'native-recurring', 'scope=portainer'}:
+                        'native-recurring', 'scope='+self.scope}:
                     raise ValueError('Retention plan selected an unowned snapshot')
                 if not re.fullmatch('[0-9a-f]{64}', row['id']):
                     raise ValueError('Retention requires complete immutable snapshot IDs')
@@ -138,10 +142,10 @@ class Repository:
         for snapshot in removal:
             row = by_id[snapshot]
             if row.get('hostname') != 'ben-server' or set(row.get('tags') or []) != {
-                    'native-recurring', 'scope=portainer'}:
+                    'native-recurring', 'scope='+self.scope}:
                 raise ValueError('Retention candidate changed before execution')
         owned = {row['id'] for row in before if row.get('hostname') == 'ben-server'
-                 and set(row.get('tags') or []) == {'native-recurring', 'scope=portainer'}}
+                 and set(row.get('tags') or []) == {'native-recurring', 'scope='+self.scope}}
         if not owned - removal:
             raise ValueError('Retention must preserve a snapshot of this scope')
         # Persist the exact mutation before doing it. Do not re-run broad filters
@@ -167,6 +171,9 @@ def run(config: dict) -> dict:
         raise RuntimeError('Native backup requires Linux file locking')
     if type(config['applyRetention']) is not bool:
         raise ValueError('applyRetention must be a JSON boolean')
+    scope = config.get('scope', 'portainer')
+    if scope not in {'portainer', 'n8n'}:
+        raise ValueError('Unsupported application backup scope')
     os.umask(0o077)
     state = Path(config['stateDirectory'])
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -179,17 +186,18 @@ def run(config: dict) -> dict:
         name = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
         directory = state/name
         directory.mkdir(mode=0o700)
-        result = {'scope': 'portainer', 'startedAt': dt.datetime.now(dt.timezone.utc).isoformat(),
+        result = {'scope': scope, 'startedAt': dt.datetime.now(dt.timezone.utc).isoformat(),
                   'phase': 'admission', 'success': False, 'containerControls': 0}
         save(directory/'job.json', result)
         started = time.monotonic()
         try:
             repository = Repository(config, directory)
             repository.verify_identity()
-            tool = Path(config['bbolt'])
-            with tool.open('rb') as source:
-                if hashlib.file_digest(source, 'sha256').hexdigest() != portainer.BBOLT_SHA256:
-                    raise ValueError('Unexpected bbolt verifier binary')
+            if scope == 'portainer':
+                tool = Path(config['bbolt'])
+                with tool.open('rb') as source:
+                    if hashlib.file_digest(source, 'sha256').hexdigest() != portainer.BBOLT_SHA256:
+                        raise ValueError('Unexpected bbolt verifier binary')
             result['phase'] = 'capture'
             save(directory/'job.json', result)
             capture = directory/'capture'
@@ -198,13 +206,13 @@ def run(config: dict) -> dict:
             # not run on SIGKILL, host reboot, or systemd's final kill deadline.
             save(attention, {'jobDirectory': str(directory),
                 'reason': 'Capture may be in progress; reconcile retained intent and archive before another API request'})
-            proof = portainer.capture(capture, tool)
+            proof = portainer.capture(capture, tool) if scope == 'portainer' else n8n.capture(capture)
             result['phase'] = 'encrypted_backup'
             save(directory/'job.json', result)
             attention.unlink()
             sync_directory(state)
             output = repository.run('backup', '--json', '--host', 'ben-server',
-                '--tag', 'native-recurring', '--tag', 'scope=portainer', str(capture))
+                '--tag', 'native-recurring', '--tag', 'scope='+scope, str(capture))
             summaries = [value for line in output.splitlines() if (value := json.loads(line)).get('message_type') == 'summary']
             if len(summaries) != 1 or not summaries[0].get('snapshot_id'):
                 raise ValueError('Restic did not report one completed snapshot')
@@ -214,13 +222,17 @@ def run(config: dict) -> dict:
             repository.run('check', '--read-data')
             restored = directory/'restore'
             repository.run('restore', snapshot, '--target', str(restored), '--verify')
-            archive = restored / capture.relative_to(capture.anchor) / 'backup.tar.gz'
-            with archive.open('rb') as source:
-                if hashlib.file_digest(source, 'sha256').hexdigest() != proof['archiveSha256']:
-                    raise ValueError('Restored archive digest differs from fresh capture')
-            restored_proof = portainer.inspect_archive(archive, tool)
-            if restored_proof['files'] != proof['files']:
-                raise ValueError('Restored database or key files differ from capture')
+            restored_capture = restored / capture.relative_to(capture.anchor)
+            if scope == 'portainer':
+                archive = restored_capture / 'backup.tar.gz'
+                with archive.open('rb') as source:
+                    if hashlib.file_digest(source, 'sha256').hexdigest() != proof['archiveSha256']:
+                        raise ValueError('Restored archive digest differs from fresh capture')
+                restored_proof = portainer.inspect_archive(archive, tool)
+                if restored_proof['files'] != proof['files']:
+                    raise ValueError('Restored database or key files differ from capture')
+            elif n8n.inspect_capture(restored_capture) != proof:
+                raise ValueError('Restored n8n files, key or database differ from capture')
             retention = repository.retention(apply=config['applyRetention'])
             save(directory/'retention-plan.json', retention)
             result.update(phase='monitor_delivery', encryptedRepositoryCaptureVerified=True,
