@@ -1,0 +1,21 @@
+[Unit]
+Description=Start the admitted native HTTPS proxy after Docker setup
+Requires=docker.service
+After=docker.service network-online.target
+PartOf=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+User=rubiss
+WorkingDirectory=/srv/Docker
+ExecStartPre=/usr/bin/mkdir -p /tmp/docker-compose-ops-deploy.lock.d
+ExecStart=/usr/bin/flock --wait 120 /tmp/docker-compose-ops-deploy.lock.d /usr/bin/python3 -B /srv/Docker/scripts/native-deploy/compose.py --stack swag -- start swag
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=15s
+TimeoutStartSec=180s
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=docker.service

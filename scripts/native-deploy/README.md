@@ -33,6 +33,34 @@ artifacts.
 
 The adapter adds no application schedules, monitoring providers or backup jobs.
 
+## HTTPS startup
+
+The native host policy must bind SWAG's published HTTPS port to the server LAN
+address, not all addresses: Tailscale Serve owns HTTPS on its own address.
+The NAS administration listener retains its separate LAN-only binding.
+
+The 10GbE link can briefly drop during boot after `network-online.target` has
+completed. If Docker cannot bind a published address while restoring a container,
+its restart policy does not recover that initial networking failure. Install the
+admitted proxy startup unit after the native policy and deployment account pass:
+
+```sh
+sudo install -o root -g root -m 0644 scripts/native-deploy/native-https-startup.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now native-https-startup.service
+```
+
+The unit starts after Docker finishes setup, takes the existing deployment lock,
+applies the adapter's admission checks and starts only the existing SWAG container. It retries a failed
+initial start every 15 seconds and remains satisfied after success. It neither
+recreates nor restarts a running proxy. Docker restarts also re-run this startup
+step. Confirm the unit is active/exited and both LAN HTTPS and Tailscale access
+work after a normal host boot.
+
+To remove it, disable/stop `native-https-startup.service`, remove that unit file
+from `/etc/systemd/system/`, and run `systemctl daemon-reload`. Stopping this
+oneshot unit does not stop the proxy container.
+
 ## Normal host shutdown
 
 Install the Docker systemd stop-timeout override on the native host:
