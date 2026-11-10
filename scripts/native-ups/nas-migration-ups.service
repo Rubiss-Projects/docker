@@ -1,0 +1,22 @@
+[Unit]
+Description=Migration UPS ordered shutdown guard
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -B /usr/local/lib/nas-migration/native_ups_guard.py
+Restart=on-failure
+RestartSec=5
+StateDirectory=nas-migration-ups
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/nas-migration-ups
+RestrictAddressFamilies=AF_UNIX AF_INET
+
+[Install]
+WantedBy=multi-user.target
