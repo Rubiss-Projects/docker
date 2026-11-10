@@ -93,6 +93,32 @@ another full data check. Original migration snapshots lack both recurring tags
 and cannot enter this policy. See the upstream [tag filter and retention
 semantics](https://restic.readthedocs.io/en/stable/060_forget.html).
 
-This runner currently covers **Portainer only**. Its successful operation is not
-evidence of recurring backup coverage for Plex, Channels, databases or worker
-state. Those producers and their independent restore acceptance remain required.
+## n8n producer and schedule
+
+Set `scope` to `n8n` in a separate root-owned configuration. Use its own
+`stateDirectory` and human-only push monitor; omit `bbolt`. Install `n8n.py`
+alongside `portainer.py` before replacing the shared `repository.py`. Existing
+Portainer configurations without a scope retain their original behavior.
+
+The n8n producer checks the running container's admitted native mount and SQLite
+configuration. It snapshots committed database state through SQLite's online
+backup API, finalizes a standalone database, and captures the unchanged
+file-persisted encryption key, binary data, custom nodes, SSH and recovery files
+under `/srv/Docker/n8n/config/{.n8n,recovery}`. It excludes event/crash logs and
+database sidecars. It neither starts n8n nor changes workflow activation.
+Individual supporting files must stay stable while copied; the database and all
+supporting files are not a cross-file atomic snapshot. An external key or another
+database backend requires a separately admitted producer.
+
+The restored capture must match every file digest, ownership, mode, timestamp,
+xattr and symlink target, pass SQLite integrity checks and match all table row
+counts, including the required n8n application tables. Capturing a key is not a
+credential-decryption test: require separate independent application recovery
+acceptance before enabling the supplied service/timer. The timer runs at 04:20
+America/New_York plus jitter, before the Portainer job. Install and admit it
+explicitly, following the same repository, restore, retention and alert gates.
+
+`scope=n8n` snapshots have their own 14-daily/8-weekly/12-monthly retention group;
+Portainer and original migration snapshots cannot enter that policy. Installing
+these files alone enables no schedule. The runner supports these two producers;
+recurring protection for the other critical applications remains required.
