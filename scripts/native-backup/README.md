@@ -176,5 +176,27 @@ explicitly, following the same repository, restore, retention and alert gates.
 
 `scope=n8n` snapshots have their own 14-daily/8-weekly/12-monthly retention group;
 Portainer and original migration snapshots cannot enter that policy. Installing
-these files alone enables no schedule. The runner supports these two producers;
-recurring protection for the other critical applications remains required.
+these files alone enables no schedule. The runner supports Portainer, n8n and
+Bitwarden; recurring protection for other critical scopes remains incomplete.
+
+## Host/bootstrap capture primitives (integration pending)
+
+`host_files.py` captures an individually admitted tree through confined file
+descriptors. It recognizes SQLite by its header, including databases without
+standard extensions, and snapshots committed state through SQLite's online
+backup API. It preserves regular-file metadata and symlink objects without
+following them. Unadmitted special files fail capture. Individual database
+snapshots and supporting files are not a cross-database or whole-host atomic
+snapshot.
+
+`sqlite_snapshot_file` writes the confined child's output directly to an
+exclusive destination descriptor. The parent does not buffer another copy of a
+large database. The source and output bounds are 1 GiB, with a 3 GiB child address
+space limit and a 150-second deadline. Larger databases require separate
+admission. The host filesystem root cannot be used as the SQLite sandbox.
+
+These primitives do not yet select the full host roots, capture the Git/secret/
+runtime bootstrap supplement, or register a recurring producer and timer. Keep
+their plaintext capture inside private job directories and require encrypted
+NAS backup, full repository read and restored-file/database verification before
+enabling host protection. Existing schedules remain independent.

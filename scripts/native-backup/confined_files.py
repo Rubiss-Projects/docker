@@ -216,6 +216,27 @@ def sqlite_task(tree: SafeTree, operation: str, relative: str) -> bytes:
     return result.stdout
 
 
+def sqlite_snapshot_file(source: SafeTree, relative: str,
+                         destination: SafeTree, target: str) -> None:
+    """Write a confined online snapshot without buffering it in the parent."""
+    relative_path(relative)
+    source.require_regular(relative)
+    if source.lstat(relative).st_size > 1024*1024*1024:
+        raise ValueError('SQLite source exceeds the admitted 1 GiB memory bound')
+    def limits() -> None:
+        import resource
+        resource.setrlimit(resource.RLIMIT_AS, (3*1024**3, 3*1024**3))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (1024**3, 1024**3))
+    with destination.fd(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600) as output:
+        result = subprocess.run([sys.executable, '-B', str(Path(__file__).absolute()),
+            '--sqlite-child', str(source.root_fd), 'snapshot', relative],
+            pass_fds=(source.root_fd,), stdin=subprocess.DEVNULL, stdout=output,
+            stderr=subprocess.PIPE, timeout=150, preexec_fn=limits)
+        if result.returncode:
+            raise RuntimeError('Confined SQLite file snapshot failed')
+        os.fsync(output)
+
+
 def confine(directory: int) -> None:
     if os.geteuid() != 0:
         raise RuntimeError('SQLite confinement requires the root backup service')
