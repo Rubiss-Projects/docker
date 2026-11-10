@@ -33,6 +33,26 @@ artifacts.
 
 The adapter adds no application schedules, monitoring providers or backup jobs.
 
+## Normal host shutdown
+
+Install the Docker systemd stop-timeout override on the native host:
+
+```sh
+sudo install -o root -g root -m 0644 scripts/native-deploy/docker-shutdown-grace.conf /etc/systemd/system/docker.service.d/shutdown-grace.conf
+sudo systemctl daemon-reload
+systemctl show docker.service -p TimeoutStopUSec
+```
+
+The packaged unit's 90-second limit is shorter than the existing worker stop
+grace periods, which reach 31 minutes. Docker honors those container timeouts,
+so systemd must allow it to finish before killing the daemon. The override gives
+it 35 minutes; idle containers still stop immediately. Increase this bound if a
+future service needs a longer grace period. Reloading the unit does not restart
+Docker or its containers. The separate UPS emergency-stop policy is unchanged.
+
+To remove this override, remove only `shutdown-grace.conf` from that drop-in
+directory and run `systemctl daemon-reload` again.
+
 ```sh
 sudo python3 -B -m unittest discover -s scripts/native-deploy -p 'test_*.py'
 python3 scripts/native-deploy/compose.py --admit homepage plex channels-dvr
