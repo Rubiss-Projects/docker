@@ -74,6 +74,37 @@ class N8nCaptureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             n8n.inspect_capture(other)
 
+    def test_sqlite_attachment_and_its_sidecars_are_preserved_byte_for_byte(self):
+        attachment = self.source/'.n8n/binaryData/attachment.sqlite'
+        with sqlite3.connect(attachment) as database:
+            database.execute('CREATE TABLE attachment(value TEXT)')
+            database.execute('INSERT INTO attachment VALUES ("attachment bytes")')
+        database.close()
+        original = attachment.read_bytes()
+        sidecar = Path(str(attachment)+'-wal')
+        sidecar.write_bytes(b'attachment sidecar bytes')
+        target = self.capture()
+        proof = n8n.inspect_capture(target)
+        self.assertEqual(set(proof['sqliteDatabases']), {'.n8n/database.sqlite'})
+        self.assertEqual((target/'payload/.n8n/binaryData/attachment.sqlite').read_bytes(), original)
+        self.assertEqual((target/'payload/.n8n/binaryData/attachment.sqlite-wal').read_bytes(), sidecar.read_bytes())
+
+    def test_source_and_restored_encryption_key_symlinks_are_rejected(self):
+        key = self.source/'.n8n/config'
+        external = self.root/'external-config'
+        key.rename(external)
+        key.symlink_to(external)
+        with self.assertRaisesRegex(ValueError, 'regular files'):
+            n8n.capture(self.root/'rejected-symlink', self.source)
+        key.unlink()
+        key.write_bytes(external.read_bytes())
+        target = self.capture()
+        restored_key = target/'payload/.n8n/config'
+        restored_key.unlink()
+        restored_key.symlink_to(external)
+        with self.assertRaisesRegex(ValueError, 'regular files'):
+            n8n.inspect_capture(target)
+
     def test_existing_destination_and_replaced_runtime_are_not_retried(self):
         target = self.capture()
         with self.assertRaises(FileExistsError):

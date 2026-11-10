@@ -20,6 +20,12 @@ import portainer
 SOURCE_ROOT = Path('/srv/Docker/n8n/config')
 ROOTS = ('.n8n', 'recovery')
 REQUIRED_TABLES = {'workflow_entity', 'credentials_entity', 'user', 'execution_entity', 'settings'}
+DATABASE_PATH = '.n8n/database.sqlite'
+
+
+def require_regular_file(path: Path) -> None:
+    if not stat.S_ISREG(path.lstat().st_mode) or path.resolve() != path.absolute():
+        raise ValueError('n8n key and database must be regular files within the captured root')
 
 
 def digest(path: Path) -> str:
@@ -97,6 +103,10 @@ def inspect_capture(destination: Path) -> dict:
     """Verify the restored tree and SQLite snapshot without loading n8n or secrets."""
     proof = json.loads((destination/'capture.json').read_text())
     payload = destination/'payload'
+    require_regular_file(payload/'.n8n/config')
+    require_regular_file(payload/DATABASE_PATH)
+    if set(proof['sqliteDatabases']) != {DATABASE_PATH}:
+        raise ValueError('Capture contains an unadmitted n8n database snapshot')
     actual = set()
     for directory, directories, files in os.walk(payload, followlinks=False):
         for name in directories+files:
@@ -149,6 +159,8 @@ def capture(destination: Path, source_root: Path = SOURCE_ROOT) -> dict:
     if environment.get('DB_TYPE', 'sqlite') != 'sqlite' or environment.get('N8N_ENCRYPTION_KEY'):
         raise ValueError('Expected SQLite and the file-persisted n8n encryption key')
     key_file = source_root/'.n8n/config'
+    require_regular_file(key_file)
+    require_regular_file(source_root/DATABASE_PATH)
     key_before = digest(key_file)
     intent = {'at': dt.datetime.now(dt.timezone.utc).isoformat(),
               'containerId': before['Id'], 'imageId': before['Image'],
@@ -165,8 +177,7 @@ def capture(destination: Path, source_root: Path = SOURCE_ROOT) -> dict:
         if path.name.startswith('n8nEventLog') or path.name == 'crash.journal':
             excluded.append({'path': relative, 'reason': 'live event log or crash journal'})
             return
-        if any(path.name.endswith(suffix) and sqlite_file(Path(str(path)[:-len(suffix)]))
-               for suffix in ['-wal', '-shm', '-journal']):
+        if relative in {DATABASE_PATH+suffix for suffix in ['-wal', '-shm', '-journal']}:
             excluded.append({'path': relative, 'reason': 'SQLite sidecar included through online backup'})
             return
         row = metadata(path)
@@ -179,7 +190,9 @@ def capture(destination: Path, source_root: Path = SOURCE_ROOT) -> dict:
             target.symlink_to(os.readlink(path))
             row.update(kind='symlink', target=os.readlink(path))
         elif stat.S_ISREG(mode):
-            if sqlite_file(path):
+            if relative == DATABASE_PATH:
+                if not sqlite_file(path):
+                    raise ValueError('Admitted n8n database has no SQLite header')
                 databases[relative] = snapshot_database(path, target)
                 row['captureMethod'] = 'sqlite_online_backup'
             else:
