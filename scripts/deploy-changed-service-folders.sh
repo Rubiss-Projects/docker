@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+DEPLOY_HOST=${DOCKER_DEPLOY_HOST:-windows-wsl}
+case "$DEPLOY_HOST" in
+  windows-wsl|native-linux) ;;
+  *) printf 'Unsupported deployment host context.\n' >&2; exit 1 ;;
+esac
+
 REPO_DIR=${DOCKER_REPO_DIR:-/mnt/e/Docker}
 DEPLOY_BRANCH=${DOCKER_DEPLOY_BRANCH:-main}
 DEPLOY_REPOSITORY=${DOCKER_DEPLOY_REPOSITORY:-Rubiss-Projects/docker}
@@ -52,6 +58,12 @@ run() {
 }
 
 compose() {
+  if [[ "$DEPLOY_HOST" == native-linux ]]; then
+    [[ "$PWD" == "$REPO_DIR/"* ]] || die "Native Compose must run inside its stack directory"
+    python3 "$REPO_DIR/scripts/native-deploy/compose.py" --repo "$REPO_DIR" \
+      --stack "${PWD#"$REPO_DIR/"}" -- "$@"
+    return
+  fi
   local env_args=()
 
   [[ -f .env ]] && env_args+=(--env-file .env)
@@ -61,6 +73,7 @@ compose() {
 }
 
 is_windows_compose_stack() {
+  [[ "$DEPLOY_HOST" == windows-wsl ]] || return 1
   local candidate=$1
   local stack
 
@@ -817,6 +830,11 @@ main() {
     plan_parts+=("$service_dir:${service_dirs[$service_dir]}")
   done
   log "Dependency-aware deployment plan: ${plan_parts[*]}"
+
+  if [[ "$DEPLOY_HOST" == native-linux ]]; then
+    python3 "$REPO_DIR/scripts/native-deploy/compose.py" --repo "$REPO_DIR" \
+      --admit "${service_dirs_sorted[@]}" || die "Native deployment plan is not admitted"
+  fi
 
   local kuma_targets
   mapfile -t kuma_targets < <(resolve_kuma_maintenance_targets "${service_dirs_sorted[@]}")
