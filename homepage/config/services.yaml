@@ -1,23 +1,5 @@
 # https://gethomepage.dev/en/configs/services
 
-- Infrastructure:
-    - Caddy:
-        icon: caddy.svg
-        href: https://grafana.benlawson.dev/d/caddy-overview
-        description: Plex remote / Channels LAN · Ubuntu
-        siteMonitor: http://192.168.50.40:19019/healthz
-        widget:
-          type: caddy
-          url: http://192.168.50.40:19019
-          fields: ["upstreams", "requests", "requests_failed"]
-
-- Media Consumption:
-    - Channels LAN:
-        icon: channels-dvr.png
-        href: http://192.168.50.40:18089
-        description: At Home · IPTV and HDHomeRun
-        siteMonitor: http://192.168.50.40:18089/healthz
-
 - Hardware:
     - QNAP NAS:
         icon: qnap.png
@@ -26,17 +8,10 @@
         siteMonitor: http://192.168.50.91:8080/
         # Enable the authenticated widget after initialization and storage validation.
         # See docs/qnap-monitoring.md for the account, secrets and acceptance checks.
-    - APC UPS:
-        icon: mdi-power-plug-battery
-        href: https://grafana.benlawson.dev/d/apc-ups
-        description: BR1500MS2 · monitoring only
-        widget:
-          type: apcups
-          url: tcp://host.docker.internal:3551
     - NAS UPS telemetry:
         icon: mdi-power-plug-battery
         href: https://grafana.benlawson.dev/d/nut-ups
-        description: NUT handoff pending · APC above remains current
+        description: BR1500MS2 · NAS NUT · server shutdown enabled
         widget:
           type: prometheusmetric
           url: http://prometheus:9090
