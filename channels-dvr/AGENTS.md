@@ -7,6 +7,16 @@ Channels DVR is a premium DVR solution for recording and managing live TV from s
 
 ## Technical Configuration
 
+### Native Linux migration
+
+Use host networking after installing the native media INPUT firewall and
+checking recording/viewing activity. Follow
+`../scripts/native-media-network/README.md` to preserve native volumes, streaming
+buffers, CPU affinity, GPU settings and dependent app URLs. Host-mode services
+have no published ports or proxynet attachment; bridge consumers need an
+explicit host route. Preserve application authentication. Away From Home is
+deferred by the owner; do not open WAN port 8089 as part of this migration.
+
 ### Docker Compose Patterns
 ```yaml
 ports:

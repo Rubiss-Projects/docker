@@ -79,6 +79,13 @@ Codex service traffic and its own ChatGPT login volume, never the assistant's
 data/credentials or a Docker socket. Retain its memory/swap, CPU, and PID limits.
 All three AI Assistant containers use the same immutable release version.
 
+**Narrow exception — native media:** After the native storage migration, Plex
+and Channels DVR use `network_mode: host` without published ports or a proxynet
+attachment. Install the dedicated media INPUT guard first and preserve consumer
+reachability. Use `scripts/native-media-network/README.md` for preparation,
+acceptance and backout. Keep the Windows base stacks and temporary Caddy route
+available until the native direct routes pass acceptance.
+
 **Narrow exception — Caddy Plex proxy:** `caddy/` is a native Ubuntu systemd
 service, outside Docker Desktop NAT so it can observe remote client IPs. It has
 no Compose stack or `proxynet` attachment. Use its explicit native installer,
