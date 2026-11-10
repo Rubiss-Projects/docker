@@ -2,7 +2,8 @@
 
 The TS-664 is initialized and runs QuTS hero **h6.0.2.3591 build 20260819** at the
 router-reserved address `192.168.50.91` on its installed 10GbE NIC. Drive
-qualification is in progress; no production storage pool has been created.
+qualification and pool creation are complete for the four installed drives.
+The RAID5 pool holds Media and Recovery; migration acceptance remains in progress.
 The SNMP collector supplies Grafana independently of the deferred Homepage
 statistics widget.
 
@@ -35,7 +36,8 @@ the NAS's `.91` address when migrating the surrounding services.
 ## Grafana collection during drive qualification
 
 - Homepage Hardware contains a NAS link and HTTP reachability indicator. A green
-  indicator means the web endpoint responds, not that storage is healthy.
+  indicator means the web endpoint responds, not that storage is healthy. The
+  authenticated statistics widget remains deferred pending its own account test.
 - Grafana's [QNAP NAS dashboard](https://grafana.benlawson.dev/d/qnap-nas) is
   provisioned from the repository and reads the `qnap-snmp` job with
   `instance="qnap-nas"`. Check collection and individual readings after deployment
@@ -50,7 +52,7 @@ the NAS's `.91` address when migrating the surrounding services.
   restriction. Keep UDP 161 on the LAN with no WAN forwarding; polling requires
   no trap destination. Revisit protocol and source-restriction options after a
   firmware change.
-- Runtime modules are generated with official SNMP exporter **v0.30.1** tooling
+- Runtime modules are generated with official SNMP exporter **v0.31.0** tooling
   from this NAS's downloaded `NAS.mib`, SHA-256
   `0cf58b39ad5c17737a2237f7e9d0a5359d8063d50a72acadd8e74ebe807a8fe9`.
   The service runbook records generation and validation details; the former
@@ -89,11 +91,15 @@ creation or interruption of an active test.
    value `1` is not a health code. Recheck units, sentinels and ID/serial bay
    mappings after firmware or drive changes. See the collector runbook for
    the activation comparisons.
-4. After the accepted drives form the production RAID5 pool, compare capacity and
-   usage panels against QuTS hero. Validate bytes versus display units, pool
-   versus shared-folder/volume semantics, snapshots and reservations. Only then
-   enable storage panels that agree with the NAS and the Homepage widget after
-   its separate account prerequisites below are satisfied.
+4. Storage metrics were compared with fresh native pool and shared-folder APIs
+   on November 10. Pool free space means unallocated bytes; allocation includes
+   reservations and thick volumes. Media and Recovery panels report quota usage
+   and available bytes separately. Do not aggregate thin shared-folder quotas
+   into physical pool utilization. Recheck after firmware, quota or reservation
+   changes. The [collector runbook](../snmp-exporter/README.md) records the exact
+   comparison and the current four drive ID/serial pairs. Verify fresh samples
+   and query results after deployment; the separate Homepage prerequisites still
+   apply.
 5. Verify the resulting readings in Prometheus, Grafana and, once enabled,
    Homepage before the media copy.
 

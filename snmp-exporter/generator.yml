@@ -55,3 +55,35 @@ modules:
         ignore: true
     timeout: 5s
     retries: 1
+  qnap_storage:
+    walk:
+      - QTS-MIB::storagepoolCapacity
+      - QTS-MIB::storagepoolFreeSize
+      - QTS-MIB::storagepoolStatus
+      - QTS-MIB::sharedFolderCapacity
+      - QTS-MIB::sharedFolderFreeSize
+      - QTS-MIB::sharedFolderStatus
+    lookups:
+      - source_indexes: [storagepoolIndex]
+        lookup: QTS-MIB::storagepoolID
+      - source_indexes: [sharedFolderIndex]
+        lookup: QTS-MIB::sharedFolderName
+    overrides:
+      storagepoolID:
+        ignore: true
+      sharedFolderName:
+        type: DisplayString
+        ignore: true
+      sharedFolderStatus:
+        type: DisplayString
+      # Capacity and free-space levels can fall; Counter64 is only their wire type.
+      storagepoolCapacity:
+        type: gauge
+      storagepoolFreeSize:
+        type: gauge
+      sharedFolderCapacity:
+        type: gauge
+      sharedFolderFreeSize:
+        type: gauge
+    timeout: 5s
+    retries: 1

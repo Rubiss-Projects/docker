@@ -314,6 +314,9 @@ jobs:
       - name: Test SWAG monitor login and history preservation
         run: python3 -m unittest discover -s swag -p 'test_kuma_*.py'
 
+      - name: Test NAS storage queries and missing-data behavior
+        run: python3 snmp-exporter/test_storage_queries.py
+
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 

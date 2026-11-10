@@ -112,7 +112,7 @@
     {
       "id": 2,
       "type": "text",
-      "title": "Drive qualification",
+      "title": "Storage and drive interpretation",
       "gridPos": {
         "x": 5,
         "y": 0,
@@ -121,7 +121,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "Readings refresh every minute; history starts when collection begins and is retained for 15 days.\n\nDrive status comes directly from the NAS and does **not** mean a drive passed qualification. Bay 3 has a known fault; its unsupported temperature stays unavailable. Pool capacity will be added after pool creation and validation.\n\n[Erase/scan progress and next steps](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress)"
+        "content": "Readings refresh every minute and history is retained for 15 days.\n\nFour installed drives are mapped by native ID and serial. The faulty original Bay 3 drive was replaced; its historical failure remains in the migration evidence. Current drive status is the NAS report, not a new qualification result.\n\nPool allocation includes reservations and thick allocations; it is not file payload usage. Media and Recovery charts show each shared folder's quota and available space, not physical pool headroom.\n\n[Migration acceptance and next steps](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress)"
       }
     },
     {
@@ -195,7 +195,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "Temperatures",
-      "description": "Celsius, compared with Hardware Information. Zero/negative sentinel readings are excluded; Bay 3 reports -1 and must not appear as 0\u00b0C.",
+      "description": "Celsius, compared with native NAS health. Zero and negative sentinels are excluded; unsupported readings remain absent.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -609,6 +609,317 @@
           }
         ]
       }
+    },
+    {
+      "id": 9,
+      "title": "Pool allocated",
+      "type": "stat",
+      "description": "NAS pool allocation includes thick allocations, reservations and metadata; it is not file payload usage.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 8,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "100 * (1 - storagepoolFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\"} / storagepoolCapacity{job=\"qnap-snmp\",instance=\"qnap-nas\"}) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 10,
+      "title": "Pool unallocated",
+      "type": "stat",
+      "description": "Bytes not allocated in the NAS pool. Shared-folder available space is a separate quota-level figure.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 28,
+        "w": 8,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "storagepoolFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 11,
+      "title": "NAS pool state",
+      "type": "stat",
+      "description": "Raw QuTS hero state from the vendor MIB; 0 means Ready. Missing scrapes remain unavailable.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 28,
+        "w": 8,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unavailable",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-4": {
+                  "text": "Locked",
+                  "color": "red"
+                },
+                "-3": {
+                  "text": "Error",
+                  "color": "red"
+                },
+                "-2": {
+                  "text": "Not ready",
+                  "color": "red"
+                },
+                "-1": {
+                  "text": "Warning",
+                  "color": "red"
+                },
+                "0": {
+                  "text": "Ready",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "Resilvering",
+                  "color": "orange"
+                },
+                "2": {
+                  "text": "Exporting",
+                  "color": "orange"
+                },
+                "3": {
+                  "text": "Removing",
+                  "color": "orange"
+                },
+                "4": {
+                  "text": "Scrubbing",
+                  "color": "orange"
+                },
+                "5": {
+                  "text": "Creating",
+                  "color": "orange"
+                },
+                "6": {
+                  "text": "Locking",
+                  "color": "orange"
+                },
+                "7": {
+                  "text": "Unlocking",
+                  "color": "orange"
+                },
+                "8": {
+                  "text": "Stopping",
+                  "color": "orange"
+                },
+                "9": {
+                  "text": "Stopped",
+                  "color": "orange"
+                },
+                "10": {
+                  "text": "Starting",
+                  "color": "orange"
+                },
+                "11": {
+                  "text": "Importing",
+                  "color": "orange"
+                },
+                "12": {
+                  "text": "Read only",
+                  "color": "orange"
+                },
+                "13": {
+                  "text": "Pruning",
+                  "color": "orange"
+                },
+                "14": {
+                  "text": "Tuning",
+                  "color": "orange"
+                },
+                "255": {
+                  "text": "Unknown",
+                  "color": "orange"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "storagepoolStatus{job=\"qnap-snmp\",instance=\"qnap-nas\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 12,
+      "title": "Shared-folder quota used",
+      "type": "timeseries",
+      "description": "Media and Recovery used percentage within each reported quota. Do not aggregate thin quotas into physical pool utilization.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "100 * (1 - sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"} / sharedFolderCapacity{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"}) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "{{sharedFolderName}}",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Shared-folder available",
+      "type": "timeseries",
+      "description": "Available bytes within each Media or Recovery shared-folder quota; not physical pool headroom.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 33,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Unavailable"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          },
+          "editorMode": "code",
+          "expr": "sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "legendFormat": "{{sharedFolderName}}",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
     }
   ],
   "refresh": "1m",
@@ -634,5 +945,5 @@
   "timezone": "browser",
   "title": "QNAP NAS",
   "uid": "qnap-nas",
-  "version": 2
+  "version": 3
 }
