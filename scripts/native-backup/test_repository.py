@@ -2,7 +2,9 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -132,6 +134,87 @@ class RepositoryTests(unittest.TestCase):
                 repository.run(self.config)
             capture.assert_called_once()
             self.assertEqual([call.args[1] for call in alert.call_args_list], [False, False])
+
+    @unittest.skipIf(repository.fcntl is None, 'Linux process termination admission test')
+    def test_terminated_capture_persists_admission_and_prevents_another_api_request(self):
+        tool = self.root/'bbolt'
+        tool.write_bytes(b'test verifier')
+        program = '''import hashlib,json,sys,time
+from pathlib import Path
+import repository
+config=json.loads(sys.argv[1])
+repository.Repository.verify_identity=lambda self:None
+repository.portainer.BBOLT_SHA256=hashlib.sha256(Path(config['bbolt']).read_bytes()).hexdigest()
+repository.notify=lambda config,success:None
+def capture(destination,tool):
+ Path(config['ready']).write_text('inside capture')
+ while True:time.sleep(.05)
+repository.portainer.capture=capture
+repository.run(config)
+'''
+        for termination in ['terminate', 'kill']:
+            with self.subTest(termination=termination):
+                state = self.root/termination
+                ready = self.root/(termination+'-ready')
+                config = {**self.config, 'stateDirectory': str(state),
+                          'bbolt': str(tool), 'applyRetention': False, 'ready': str(ready)}
+                child = subprocess.Popen([sys.executable, '-B', '-c', program, json.dumps(config)],
+                                         cwd=Path(repository.__file__).parent,
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                try:
+                    deadline = time.monotonic()+10
+                    while not ready.exists() and child.poll() is None and time.monotonic()<deadline:
+                        time.sleep(.02)
+                    self.assertTrue(ready.exists(), 'Child never entered mocked capture')
+                    getattr(child, termination)()
+                    child.communicate(timeout=5)
+                    self.assertNotEqual(child.returncode, 0)
+                    self.assertTrue((state/'capture-attention.json').is_file())
+                    with patch.object(repository, 'notify'), \
+                         patch.object(repository.portainer, 'capture') as capture:
+                        with self.assertRaisesRegex(RuntimeError, 'Reconcile'):
+                            repository.run(config)
+                        capture.assert_not_called()
+                finally:
+                    if child.poll() is None:
+                        child.kill()
+                    child.communicate(timeout=5)
+
+    @unittest.skipIf(repository.fcntl is None, 'Linux successful admission completion test')
+    def test_completed_capture_clears_durable_admission_before_backup(self):
+        state = self.root/'jobs'
+        tool = self.root/'bbolt'
+        tool.write_bytes(b'test verifier')
+        config = {**self.config, 'stateDirectory': str(state), 'bbolt': str(tool), 'applyRetention': False}
+        content = b'fixture archive'
+        proof = {'archiveSha256': hashlib.sha256(content).hexdigest(), 'files': {'portainer.db': {'bytes': 1}}}
+        captured = []
+        def capture(destination, verifier):
+            self.assertTrue((state/'capture-attention.json').is_file())
+            destination.mkdir()
+            (destination/'backup.tar.gz').write_bytes(content)
+            captured.append(destination)
+            return proof
+        def restic(*arguments):
+            self.assertFalse((state/'capture-attention.json').exists())
+            if arguments[0] == 'backup':
+                return json.dumps({'message_type': 'summary', 'snapshot_id': 'a'*64})
+            if arguments[0] == 'restore':
+                target = Path(arguments[arguments.index('--target')+1])/captured[0].relative_to(captured[0].anchor)
+                target.mkdir(parents=True)
+                (target/'backup.tar.gz').write_bytes(content)
+            return ''
+        with patch.object(repository.Repository, 'verify_identity'), \
+             patch.object(repository.Repository, 'run', side_effect=restic), \
+             patch.object(repository.Repository, 'retention', return_value={'mode':'dry_run'}), \
+             patch.object(repository.portainer, 'BBOLT_SHA256', hashlib.sha256(tool.read_bytes()).hexdigest()), \
+             patch.object(repository.portainer, 'capture', side_effect=capture), \
+             patch.object(repository.portainer, 'inspect_archive', return_value=proof), \
+             patch.object(repository, 'notify') as alert:
+            result = repository.run(config)
+            self.assertTrue(result['success'])
+            self.assertFalse((state/'capture-attention.json').exists())
+            alert.assert_called_once_with(config, True)
 
     def test_push_delivery_errors_never_print_token_bearing_url(self):
         token_file = self.root/'push-url'

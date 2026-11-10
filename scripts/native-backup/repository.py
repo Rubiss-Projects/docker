@@ -24,6 +24,15 @@ except ImportError:
 import portainer
 
 
+def sync_directory(path: Path) -> None:
+    if os.name == 'posix':
+        descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+
 def save(path: Path, value: dict) -> None:
     temporary = path.with_suffix('.tmp')
     with temporary.open('w') as output:
@@ -31,6 +40,7 @@ def save(path: Path, value: dict) -> None:
         output.flush()
         os.fsync(output.fileno())
     temporary.replace(path)
+    sync_directory(path.parent)
 
 
 def guard_mount(config: dict) -> None:
@@ -183,9 +193,16 @@ def run(config: dict) -> dict:
             result['phase'] = 'capture'
             save(directory/'job.json', result)
             capture = directory/'capture'
+            attention = state/'capture-attention.json'
+            # Commit admission before the API side effect. Exception handlers do
+            # not run on SIGKILL, host reboot, or systemd's final kill deadline.
+            save(attention, {'jobDirectory': str(directory),
+                'reason': 'Capture may be in progress; reconcile retained intent and archive before another API request'})
             proof = portainer.capture(capture, tool)
             result['phase'] = 'encrypted_backup'
             save(directory/'job.json', result)
+            attention.unlink()
+            sync_directory(state)
             output = repository.run('backup', '--json', '--host', 'ben-server',
                 '--tag', 'native-recurring', '--tag', 'scope=portainer', str(capture))
             summaries = [value for line in output.splitlines() if (value := json.loads(line)).get('message_type') == 'summary']
