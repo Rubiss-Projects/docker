@@ -1,0 +1,11 @@
+# Load the named host profile before applying this native Linux override.
+services:
+  ai-assistant:
+    security_opt:
+      - apparmor=ai-assistant-bwrap
+  browser:
+    security_opt:
+      - apparmor=ai-assistant-bwrap
+  reviewer:
+    security_opt:
+      - apparmor=ai-assistant-bwrap
