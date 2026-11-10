@@ -70,8 +70,10 @@ sudo python3 -B /usr/local/lib/native-backup/repository.py /etc/native-backup/po
 ```
 
 Each locked invocation creates a new private capture and records its phase.
-An uncertain API capture creates `capture-attention.json` and blocks another
-automatic API request until the retained intent/partial is reconciled. Do not
+Before the API request, the runner durably writes `capture-attention.json` and
+syncs its directory. It removes that marker only after the completed capture's
+next phase is durably recorded. SIGTERM, SIGKILL and a host interruption therefore
+leave admission blocked until the retained intent/partial is reconciled. Do not
 remove that marker just to make a failed timer green. The runner never stops,
 restarts, recreates, or starts an application container.
 
