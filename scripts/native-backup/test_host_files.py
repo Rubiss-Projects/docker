@@ -1,12 +1,37 @@
 import os
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
 import unittest
 
-from confined_files import SafeTree, sqlite_snapshot_file
+from confined_files import SafeTree, snapshot_connection, sqlite_snapshot_file
 import host_files
+
+
+class SQLiteReadSnapshotTests(unittest.TestCase):
+    def test_concurrent_wal_commit_does_not_restart_or_enter_the_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'database'
+            with closing(sqlite3.connect(path)) as writer:
+                writer.execute('PRAGMA page_size=2048')
+                writer.execute('PRAGMA journal_mode=WAL')
+                writer.execute('CREATE TABLE state(value BLOB)')
+                writer.executemany('INSERT INTO state VALUES (?)', [(b'x'*4096,)]*64)
+                writer.commit()
+                with closing(sqlite3.connect(path.as_uri()+'?mode=ro', uri=True)) as source, closing(sqlite3.connect(':memory:')) as target:
+                    injected = []
+                    def progress(status, remaining, total):
+                        if not injected and status == sqlite3.SQLITE_OK:
+                            writer.execute("INSERT INTO state VALUES ('committed during backup')")
+                            writer.commit();injected.append(True)
+                    snapshot_connection(source, target, progress, pages=1)
+                    self.assertTrue(injected)
+                    self.assertEqual(target.execute('PRAGMA page_size').fetchone()[0], 2048)
+                    self.assertEqual(target.execute('SELECT count(*) FROM state').fetchone()[0], 64)
+                    self.assertEqual(writer.execute('SELECT count(*) FROM state').fetchone()[0], 65)
+                    self.assertFalse(source.in_transaction)
 
 
 @unittest.skipUnless(sys.platform == 'linux' and getattr(os, 'geteuid', lambda: -1)() == 0,

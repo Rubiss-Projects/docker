@@ -19,7 +19,8 @@ def sqlite_header(tree: SafeTree, relative: str) -> bool:
         return os.read(descriptor, 16) == b'SQLite format 3\x00'
 
 
-def capture_tree(source_root: Path, destination: Path, selected: str = '.') -> dict:
+def capture_tree(source_root: Path, destination: Path, selected: str = '.',
+                 byte_budget: int = 40*1024**3) -> dict:
     """Capture a selected subtree; every SQLite reader is chrooted to its root.
 
     The caller admits each source root and creates the private destination.
@@ -55,6 +56,8 @@ def capture_tree(source_root: Path, destination: Path, selected: str = '.') -> d
                 target.symlink(relative, link)
                 row.update(kind='symlink', target=link)
             else:
+                if value.st_size > byte_budget:
+                    raise ValueError('Host capture exceeds its admitted byte budget')
                 if relative in sqlite_paths:
                     sqlite_snapshot_file(source, relative, target, relative)
                     if identity(value) != identity(source.lstat(relative)):
@@ -66,6 +69,9 @@ def capture_tree(source_root: Path, destination: Path, selected: str = '.') -> d
                     row['captureMethod'] = 'stable_file_copy'
                 row.update(kind='file', bytes=target.lstat(relative).st_size,
                            sha256=target.digest(relative))
+                byte_budget -= row['bytes']
+                if byte_budget < 0:
+                    raise ValueError('Host file grew beyond its admitted byte budget')
             entries[relative] = row
         for relative, row in sorted(entries.items(), key=lambda item: item[0].count('/'), reverse=True):
             target.apply_metadata(relative, row)

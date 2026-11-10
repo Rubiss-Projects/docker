@@ -96,7 +96,7 @@ class RepositoryTests(unittest.TestCase):
                 job.verify_identity()
 
     def test_scope_retention_cannot_select_another_application(self):
-        for scope in ['n8n', 'vault']:
+        for scope in ['n8n', 'vault', 'host']:
             config = {**self.config, 'scope': scope}
             job = repository.Repository(config, self.root)
             with self.subTest(scope=scope), patch.object(job, 'run', return_value='[]') as command:
@@ -250,6 +250,36 @@ repository.run(config)
         latest = json.loads((self.root/'vault-jobs/latest.json').read_text())
         self.assertFalse(latest['success'])
         self.assertEqual(latest['failedAtPhase'], 'restore_verification')
+
+    @unittest.skipIf(repository.fcntl is None, 'Linux repository job locking')
+    def test_host_restore_failure_cannot_prune_clean_local_payloads_or_send_success(self):
+        config = {**self.config, 'scope': 'host', 'applyRetention': False,
+                  'cleanupVerifiedHostPayloads': True, 'stateDirectory': str(self.root/'host-jobs')}
+        def restic(*arguments):
+            if arguments[0] == 'backup':
+                return json.dumps({'message_type': 'summary', 'snapshot_id': 'a'*64})
+            return ''
+        with patch.object(repository.Repository, 'verify_identity'), \
+             patch.object(repository.Repository, 'run', side_effect=restic), \
+             patch.object(repository.Repository, 'retention') as retention, \
+             patch.object(repository.host, 'HOST_STATE', Path(config['stateDirectory'])), \
+             patch.object(repository.host, 'guard_local_space'), \
+             patch.object(repository.host, 'capture', return_value={'fixture': True}), \
+             patch.object(repository.host, 'inspect_capture', side_effect=ValueError('fixture restore failed')), \
+             patch.object(repository.host, 'cleanup_verified_payloads') as cleanup, \
+             patch.object(repository, 'notify') as alert:
+            with self.assertRaisesRegex(RuntimeError, 'Native backup failed'):
+                repository.run(config)
+            alert.assert_called_once_with(config, False)
+            retention.assert_not_called();cleanup.assert_not_called()
+
+    @unittest.skipIf(repository.fcntl is None, 'Linux repository job locking')
+    def test_host_cleanup_switch_must_be_a_json_boolean(self):
+        config = {**self.config, 'scope':'host', 'applyRetention':False,
+                  'cleanupVerifiedHostPayloads':'false', 'stateDirectory':str(self.root/'host')}
+        with self.assertRaisesRegex(ValueError,'JSON boolean'):
+            repository.run(config)
+        self.assertFalse((self.root/'host').exists())
 
     def test_push_delivery_errors_never_print_token_bearing_url(self):
         token_file = self.root/'push-url'

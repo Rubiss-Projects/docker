@@ -263,6 +263,19 @@ def confine(directory: int) -> None:
         raise RuntimeError('Could not drop SQLite child capabilities')
 
 
+def snapshot_connection(source: sqlite3.Connection, target: sqlite3.Connection,
+                        progress, *, pages: int = 1024) -> None:
+    """Pin one read snapshot so concurrent WAL commits cannot restart copying."""
+    source.execute('BEGIN')
+    try:
+        source.execute('SELECT count(*) FROM sqlite_master').fetchall()
+        page_size = int(source.execute('PRAGMA page_size').fetchone()[0])
+        target.execute('PRAGMA page_size='+str(page_size))
+        source.backup(target, pages=pages, progress=progress, sleep=.05)
+    finally:
+        source.rollback()
+
+
 def sqlite_child(directory: int, operation: str, relative: str) -> None:
     relative_path(relative)
     confine(directory)
@@ -273,7 +286,7 @@ def sqlite_child(directory: int, operation: str, relative: str) -> None:
                 def progress(status, remaining, total):
                     if time.monotonic() >= deadline:
                         raise TimeoutError('Online SQLite snapshot deadline exceeded')
-                source.backup(target, pages=1024, progress=progress, sleep=.05)
+                snapshot_connection(source, target, progress)
                 sys.stdout.buffer.write(target.serialize())
         return
     if operation not in {'normalize', 'verify'}:

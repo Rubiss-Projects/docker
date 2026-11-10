@@ -24,6 +24,7 @@ except ImportError:
 import portainer
 import n8n
 import vault
+import host
 
 
 def sync_directory(path: Path) -> None:
@@ -92,7 +93,7 @@ def notify(config: dict, success: bool) -> None:
 class Repository:
     def __init__(self, config: dict, directory: Path):
         self.scope = config.get('scope', 'portainer')
-        if self.scope not in {'portainer', 'n8n', 'vault'}:
+        if self.scope not in {'portainer', 'n8n', 'vault', 'host'}:
             raise ValueError('Unsupported application backup scope')
         self.config = config
         self.directory = directory
@@ -173,11 +174,17 @@ def run(config: dict) -> dict:
     if type(config['applyRetention']) is not bool:
         raise ValueError('applyRetention must be a JSON boolean')
     scope = config.get('scope', 'portainer')
-    if scope not in {'portainer', 'n8n', 'vault'}:
+    if scope not in {'portainer', 'n8n', 'vault', 'host'}:
         raise ValueError('Unsupported application backup scope')
+    if scope == 'host' and type(config.get('cleanupVerifiedHostPayloads', False)) is not bool:
+        raise ValueError('cleanupVerifiedHostPayloads must be a JSON boolean')
     os.umask(0o077)
     state = Path(config['stateDirectory'])
+    if scope == 'host' and (state != host.HOST_STATE or state.parent.resolve() != state.parent):
+        raise ValueError('Unexpected host backup state directory')
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if scope == 'host':
+        host.guard_state(state)
     with (state/'job.lock').open('a') as lock:
         # An overlapping invocation is not permission to take over a live job.
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -194,6 +201,8 @@ def run(config: dict) -> dict:
         try:
             repository = Repository(config, directory)
             repository.verify_identity()
+            if scope == 'host':
+                host.guard_local_space(state)
             if scope == 'portainer':
                 tool = Path(config['bbolt'])
                 with tool.open('rb') as source:
@@ -211,8 +220,10 @@ def run(config: dict) -> dict:
                 proof = portainer.capture(capture, tool)
             elif scope == 'n8n':
                 proof = n8n.capture(capture)
-            else:
+            elif scope == 'vault':
                 proof = vault.capture(capture)
+            else:
+                proof = host.capture(capture)
             result['phase'] = 'encrypted_backup'
             save(directory/'job.json', result)
             attention.unlink()
@@ -243,8 +254,14 @@ def run(config: dict) -> dict:
                 if vault.inspect_capture(restored_capture) != proof:
                     raise ValueError('Restored vault recovery set differs from capture')
                 vault.verify_database(restored_capture)
+            elif scope == 'host' and host.inspect_capture(restored_capture) != proof:
+                raise ValueError('Restored host and bootstrap recovery set differs')
             retention = repository.retention(apply=config['applyRetention'])
             save(directory/'retention-plan.json', retention)
+            if scope == 'host' and config.get('cleanupVerifiedHostPayloads', False):
+                result['phase'] = 'local_payload_cleanup'
+                save(directory/'job.json', result)
+                save(directory/'local-payload-cleanup.json', host.cleanup_verified_payloads(state, directory, repository))
             result.update(phase='monitor_delivery', encryptedRepositoryCaptureVerified=True,
                           restoreReadbackVerified=True, retentionMode=retention['mode'])
             save(directory/'job.json', result)

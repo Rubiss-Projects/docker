@@ -124,8 +124,9 @@ restarts, recreates, or starts an application container.
 Success requires a fresh supported capture, encrypted backup, full repository
 data check, verified restore, matching archive SHA-256, and another full archive
 and bbolt check. The restored copy stays private and no restored application is
-started. Logs and captures remain for reconciliation; this initial runner
-does not automatically remove private local job directories.
+started. Logs and captures remain for reconciliation. The host producer has an
+explicit verified-payload cleanup policy described below; other producers retain
+their private local job directories.
 
 Retention keeps 14 daily, eight weekly and 12 monthly points for the exact
 `ben-server`/`native-recurring`/`scope=portainer` group. It first produces a dry-run
@@ -179,12 +180,14 @@ Portainer and original migration snapshots cannot enter that policy. Installing
 these files alone enables no schedule. The runner supports Portainer, n8n and
 Bitwarden; recurring protection for other critical scopes remains incomplete.
 
-## Host/bootstrap capture primitives (integration pending)
+## Host/bootstrap producer and schedule
 
 `host_files.py` captures an individually admitted tree through confined file
 descriptors. It recognizes SQLite by its header, including databases without
 standard extensions, and snapshots committed state through SQLite's online
-backup API. It preserves regular-file metadata and symlink objects without
+backup API. The reader pins an explicit read transaction and matches the destination page
+size, so concurrent WAL commits cannot repeatedly restart a multi-step copy.
+It preserves regular-file metadata and symlink objects without
 following them. Unadmitted special files fail capture. Individual database
 snapshots and supporting files are not a cross-database or whole-host atomic
 snapshot.
@@ -195,8 +198,33 @@ large database. The source and output bounds are 1 GiB, with a 3 GiB child addre
 space limit and a 150-second deadline. Larger databases require separate
 admission. The host filesystem root cannot be used as the SQLite sandbox.
 
-These primitives do not yet select the full host roots, capture the Git/secret/
-runtime bootstrap supplement, or register a recurring producer and timer. Keep
-their plaintext capture inside private job directories and require encrypted
-NAS backup, full repository read and restored-file/database verification before
-enabling host protection. Existing schedules remain independent.
+`scope=host` captures the full admitted user/system roots, including all 29
+currently detected SQLite databases. It supplements them with the current Git
+source archive, Git-crypt keys and protected secret overlays, current container/
+image/volume/network definitions, compiled configurations and file bind mounts,
+root Docker/SSH/GitHub configuration, and installed-package inventory. All of this
+material remains inside private job directories and the encrypted NAS repository.
+Restoration requires reinstalling packages/services before selectively applying
+the recovered configuration; verification never starts recovered identities.
+
+The host job requires confirmed utility power and at least 100 GiB free locally.
+It bounds captured files at 40 GiB plus generated bootstrap metadata, and the
+source archive at 1 GiB. The service also enforces a 3 GiB memory limit, no swap,
+a 2 GiB per-file limit and a two-hour deadline. `ProtectHome=read-only` permits
+capturing the profiles while preserving read-only access to the host.
+
+Install `host_files.py` and `host.py` and the updated `confined_files.py` before
+the importing shared runner. Use a separate root-owned `host.json`, state path
+`/var/lib/native-backup/host` and human-only monitor. The supplied timer runs at
+02:20 Eastern plus jitter. Keep it disabled until an actual fresh encrypted NAS
+backup, full repository read, full restored-file/database verification and real
+monitor heartbeat pass. Other schedules remain independent.
+
+`cleanupVerifiedHostPayloads` defaults to false during admission. When explicitly
+enabled after acceptance, it retains the current and two prior successful local
+capture/restore pairs. It removes only older host payload directories whose exact
+capture path still has a matching owned encrypted snapshot. Job receipts remain.
+Unknown, failed, other-scope or unmatched jobs are retained, and cleanup never
+follows saved symlinks. This policy does not touch original migration archives,
+source files, or NAS snapshot retention. Keep the separate scoped
+14-daily/8-weekly/12-monthly NAS retention policy.

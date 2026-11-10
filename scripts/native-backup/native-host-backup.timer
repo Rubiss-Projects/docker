@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily verified native host/bootstrap recovery backup
+
+[Timer]
+OnCalendar=*-*-* 02:20:00 America/New_York
+RandomizedDelaySec=600
+Persistent=true
+Unit=native-host-backup.service
+
+[Install]
+WantedBy=timers.target
