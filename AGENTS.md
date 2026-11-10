@@ -4,6 +4,21 @@
 
 This is a Docker-based home lab infrastructure managing 30+ self-hosted services across categories: Media (Plex, Sonarr, Radarr), Infrastructure (SWAG Reverse Proxy, Bitwarden), Gaming (Valheim, Minecraft, ARK), and Observability (Prometheus, Grafana). Each service is deployed as an independent Docker Compose stack in its own directory.
 
+### Native BEN-SERVER
+
+The main server now runs native Ubuntu at `/srv/Docker`; `/mnt/e/Docker` is a
+compatibility path. Use the native deployment adapter described in
+`scripts/native-deploy/README.md` to preserve the accepted restored volumes,
+mount guards, image references and native settings. The later Windows/WSL
+startup examples describe the previous host context. Keep the canonical native
+checkout clean on `main` and release the native runner only after its policy
+admission passes. Pi deployment remains separate.
+
+Plex and Channels use host networking on BEN-SERVER; their accepted consumers
+use explicit host aliases. The former native Caddy media proxy is retired.
+New recurring backup infrastructure is outside the migration scope; preserve
+the existing Lazywarden setup and retained migration recovery archives.
+
 ## Service Guidance Index
 
 Use the nearest applicable `AGENTS.md` for the task:

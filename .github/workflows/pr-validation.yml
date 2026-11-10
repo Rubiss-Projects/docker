@@ -82,7 +82,7 @@ jobs:
               "github.event_name == 'schedule'",
               "github.event_name == 'workflow_dispatch'",
           )
-          SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "pi-docker-ops"}
+          SELF_HOSTED_LABELS = {"self-hosted", "wsl", "docker-ops", "native-docker-ops", "pi-docker-ops"}
           TRUSTED_SELF_HOSTED_IF_PARTS = (
               "github.event_name == 'push'",
               "github.ref == 'refs/heads/main'",
@@ -331,6 +331,9 @@ jobs:
 
       - name: Test native UPS shutdown decisions
         run: python3 -B -m unittest discover -s scripts/native-ups -p 'test_*.py'
+
+      - name: Test native deployment wiring and image updates
+        run: sudo python3 -B -m unittest discover -s scripts/native-deploy -p 'test_*.py'
 
       - name: Test native Caddy proxy and watchdog
         shell: bash

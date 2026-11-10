@@ -97,8 +97,8 @@ jobs:
     permissions: {}
     runs-on:
       - self-hosted
-      - wsl
-      - docker-ops
+      - Linux
+      - native-docker-ops
     timeout-minutes: 90
 
     steps:
@@ -107,10 +107,10 @@ jobs:
         env:
           DOCKER_DEPLOY_BRANCH: main
           DOCKER_DEPLOY_SCOPE: main
+          DOCKER_DEPLOY_HOST: native-linux
           DOCKER_DEPLOY_START_STOPPED: "false"
-          DOCKER_REPO_DIR: /mnt/e/Docker
-        # Most stacks use WSL Compose. The deploy script explicitly delegates
-        # main-host cAdvisor to Windows Compose so its host mounts resolve there.
+          DOCKER_REPO_DIR: /srv/Docker
+        # The native runner is released only after its accepted host wiring passes.
         run: |
           set -Eeuo pipefail
           # Load the trusted deployment commit's helper before it updates the
@@ -120,10 +120,6 @@ jobs:
           trap 'rm -f "$deploy_script"' EXIT
           git -C "$DOCKER_REPO_DIR" show "${{ github.sha }}:scripts/deploy-changed-service-folders.sh" > "$deploy_script"
           bash "$deploy_script" "${{ github.event.before }}" "${{ github.sha }}"
-
-      - name: Install main-host contribution fork maintenance
-        shell: bash
-        run: bash /mnt/e/Docker/scripts/install-contribution-fork-sync.sh
 
   deploy-pi:
     name: Deploy Raspberry Pi service folders
