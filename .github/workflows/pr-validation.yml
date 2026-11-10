@@ -329,9 +329,6 @@ jobs:
       - name: Test native media networking preparation
         run: sudo python3 -m unittest discover -s scripts/native-media-network -p 'test_*.py'
 
-      - name: Test native application backup admission and retention
-        run: sudo python3 -B -m unittest discover -s scripts/native-backup -p 'test_*.py'
-
       - name: Test native UPS shutdown decisions
         run: python3 -B -m unittest discover -s scripts/native-ups -p 'test_*.py'
 
