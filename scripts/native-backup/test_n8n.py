@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -125,17 +126,17 @@ class N8nCaptureTests(unittest.TestCase):
 
     def test_changing_supporting_file_and_missing_required_tables_fail(self):
         target = self.root/'file-copy'
-        original_stat = Path.stat
-        reads = 0
+        original_read = os.read
+        changed = False
         source = self.source/'.n8n/config'
-        def stat(path, *args, **kwargs):
-            nonlocal reads
-            if path == source:
-                reads += 1
-                if reads == 2:
-                    source.write_text('changed')
-            return original_stat(path, *args, **kwargs)
-        with patch.object(Path, 'stat', stat):
+        def read(descriptor, size):
+            nonlocal changed
+            block = original_read(descriptor, size)
+            if not changed and os.readlink('/proc/self/fd/'+str(descriptor)) == str(source):
+                changed = True
+                source.write_text('changed')
+            return block
+        with patch.object(os, 'read', read):
             with self.assertRaisesRegex(ValueError, 'changed during capture'):
                 n8n.stable_copy(source, target)
         source.write_text(json.dumps({'encryptionKey':'fixture-only-key'}))
@@ -143,6 +144,56 @@ class N8nCaptureTests(unittest.TestCase):
         self.database.commit()
         with self.assertRaisesRegex(ValueError, 'tables are missing'):
             self.capture()
+
+    def test_source_and_destination_symlink_parents_cannot_escape_their_trees(self):
+        outside = self.root/'outside'
+        outside.mkdir()
+        (outside/'private').write_bytes(b'outside fixture')
+        (self.source/'escape').symlink_to(outside, target_is_directory=True)
+        target = self.root/'safe-target'
+        target.mkdir()
+        (target/'escape').symlink_to(outside, target_is_directory=True)
+        with n8n.SafeTree(self.source) as source, n8n.SafeTree(target) as destination:
+            with self.assertRaises(OSError):
+                destination.copy_from(source, 'escape/private', 'source-leak')
+            with self.assertRaises(OSError):
+                destination.copy_from(source, '.n8n/config', 'escape/root-job')
+        self.assertFalse((target/'source-leak').exists())
+        self.assertFalse((outside/'root-job').exists())
+        self.assertEqual((outside/'private').read_bytes(), b'outside fixture')
+
+    def test_sqlite_child_cannot_follow_a_raced_database_link_outside_its_root(self):
+        outside = self.root/'host-database.sqlite'
+        with sqlite3.connect(outside) as database:
+            database.execute('CREATE TABLE host_private(value TEXT)')
+            database.execute('INSERT INTO host_private VALUES ("outside fixture")')
+        database.close()
+        path = self.source/'.n8n/database.sqlite'
+        saved = self.source/'.n8n/original.sqlite'
+        real_sqlite = n8n.sqlite_task
+        def race(tree, operation, relative):
+            if operation != 'snapshot':
+                return real_sqlite(tree, operation, relative)
+            path.rename(saved)
+            path.symlink_to(outside)
+            try:
+                return real_sqlite(tree, operation, relative)
+            finally:
+                path.unlink()
+                saved.rename(path)
+        with patch.object(n8n, 'sqlite_task', side_effect=race):
+            with self.assertRaisesRegex(RuntimeError, 'Confined SQLite'):
+                self.capture()
+        self.assertEqual(self.database.execute('SELECT count(*) FROM workflow_entity').fetchone()[0], 2)
+
+    def test_nested_symlinks_are_preserved_without_reading_their_targets(self):
+        outside = self.root/'outside-private'
+        outside.write_bytes(b'outside fixture')
+        (self.source/'.n8n/binaryData/link').symlink_to(outside)
+        target = self.capture()
+        proof = n8n.inspect_capture(target)
+        self.assertEqual(proof['entries']['.n8n/binaryData/link']['kind'], 'symlink')
+        self.assertEqual(os.readlink(target/'payload/.n8n/binaryData/link'), str(outside))
 
     def test_repository_verifies_restored_database_and_key_before_success(self):
         for tamper in [False, True]:
