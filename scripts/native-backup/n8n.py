@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import stat
 import sys
 
@@ -103,7 +104,9 @@ def capture(destination: Path, source_root: Path = SOURCE_ROOT) -> dict:
         for root in ROOTS:
             for relative in source.walk(root):
                 name = PurePosixPath(relative).name
-                if name.startswith('n8nEventLog') or name == 'crash.journal':
+                if (str(PurePosixPath(relative).parent) == '.n8n'
+                        and (name == 'crash.journal' or re.fullmatch(r'n8nEventLog(?:-\d+)?\.log', name))
+                        and stat.S_ISREG(source.lstat(relative).st_mode)):
                     excluded.append({'path': relative, 'reason': 'live event log or crash journal'})
                     continue
                 if relative in {DATABASE_PATH+suffix for suffix in ['-wal', '-shm', '-journal']}:
