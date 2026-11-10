@@ -4,6 +4,7 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -30,6 +31,7 @@ class NativeInstallerTests(unittest.TestCase):
         self.credentials.chmod(0o600)
         self.events = []
         self.validation_fails = False
+        self.restart_times_out = False
         self.patch = patch.multiple(installer, CONFIG=self.config, CONFIG_DIR=self.config_dir, CREDENTIALS=self.credentials, LIB=self.lib, BACKUP_ROOT=self.root / 'backups')
         self.patch.start()
         self.addCleanup(self.patch.stop)
@@ -52,6 +54,8 @@ class NativeInstallerTests(unittest.TestCase):
 
     def command(self, args, **kwargs):
         self.events.append(args)
+        if self.restart_times_out and args[:2] == ['systemctl', 'restart']:
+            raise subprocess.TimeoutExpired(args, 30)
         is_validation = args[0] == 'runuser'
         return SimpleNamespace(returncode=1 if is_validation and self.validation_fails else 0, stdout=b'transmission_host_rpc,rpc_up=1i\ntransmission,rpc_up=1\n', stderr=b'')
 
@@ -94,6 +98,14 @@ class NativeInstallerTests(unittest.TestCase):
         self.assertEqual(self.credentials.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.config.read_text(), self.base_config)
         self.assertFalse(any('restart' in event for event in self.events))
+
+    @unittest.skipUnless(os.getuid() == 0, 'Uses genuine root-owned disposable files')
+    def test_restart_observation_timeout_never_starts_a_competing_job(self):
+        self.restart_times_out = True
+        with self.assertRaisesRegex(RuntimeError, 'Observe the existing'):
+            self.run_installer()
+        self.assertTrue((self.config_dir / 'transmission-native.conf').exists())
+        self.assertEqual(sum('restart' in event for event in self.events), 1)
 
     @unittest.skipUnless(os.getuid() == 0, 'Uses genuine root-owned disposable files')
     def test_unmanaged_duplicate_probe_is_rejected_before_any_write(self):

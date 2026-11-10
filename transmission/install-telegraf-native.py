@@ -107,7 +107,9 @@ def main():
         restart_attempted = True
         subprocess.run(['systemctl', 'restart', 'telegraf.service'], check=True, capture_output=True, timeout=30)
         subprocess.run(['systemctl', 'is-active', '--quiet', 'telegraf.service'], check=True)
-    except Exception:
+    except Exception as error:
+        if restart_attempted and isinstance(error, subprocess.TimeoutExpired):
+            raise RuntimeError('Observe the existing telegraf.service restart job before changing files or requesting another restart; the candidate and backup are retained') from error
         for path, previous in originals.items():
             if previous is None:
                 if path.is_file() and path.read_bytes() == changed[path][0]:
