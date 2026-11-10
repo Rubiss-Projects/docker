@@ -107,7 +107,10 @@ physical pool utilization. Public's dynamic capacity is intentionally excluded
 from the quota charts. The dashboard keeps pool and shared-folder figures apart,
 gates them on successful collection and leaves failed/missing scrapes unavailable.
 `sharedFolderStatus` is an information metric; its sample value 1 is not a health
-code. Pool status uses the raw QuTS hero integer enumeration from the vendor MIB.
+code. Pool status retains the raw integer. Only 0 is labelled Ready, as verified
+against this NAS. The MIB describes conflicting QTS and QuTS hero enumerations;
+unverified nonzero states remain numeric in a neutral color until reconciled
+with the native API. Do not infer a named operation or healthy state from them.
 
 Erase/scan percentages stay on the separate
 [migration progress page](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress).
