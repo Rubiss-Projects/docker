@@ -195,6 +195,24 @@ class N8nCaptureTests(unittest.TestCase):
         self.assertEqual(proof['entries']['.n8n/binaryData/link']['kind'], 'symlink')
         self.assertEqual(os.readlink(target/'payload/.n8n/binaryData/link'), str(outside))
 
+    def test_log_named_payloads_and_directories_are_not_excluded(self):
+        files = {'.n8n/binaryData/crash.journal': b'attachment bytes',
+                 '.n8n/binaryData/n8nEventLog.log': b'another attachment',
+                 'recovery/crash.journal/state': b'recovery state',
+                 '.n8n/n8nEventLog-3.log/child': b'directory payload'}
+        for name, value in files.items():
+            path = self.source/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(value)
+        for name in ['.n8n/n8nEventLog.log', '.n8n/n8nEventLog-2.log', '.n8n/crash.journal']:
+            (self.source/name).write_bytes(b'actual transient log')
+        target = self.capture()
+        proof = n8n.inspect_capture(target)
+        for name, value in files.items():
+            self.assertEqual((target/'payload'/name).read_bytes(), value)
+        self.assertEqual({r['path'] for r in proof['excludedTransientEntries'] if r['reason']=='live event log or crash journal'},
+                         {'.n8n/n8nEventLog.log', '.n8n/n8nEventLog-2.log', '.n8n/crash.journal'})
+
     def test_repository_verifies_restored_database_and_key_before_success(self):
         for tamper in [False, True]:
             with self.subTest(tamper=tamper):
