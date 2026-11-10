@@ -65,7 +65,7 @@ scrape_configs:
     metrics_path: /snmp
     params:
       auth: [qnap_v3]
-      module: [qnap, qnap_interfaces]
+      module: [qnap, qnap_interfaces, qnap_storage]
     static_configs:
       - targets: ['192.168.50.91']
         labels:
@@ -91,9 +91,13 @@ scrape_configs:
         target_label: bay
         replacement: '2'
       - source_labels: [diskID, diskSerialNumber]
-        regex: '5;ZR90KN6W'
+        regex: '5;K3S069D7'
         target_label: bay
         replacement: '3'
+      - source_labels: [diskID, diskSerialNumber]
+        regex: '6;K3S04HPB'
+        target_label: bay
+        replacement: '4'
 
   # Native Ubuntu proxy: this exposes metrics, not Caddy's configuration API.
   - job_name: caddy

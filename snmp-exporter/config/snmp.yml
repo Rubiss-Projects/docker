@@ -174,3 +174,101 @@ modules:
         type: DisplayString
     retries: 1
     timeout: 5s
+  qnap_storage:
+    walk:
+    - 1.3.6.1.4.1.55062.2.10.7.1.2
+    - 1.3.6.1.4.1.55062.2.10.7.1.3
+    - 1.3.6.1.4.1.55062.2.10.7.1.4
+    - 1.3.6.1.4.1.55062.2.10.7.1.5
+    - 1.3.6.1.4.1.55062.2.10.9.1.2
+    - 1.3.6.1.4.1.55062.2.10.9.1.3
+    - 1.3.6.1.4.1.55062.2.10.9.1.4
+    - 1.3.6.1.4.1.55062.2.10.9.1.5
+    metrics:
+    - name: storagepoolCapacity
+      oid: 1.3.6.1.4.1.55062.2.10.7.1.3
+      type: gauge
+      help: Pool capacity in byte. - 1.3.6.1.4.1.55062.2.10.7.1.3
+      indexes:
+      - labelname: storagepoolIndex
+        type: gauge
+      lookups:
+      - labels:
+        - storagepoolIndex
+        labelname: storagepoolID
+        oid: 1.3.6.1.4.1.55062.2.10.7.1.2
+        type: gauge
+    - name: storagepoolFreeSize
+      oid: 1.3.6.1.4.1.55062.2.10.7.1.4
+      type: gauge
+      help: Pool free size in byte. - 1.3.6.1.4.1.55062.2.10.7.1.4
+      indexes:
+      - labelname: storagepoolIndex
+        type: gauge
+      lookups:
+      - labels:
+        - storagepoolIndex
+        labelname: storagepoolID
+        oid: 1.3.6.1.4.1.55062.2.10.7.1.2
+        type: gauge
+    - name: storagepoolStatus
+      oid: 1.3.6.1.4.1.55062.2.10.7.1.5
+      type: gauge
+      help: '** QuTS version SED_LOCKED = -6, DETACHING = -5, REMOVING = -4, ERROR
+        = -3, NOT_READY = -2, WARNING = -1, READY = 0, ENABLE_QTIER = 1, SED_LOCKING
+        = 2, SED_UNLOCKING = 3, KS-Redmine#39712 - 1.3.6.1.4.1.55062.2.10.7.1.5'
+      indexes:
+      - labelname: storagepoolIndex
+        type: gauge
+      lookups:
+      - labels:
+        - storagepoolIndex
+        labelname: storagepoolID
+        oid: 1.3.6.1.4.1.55062.2.10.7.1.2
+        type: gauge
+      enum_values:
+        -3: error
+        -2: notReady
+        -1: warning
+        0: ready
+    - name: sharedFolderCapacity
+      oid: 1.3.6.1.4.1.55062.2.10.9.1.3
+      type: gauge
+      help: Shared folder total size in byte. - 1.3.6.1.4.1.55062.2.10.9.1.3
+      indexes:
+      - labelname: sharedFolderIndex
+        type: gauge
+      lookups:
+      - labels:
+        - sharedFolderIndex
+        labelname: sharedFolderName
+        oid: 1.3.6.1.4.1.55062.2.10.9.1.2
+        type: DisplayString
+    - name: sharedFolderFreeSize
+      oid: 1.3.6.1.4.1.55062.2.10.9.1.4
+      type: gauge
+      help: Shared folder free size in byte. - 1.3.6.1.4.1.55062.2.10.9.1.4
+      indexes:
+      - labelname: sharedFolderIndex
+        type: gauge
+      lookups:
+      - labels:
+        - sharedFolderIndex
+        labelname: sharedFolderName
+        oid: 1.3.6.1.4.1.55062.2.10.9.1.2
+        type: DisplayString
+    - name: sharedFolderStatus
+      oid: 1.3.6.1.4.1.55062.2.10.9.1.5
+      type: DisplayString
+      help: Volume status - 1.3.6.1.4.1.55062.2.10.9.1.5
+      indexes:
+      - labelname: sharedFolderIndex
+        type: gauge
+      lookups:
+      - labels:
+        - sharedFolderIndex
+        labelname: sharedFolderName
+        oid: 1.3.6.1.4.1.55062.2.10.9.1.2
+        type: DisplayString
+    retries: 1
+    timeout: 5s

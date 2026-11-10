@@ -22,7 +22,7 @@
     - QNAP NAS:
         icon: qnap.png
         href: https://nas.benlawson.dev/
-        description: TS-664 · awaiting drive installation
+        description: TS-664 · RAID5 · storage details in Grafana
         siteMonitor: http://192.168.50.91:8080/
         # Enable the authenticated widget after initialization and storage validation.
         # See docs/qnap-monitoring.md for the account, secrets and acceptance checks.

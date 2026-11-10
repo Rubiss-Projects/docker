@@ -22,8 +22,9 @@ Do not add stock `public_v2` credentials or put passwords in scrape URLs.
 ## Generated modules
 
 `config/snmp.yml` was generated from this NAS's downloaded **NAS.mib** on
-2026-10-17, using official snmp_exporter **v0.30.1**, commit
-`48b810afbd9222b74439ad1cf7d0d7b7c0cf4290`. This is the QuTS hero `QTS-MIB`
+2026-11-10, using official snmp_exporter **v0.31.0**, commit
+`181b59e7748732516e761b27c308794f2470d4bc`, matching the deployed exporter.
+The original sensor/interface modules are unchanged. This is the QuTS hero `QTS-MIB`
 under enterprise **55062**, not the older QTS EX metrics. Change `generator.yml`
 and regenerate; do not hand-edit the runtime file.
 
@@ -44,17 +45,17 @@ The vendor MIB is downloaded locally rather than redistributed in this repositor
 | SNMPv2-TC | `c1379575e6a0ad25b2d7da68294153c1fd79750827376f2aa6323d072d73f0b8` |
 
 Build the generator from the exact release using its
-[Dockerfile and instructions](https://github.com/prometheus/snmp_exporter/tree/v0.30.1/generator).
+[Dockerfile and instructions](https://github.com/prometheus/snmp_exporter/tree/v0.31.0/generator).
 With this repository's generator input copied into the temporary working directory:
 
 ```sh
-docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges -v "$PWD:/opt" nas-migration-snmp-generator:v0.30.1 --fail-on-parse-errors generate
+docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges -v "$PWD:/opt" nas-migration-snmp-generator:v0.31.0 --fail-on-parse-errors generate
 ```
 
 Generation must complete without parse errors or missing objects. Review the
-output before replacing `config/snmp.yml`. The activation output has 13 metric
+output before replacing `config/snmp.yml`. The current output has 19 metric
 definitions; SHA-256 is
-`8a879c3b680dae0ec730148e4a926ba42eb524df0a231add02f68e1158705952`.
+`d15d80eef06e282a59d63421b91ae602e0ae0fb6de5c5ca16561e2cc5b6d37b4`.
 Keep runtime and generator versions aligned when updating either.
 
 ## Verified readings and interpretation
@@ -76,20 +77,39 @@ is displayed as the exact NAS-reported text, not a qualification result.
 | --- | --- | --- |
 | 1 | 3 | ZR90KK6H |
 | 2 | 4 | ZR90KJ5M |
-| 3 | 5 | ZR90KN6W |
+| 3 | 5 | K3S069D7 |
+| 4 | 6 | K3S04HPB |
 
 SNMP diskID includes M.2 slots; diskIndex is a table index. Neither is used
 directly as a SATA bay. Prometheus labels the verified ID **and** serial pairs
 above. A moved or replacement drive remains `bay="unmapped"` until its identity
-is verified and the mapping updated. Reconcile the fourth drive on arrival.
+is verified and the mapping updated. The original faulty Bay 3 drive
+`ZR90KN6W` was replaced; its failure history remains in the migration evidence.
+The November 10 native health inventory and live SNMP samples agree on all four
+current ID/serial pairs and temperatures (42/42/41/40°C at the comparison).
 
 The active NIC is **eth2 / ifIndex 4**, reporting 10,000 Mbit/s and operational
 state 1. Throughput uses IF-MIB Counter64 octets × 8, not packet counters.
 Grafana's minimum query step is one minute so rate windows cover at least four
 polls. Network charts need two successful samples before a rate appears.
 
-Pool metrics remain deferred until the production pool exists and its semantics
-are checked. Erase/scan percentages stay on the separate
+The `qnap_storage` module collects pool capacity/free/status and shared-folder
+capacity/free/status. Byte-valued capacity levels override the MIB's Counter64
+wire type to gauges. A read-only candidate poll on November 10 matched a fresh
+native API capture: pool capacity 40,475,771,797,504 bytes and unallocated space
+13,795,461,814,240 bytes, with state 0 (Ready). This is **pool allocation**,
+including reservations and thick allocations, not file payload usage.
+
+Media's quota is 30,500,000,000,000 bytes and Recovery's is 4,398,046,511,104
+bytes. Their available-space samples differed from the later native capture by
+only 288 bytes. These are shared-folder quota values: do not sum them to infer
+physical pool utilization. Public's dynamic capacity is intentionally excluded
+from the quota charts. The dashboard keeps pool and shared-folder figures apart,
+gates them on successful collection and leaves failed/missing scrapes unavailable.
+`sharedFolderStatus` is an information metric; its sample value 1 is not a health
+code. Pool status uses the raw QuTS hero integer enumeration from the vendor MIB.
+
+Erase/scan percentages stay on the separate
 [migration progress page](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress).
 The existing Prometheus retention is 15 days; earlier private scan evidence is
 not backfilled into this time series database.
@@ -120,7 +140,12 @@ docker exec prometheus promtool check config /etc/prometheus/prometheus.yml
 
 After deployment, verify `up{job="qnap-snmp",instance="qnap-nas"} == 1`,
 the serial/bay mapping and every Grafana query against fresh samples. Confirm
-invalid disk temperatures stay absent and Bay 3's `Abnormal` report stays visible.
+invalid disk temperatures stay absent. A future replacement must stay unmapped
+until its native ID and serial have been reconciled; never reuse a bay label by
+table position alone. Compare the storage figures with the native API after
+firmware or quota changes. Run `python3 snmp-exporter/test_storage_queries.py`
+to evaluate the dashboard's actual queries against the accepted sample and prove
+that failed or missing collection produces no values.
 No user-data storage or active test is changed by these checks.
 
 To roll back collection, remove the scrape job through a PR, then stop only
