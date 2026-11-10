@@ -100,6 +100,19 @@ class NativeInstallerTests(unittest.TestCase):
         self.assertFalse(any('restart' in event for event in self.events))
 
     @unittest.skipUnless(os.getuid() == 0, 'Uses genuine root-owned disposable files')
+    def test_first_install_under_private_umask_keeps_probe_directories_accessible(self):
+        self.config_dir.rmdir()
+        previous_umask = os.umask(0o077)
+        try:
+            self.run_installer()
+        finally:
+            os.umask(previous_umask)
+        for directory in [self.lib, self.config_dir]:
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(self.credentials.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(self.config.read_text(), self.base_config)
+
+    @unittest.skipUnless(os.getuid() == 0, 'Uses genuine root-owned disposable files')
     def test_restart_observation_timeout_never_starts_a_competing_job(self):
         self.restart_times_out = True
         with self.assertRaisesRegex(RuntimeError, 'Observe the existing'):

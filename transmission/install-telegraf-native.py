@@ -93,8 +93,11 @@ def main():
     credential_info = CREDENTIALS.stat()
     restart_attempted = False
     try:
-        LIB.mkdir(exist_ok=True, mode=0o755)
-        CONFIG_DIR.mkdir(exist_ok=True, mode=0o755)
+        for directory in [LIB, CONFIG_DIR]:
+            if not directory.exists():
+                directory.mkdir(mode=0o755)
+                # A private root umask must not prevent service-user traversal.
+                directory.chmod(0o755)
         CREDENTIALS.chmod(0o640)
         os.chown(CREDENTIALS, 0, account.pw_gid)
         for path, (data, mode, gid) in changed.items():
