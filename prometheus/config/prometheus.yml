@@ -38,17 +38,7 @@ scrape_configs:
     static_configs:
       - targets: ['autobrr:9074']
 
-  # Informational UPS history; no alert or recovery automation.
-  - job_name: apcupsd
-    scrape_interval: 15s
-    scrape_timeout: 5s
-    static_configs:
-      - targets: ['apcupsd-exporter:9162']
-        labels:
-          instance: ben-server-ups
-
-  # Separate history for the planned NAS USB handoff; retain apcupsd above.
-  # Until the NAS has the UPS and trusted-client access, this target is down.
+  # Current UPS telemetry comes from the NAS USB connection and NUT exporter.
   - job_name: nut
     metrics_path: /ups_metrics
     scrape_interval: 15s
@@ -98,16 +88,6 @@ scrape_configs:
         regex: '6;K3S04HPB'
         target_label: bay
         replacement: '4'
-
-  # Native Ubuntu proxy: this exposes metrics, not Caddy's configuration API.
-  - job_name: caddy
-    scrape_interval: 15s
-    scrape_timeout: 5s
-    static_configs:
-      - targets: ['192.168.50.40:19019']
-        labels:
-          instance: ben-server-ubuntu
-          service: caddy
 
   # Raspberry Pi - Container metrics
   - job_name: 'cadvisor-pi'
