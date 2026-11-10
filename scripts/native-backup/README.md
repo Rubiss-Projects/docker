@@ -96,8 +96,9 @@ semantics](https://restic.readthedocs.io/en/stable/060_forget.html).
 ## n8n producer and schedule
 
 Set `scope` to `n8n` in a separate root-owned configuration. Use its own
-`stateDirectory` and human-only push monitor; omit `bbolt`. Install `n8n.py`
-alongside `portainer.py` before replacing the shared `repository.py`. Existing
+`stateDirectory` and human-only push monitor; omit `bbolt`. Install
+`confined_files.py` and `n8n.py` alongside `portainer.py` before replacing the
+shared `repository.py`. Existing
 Portainer configurations without a scope retain their original behavior.
 
 The n8n producer checks the running container's admitted native mount and SQLite
@@ -109,6 +110,17 @@ database sidecars. It neither starts n8n nor changes workflow activation.
 Individual supporting files must stay stable while copied; the database and all
 supporting files are not a cross-file atomic snapshot. An external key or another
 database backend requires a separately admitted producer.
+
+Capture and restore verification require root and Linux `openat2` support;
+unsupported kernels fail closed. Source and destination operations use directory
+file descriptors with beneath/no-symlink/no-magic-link resolution. Stored symlink
+objects are preserved, but traversal and writes never follow them. SQLite runs in
+a separate child chrooted to the pinned data tree, retaining only DAC override
+for mixed file ownership. It closes inherited descriptors, drops capability
+bounds, locks out root privilege recovery and sets no-new-privileges. Its online
+snapshot is serialized through a pipe, so the live WAL reader cannot reach the
+host filesystem and the root writer uses only confined destination handles.
+Linux CI runs the capture tests with sudo to exercise that actual confinement.
 
 The restored capture must match every file digest, ownership, mode, timestamp,
 xattr and symlink target, pass SQLite integrity checks and match all table row
