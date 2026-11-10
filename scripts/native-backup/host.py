@@ -74,6 +74,20 @@ def tree_manifest() -> dict:
     return result
 
 
+def archive_manifest(raw: dict, copies: dict, overlays: list[Path]) -> dict:
+    """Git archives apply git-crypt's export filter; bind those bytes to copies."""
+    result = {name: dict(row) for name, row in raw.items()}
+    by_source = {row['source']: (name, row) for name, row in copies.items()}
+    for path in overlays:
+        relative = path.relative_to(REPOSITORY).as_posix()
+        if relative not in result or str(path) not in by_source:
+            raise ValueError('Protected Git export has no paired bootstrap copy')
+        name, copied = by_source[str(path)]
+        result[relative].update(gitCryptProtected=True, exportedBytes=copied['bytes'],
+            exportedSha256=copied['sha256'], sourceCopyName=name)
+    return result
+
+
 def inspect_archive(tree: SafeTree, manifest: dict) -> None:
     seen = set()
     with tree.fd('source-tree.tar', os.O_RDONLY) as descriptor:
@@ -87,10 +101,19 @@ def inspect_archive(tree: SafeTree, manifest: dict) -> None:
                 row = manifest[member.name]
                 if member.issym() != (row['mode'] == '120000'):
                     raise ValueError('Git source archive entry type differs')
-                if member.isfile() and (member.size != row['bytes'] or member.size > 1024**3):
+                expected_size = row.get('exportedBytes', row['bytes'])
+                if member.isfile() and (member.size != expected_size or member.size > 1024**3):
                     raise ValueError('Git source archive entry size differs')
                 data = archive.extractfile(member).read() if member.isfile() else member.linkname.encode()
-                if len(data) != row['bytes'] or hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() != row['blobSha1']:
+                if row.get('gitCryptProtected') is True:
+                    name = row['sourceCopyName']
+                    if not re.fullmatch(r'f[0-9]{3,}', name):
+                        raise ValueError('Invalid protected Git export copy identity')
+                    tree.require_regular('files/'+name)
+                    if (len(data) != expected_size or hashlib.sha256(data).hexdigest() != row['exportedSha256']
+                            or tree.digest('files/'+name) != row['exportedSha256']):
+                        raise ValueError('Protected Git export differs from captured overlay')
+                elif len(data) != row['bytes'] or hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() != row['blobSha1']:
                     raise ValueError('Git source archive blob differs')
     if seen != set(manifest):
         raise ValueError('Git source archive is incomplete')
@@ -109,6 +132,10 @@ def protected_overlays() -> list[Path]:
 
 def bootstrap_files(rows: list[dict], overlays: list[Path]) -> list[Path]:
     selected = set(overlays)
+    for relative in ['.git/HEAD', '.git/config', '.git/packed-refs', '.git/refs/heads/main']:
+        path = REPOSITORY/relative
+        if path.is_file():
+            selected.add(path)
     prefixes = [Path(p) for p in ['/srv/Docker', '/etc', '/usr/local', '/opt', '/usr/share/zoneinfo']]
     for row in rows:
         values = [v for v in (row['Config'].get('Labels') or {}).get('com.docker.compose.project.config_files', '').split(',') if v]
@@ -182,7 +209,9 @@ def capture(destination: Path) -> dict:
             remaining -= files[name]['bytes']
             if remaining < 0:
                 raise ValueError('Bootstrap file grew beyond its admitted byte budget')
-    manifest = tree_manifest()
+    with SafeTree(destination/'bootstrap') as bootstrap:
+        private_json(bootstrap, 'files-manifest.private.json', files)
+    manifest = archive_manifest(tree_manifest(), files, overlays)
     if sum(r['bytes'] for r in manifest.values())+1024*len(manifest)+10240 > min(remaining, 1024**3):
         raise ValueError('Git source archive exceeds its admitted byte budget')
     with SafeTree(destination/'bootstrap') as bootstrap:
@@ -199,7 +228,8 @@ def capture(destination: Path) -> dict:
                 raise RuntimeError('Git source archive failed')
             os.fsync(output)
         inspect_archive(bootstrap, manifest)
-        generated = {n: {'bytes': bootstrap.lstat(n).st_size, 'sha256': bootstrap.digest(n)}
+        private_json(bootstrap, 'source-tree-manifest.private.json', manifest)
+        generated = {n: {**bootstrap.metadata(n), 'bytes': bootstrap.lstat(n).st_size, 'sha256': bootstrap.digest(n)}
             for n in bootstrap.walk() if stat.S_ISREG(bootstrap.lstat(n).st_mode)}
     # Overlays can rotate without replacing a running container. Require the
     # copies to remain current through the complete host/bootstrap checkpoint.
@@ -338,13 +368,20 @@ def inspect_capture(destination: Path) -> dict:
             if files.lstat(name).st_size != row['bytes'] or files.digest(name) != row['sha256'] or files.metadata(name) != {k: row[k] for k in METADATA}:
                 raise ValueError('Bootstrap file or metadata differs')
     with SafeTree(destination/'bootstrap') as bootstrap:
+        if json.loads(bootstrap.read('files-manifest.private.json')) != proof['bootstrapFiles']:
+            raise ValueError('Bootstrap file mapping checkpoint differs')
+        if json.loads(bootstrap.read('source-tree-manifest.private.json')) != proof['sourceTreeManifest']:
+            raise ValueError('Source archive mapping checkpoint differs')
+        if sum(r.get('gitCryptProtected') is True for r in proof['sourceTreeManifest'].values()) != proof['protectedOverlays']:
+            raise ValueError('Protected source archive coverage differs')
         if set(bootstrap.walk()) != {'files'} | set(proof['generatedBootstrapFiles']):
             raise ValueError('Bootstrap tree contains unexpected entries')
         regular = {n for n in bootstrap.walk() if stat.S_ISREG(bootstrap.lstat(n).st_mode)}
         if regular != set(proof['generatedBootstrapFiles']):
             raise ValueError('Generated bootstrap inventory differs')
         for name, row in proof['generatedBootstrapFiles'].items():
-            if bootstrap.lstat(name).st_size != row['bytes'] or bootstrap.digest(name) != row['sha256']:
+            if (bootstrap.lstat(name).st_size != row['bytes'] or bootstrap.digest(name) != row['sha256']
+                    or bootstrap.metadata(name) != {k: row[k] for k in METADATA}):
                 raise ValueError('Generated bootstrap content differs')
         inspect_archive(bootstrap, proof['sourceTreeManifest'])
     return proof

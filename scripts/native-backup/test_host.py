@@ -23,7 +23,7 @@ class BootstrapSelectionTests(unittest.TestCase):
         rows = [{'Config':{'Labels':None},'Mounts':[{'Type':'bind','Source':'/etc/localtime'}]}]
         zone = Path('/usr/share/zoneinfo/Etc/UTC')
         with patch.object(Path,'is_file',return_value=True),patch.object(Path,'resolve',return_value=zone):
-            self.assertEqual(host.bootstrap_files(rows,[]),[zone])
+            self.assertIn(zone,host.bootstrap_files(rows,[]))
     def test_runtime_bind_file_outside_admitted_bootstrap_roots_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)/'outside';source.write_bytes(b'private')
@@ -76,6 +76,21 @@ class HostBootstrapProofTests(unittest.TestCase):
             with self.assertRaises(ValueError):host.inspect_archive(tree, {'config':manifest['config']})
             manifest['link']['mode'] = '100644'
             with self.assertRaisesRegex(ValueError, 'type differs'):host.inspect_archive(tree, manifest)
+
+    def test_filtered_secret_export_must_match_the_paired_unlocked_copy(self):
+        plaintext=b'fixture secret';stored=b'fixture encrypted Git blob'
+        (self.root/'files').mkdir();(self.root/'files/f000').write_bytes(plaintext)
+        with tarfile.open(self.root/'source-tree.tar','w') as archive:
+            entry=tarfile.TarInfo('service/.env.secret');entry.size=len(plaintext);archive.addfile(entry,io.BytesIO(plaintext))
+        source=host.REPOSITORY/'service/.env.secret'
+        raw={'service/.env.secret':{'mode':'100644','bytes':len(stored),'blobSha1':blob(stored)}}
+        copies={'f000':{'source':str(source),'bytes':len(plaintext),'sha256':hashlib.sha256(plaintext).hexdigest()}}
+        manifest=host.archive_manifest(raw,copies,[source])
+        with SafeTree(self.root) as tree:
+            host.inspect_archive(tree,manifest)
+            (self.root/'files/f000').write_bytes(b'wrong secret')
+            with self.assertRaisesRegex(ValueError,'Protected Git export differs'):
+                host.inspect_archive(tree,manifest)
 
     def job(self, index, **changes):
         directory = self.root/f'202611{index:02d}T000000Z-{index:08x}';directory.mkdir(mode=0o700)

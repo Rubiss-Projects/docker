@@ -204,6 +204,9 @@ source archive, Git-crypt keys and protected secret overlays, current container/
 image/volume/network definitions, compiled configurations and file bind mounts,
 root Docker/SSH/GitHub configuration, and installed-package inventory. All of this
 material remains inside private job directories and the encrypted NAS repository.
+The archive must match stored Git blobs for unprotected paths and the paired
+captured working-tree copies for git-crypt exports. Git HEAD/configuration/refs
+and per-root/bootstrap mapping checkpoints are also retained.
 Restoration requires reinstalling packages/services before selectively applying
 the recovered configuration; verification never starts recovered identities.
 
