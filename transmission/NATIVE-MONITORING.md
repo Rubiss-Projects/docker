@@ -36,6 +36,8 @@ functional success. Neither probe restarts the application or changes torrents.
    managed files privately, validates as the actual service account and restarts
    only Telegraf when needed. Repeated identical installs do not restart it. A
    validation failure restores files before touching the running collector.
+   If observing a restart times out, inspect that same systemd job before
+   changing files or requesting another restart; the candidate and backup remain.
 5. Use Grafana's separate existing read credential to verify fresh `platform=native_linux`
    system and Transmission samples. A write-only token may hide buckets and query
    results; that is not evidence of lost data. Keep the existing InfluxQL mapping.
