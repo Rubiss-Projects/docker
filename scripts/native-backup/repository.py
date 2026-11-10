@@ -23,6 +23,7 @@ except ImportError:
 
 import portainer
 import n8n
+import vault
 
 
 def sync_directory(path: Path) -> None:
@@ -91,7 +92,7 @@ def notify(config: dict, success: bool) -> None:
 class Repository:
     def __init__(self, config: dict, directory: Path):
         self.scope = config.get('scope', 'portainer')
-        if self.scope not in {'portainer', 'n8n'}:
+        if self.scope not in {'portainer', 'n8n', 'vault'}:
             raise ValueError('Unsupported application backup scope')
         self.config = config
         self.directory = directory
@@ -172,7 +173,7 @@ def run(config: dict) -> dict:
     if type(config['applyRetention']) is not bool:
         raise ValueError('applyRetention must be a JSON boolean')
     scope = config.get('scope', 'portainer')
-    if scope not in {'portainer', 'n8n'}:
+    if scope not in {'portainer', 'n8n', 'vault'}:
         raise ValueError('Unsupported application backup scope')
     os.umask(0o077)
     state = Path(config['stateDirectory'])
@@ -206,7 +207,12 @@ def run(config: dict) -> dict:
             # not run on SIGKILL, host reboot, or systemd's final kill deadline.
             save(attention, {'jobDirectory': str(directory),
                 'reason': 'Capture may be in progress; reconcile retained intent and archive before another API request'})
-            proof = portainer.capture(capture, tool) if scope == 'portainer' else n8n.capture(capture)
+            if scope == 'portainer':
+                proof = portainer.capture(capture, tool)
+            elif scope == 'n8n':
+                proof = n8n.capture(capture)
+            else:
+                proof = vault.capture(capture)
             result['phase'] = 'encrypted_backup'
             save(directory/'job.json', result)
             attention.unlink()
@@ -231,8 +237,12 @@ def run(config: dict) -> dict:
                 restored_proof = portainer.inspect_archive(archive, tool)
                 if restored_proof['files'] != proof['files']:
                     raise ValueError('Restored database or key files differ from capture')
-            elif n8n.inspect_capture(restored_capture) != proof:
+            elif scope == 'n8n' and n8n.inspect_capture(restored_capture) != proof:
                 raise ValueError('Restored n8n files, key or database differ from capture')
+            elif scope == 'vault':
+                if vault.inspect_capture(restored_capture) != proof:
+                    raise ValueError('Restored vault recovery set differs from capture')
+                vault.verify_database(restored_capture)
             retention = repository.retention(apply=config['applyRetention'])
             save(directory/'retention-plan.json', retention)
             result.update(phase='monitor_delivery', encryptedRepositoryCaptureVerified=True,

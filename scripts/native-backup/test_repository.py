@@ -95,16 +95,17 @@ class RepositoryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'identity'):
                 job.verify_identity()
 
-    def test_n8n_retention_cannot_select_portainer_or_migration_snapshots(self):
-        config = {**self.config, 'scope': 'n8n'}
-        job = repository.Repository(config, self.root)
-        with patch.object(job, 'run', return_value='[]') as command:
-            job.retention()
-            self.assertIn('native-recurring,scope=n8n', command.call_args.args)
-        row = {'id': 'a'*64, 'hostname': 'ben-server', 'tags': ['native-recurring', 'scope=portainer']}
-        with patch.object(job, 'run', return_value=json.dumps([{'remove': [row]}])):
-            with self.assertRaisesRegex(ValueError, 'unowned'):
-                job.retention(apply=True)
+    def test_scope_retention_cannot_select_another_application(self):
+        for scope in ['n8n', 'vault']:
+            config = {**self.config, 'scope': scope}
+            job = repository.Repository(config, self.root)
+            with self.subTest(scope=scope), patch.object(job, 'run', return_value='[]') as command:
+                job.retention()
+                self.assertIn('native-recurring,scope='+scope, command.call_args.args)
+            row = {'id': 'a'*64, 'hostname': 'ben-server', 'tags': ['native-recurring', 'scope=portainer']}
+            with patch.object(job, 'run', return_value=json.dumps([{'remove': [row]}])):
+                with self.assertRaisesRegex(ValueError, 'unowned'):
+                    job.retention(apply=True)
 
     def test_retention_applies_only_exact_owned_ids_and_preserves_migration_inventory(self):
         removed = {'id': 'a'*64, 'hostname': 'ben-server', 'tags': ['native-recurring', 'scope=portainer']}
@@ -226,6 +227,29 @@ repository.run(config)
             self.assertTrue(result['success'])
             self.assertFalse((state/'capture-attention.json').exists())
             alert.assert_called_once_with(config, True)
+
+    @unittest.skipIf(repository.fcntl is None, 'Linux repository job locking')
+    def test_vault_success_heartbeat_requires_an_actual_database_restore(self):
+        config = {**self.config, 'scope': 'vault', 'applyRetention': False,
+                  'stateDirectory': str(self.root/'vault-jobs')}
+        def restic(*arguments):
+            if arguments[0] == 'backup':
+                return json.dumps({'message_type': 'summary', 'snapshot_id': 'a'*64})
+            return ''
+        with patch.object(repository.Repository, 'verify_identity'), \
+             patch.object(repository.Repository, 'run', side_effect=restic), \
+             patch.object(repository.Repository, 'retention') as retention, \
+             patch.object(repository.vault, 'capture', return_value={'fixture': True}), \
+             patch.object(repository.vault, 'inspect_capture', return_value={'fixture': True}), \
+             patch.object(repository.vault, 'verify_database', side_effect=ValueError('fixture restore failed')), \
+             patch.object(repository, 'notify') as alert:
+            with self.assertRaisesRegex(RuntimeError, 'Native backup failed'):
+                repository.run(config)
+            alert.assert_called_once_with(config, False)
+            retention.assert_not_called()
+        latest = json.loads((self.root/'vault-jobs/latest.json').read_text())
+        self.assertFalse(latest['success'])
+        self.assertEqual(latest['failedAtPhase'], 'restore_verification')
 
     def test_push_delivery_errors_never_print_token_bearing_url(self):
         token_file = self.root/'push-url'

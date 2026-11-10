@@ -4,6 +4,44 @@ Recurring backup integration is in progress. These producers replace one-off
 migration capture scripts; installing this directory alone enables no schedule.
 The original migration archives and accepted independent restores remain intact.
 
+## Bitwarden Lite recovery set
+
+`vault.py` covers the admitted native Bitwarden Lite PostgreSQL backend and its
+application volume. This is the Lite deployment, rather than Vaultwarden. The
+PostgreSQL image/configuration and application volume are admitted explicitly;
+changed database backends, image identities or mount layouts require review.
+
+The producer holds an exported read-only PostgreSQL snapshot until both its
+custom-format dump and complete per-table row-content/count inventory finish.
+Identity material, data-protection keys, configuration, licenses and attachments
+must remain stable across that database checkpoint and confined file copy. It
+excludes only the root application log directory, preserves supported ownership,
+mode, timestamps and xattrs, and rejects symlinks and special files. The paired
+files/database are not an atomic filesystem/database transaction; concurrent
+application-file changes fail admission rather than claiming a matching set.
+
+After the NAS restore, verification restores every table into the same pinned
+PostgreSQL binary in a new network-isolated helper. It runs as UID 999 with no
+capabilities, a read-only root, no host ports/bind mounts, fixed resource limits,
+and private memory-backed database storage. An explicit tmpfs masks the image's
+declared data volume. It never starts a Bitwarden application identity. Every
+restored table count and content digest must match before a success heartbeat.
+The representative verifier skips ownership/ACL replay; the full dump retains
+that information, while database roles and credentials require the separately
+protected bootstrap configuration. Successful helpers are removed after a clean
+exit. Failed or uncertain helpers and their intent remain for reconciliation;
+any retained helper blocks a new capture. Never clear that admission by blindly
+re-running the job.
+
+Use `scope: vault`, its own private `stateDirectory` and human-only push monitor,
+and the same admitted encrypted repository. Install `vault.py` before replacing
+the shared runner. The supplied timer runs at 03:20 Eastern with up to ten
+minutes of jitter; it remains disabled until an actual fresh production capture,
+full encrypted repository read, isolated restore and real monitor heartbeat pass.
+Retention uses the exact `native-recurring,scope=vault` group and preserves every
+other scope and original migration snapshot. Existing Portainer and n8n schedules
+remain independent.
+
 ## Portainer online producer
 
 `portainer.py` uses Portainer's supported administrator backup API with the
