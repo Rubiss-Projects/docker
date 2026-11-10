@@ -65,6 +65,17 @@ because a database migration takes longer than a normal container startup.
 
 ## Direct Client Networking
 
+### Native Linux migration
+
+The native migration replaces Docker NAT and the temporary Caddy media route
+with host networking and direct Plex TLS/publication. Use
+`../scripts/native-media-network/README.md` for network-only preparation, the
+host-input firewall, consumer reachability, routing acceptance and backout.
+Apply this to the accepted native storage configuration, preserving GPU and
+application identity. Keep Caddy until its replacement route is verified.
+The Caddy settings below describe the Windows/WSL fallback, not the target
+native architecture.
+
 LAN clients connect directly to port `32400`. Remote IPv4 clients use native
 Ubuntu Caddy at `https://plex-remote.benlawson.dev:18443`; see `../caddy/README.md`.
 Caddy observes the public TCP peer before Docker Desktop NAT and replaces the

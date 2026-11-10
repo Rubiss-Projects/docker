@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict native media administration and discovery to trusted networks
+Before=docker.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/nft -f /etc/nas-migration/native-media.nft
+ExecReload=/usr/sbin/nft -f /etc/nas-migration/native-media.nft
+RemainAfterExit=yes
+
+[Install]
+RequiredBy=docker.service
