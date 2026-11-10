@@ -1,5 +1,11 @@
 # Transmission health and stability
 
+The current Ubuntu host uses [native Linux monitoring](NATIVE-MONITORING.md).
+Its three-second host probe has the same failure/latency separation and historical
+InfluxDB field types, with an explicit native observer tag. Native dashboard
+panels exclude old Windows durations. The Windows collection and filesystem
+observations below remain historical evidence, not the current installation.
+
 This uses the existing Docker health checks, Homepage, Uptime Kuma, n8n recovery,
 Windows Telegraf, InfluxDB, Prometheus/cAdvisor and Grafana. No exporter, daemon,
 database, exposed endpoint or second restart controller is added.

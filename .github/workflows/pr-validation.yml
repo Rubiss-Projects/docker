@@ -314,6 +314,9 @@ jobs:
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 
+      - name: Test native host telemetry and installer rollback
+        run: sudo python3 -m unittest discover -s transmission/scripts -p 'test_native_*.py'
+
       - name: Test host maintenance
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 

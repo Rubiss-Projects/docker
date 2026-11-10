@@ -2,6 +2,15 @@
 
 Use this guidance when working on Transmission BitTorrent client configuration and automation.
 
+## Native Linux monitoring
+
+The migrated Ubuntu host runs native Telegraf with local read-only RPC probes.
+Use `NATIVE-MONITORING.md` and `install-telegraf-native.py`; the Windows installer
+and Windows-specific diagnostics below are retained for historical reference.
+The current media path is the NAS mount at `/srv/Media`, exposed as `/data`.
+The active `/config` volume remains `transmission_config`. Retain all torrents,
+the original observation history and the existing InfluxDB credentials.
+
 ## Current retention and observability policy (2026-09-22)
 
 Retain all torrents and data; do not reduce torrent counts, add bandwidth caps,
