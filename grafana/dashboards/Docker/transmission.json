@@ -17,9 +17,9 @@
   "panels": [
     {
       "id": 21,
-      "title": "Windows functional RPC now",
+      "title": "Native Linux functional RPC now",
       "type": "stat",
-      "description": "Native Windows session-stats, including token negotiation and complete body validation. Three-second deadline; no Docker exec or guest clock. Missing samples are unknown.",
+      "description": "Native Linux loopback session-stats, including token negotiation and complete body validation. Three-second total monotonic deadline. Missing samples are unknown. Historical Windows observations are retained in the database and excluded from native panels.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -37,7 +37,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT last(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE time > now() - 30s",
+          "query": "SELECT last(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE time > now() - 30s AND \"observer\" = 'native_linux'",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "",
@@ -81,9 +81,9 @@
     },
     {
       "id": 25,
-      "title": "Windows observer last sample",
+      "title": "Native Linux observer last sample",
       "type": "stat",
-      "description": "UTC for correlation only. Native Windows Stopwatch measures durations. Five-second target cadence; missing collection is not RPC success.",
+      "description": "UTC is correlation metadata; durations use the native monotonic clock. Five-second cadence. Missing collection is not RPC success.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -101,7 +101,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT last(\"observed_at\") * 1000 FROM \"transmission_host_rpc\" WHERE time > now() - 30s",
+          "query": "SELECT last(\"observed_at\") * 1000 FROM \"transmission_host_rpc\" WHERE time > now() - 30s AND \"observer\" = 'native_linux'",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "",
@@ -130,9 +130,9 @@
     },
     {
       "id": 22,
-      "title": "Windows successful RPC latency",
+      "title": "Native Linux successful RPC latency",
       "type": "timeseries",
-      "description": "Windows Stopwatch durations of successful calls only. Timeout/failure durations are censored and excluded. Percentiles below retain raw sample distribution.",
+      "description": "Native monotonic durations of successful calls only. Failed and censored durations are excluded. Historical Windows Stopwatch observations are excluded; compare like-for-like observer baselines.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -150,7 +150,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"rpc_seconds\") FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1 GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"rpc_seconds\") FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1 AND \"observer\" = 'native_linux' GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "Windows RPC",
@@ -179,9 +179,9 @@
     },
     {
       "id": 23,
-      "title": "Windows RPC result and deadline",
+      "title": "Native Linux RPC result and deadline",
       "type": "timeseries",
-      "description": "Five-second target cadence. Gaps remain gaps. Deadline exceeded indicates an unsuccessful call; existing Kuma/n8n recovery remains unchanged.",
+      "description": "Native five-second host observation. Gaps remain unknown; deadline failures are measured failures. This telemetry never initiates recovery.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -199,7 +199,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"rpc_up\") FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"observer\" = 'native_linux' GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "RPC successful",
@@ -211,7 +211,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"deadline_exceeded\") FROM \"transmission_host_rpc\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"deadline_exceeded\") FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"observer\" = 'native_linux' GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "Deadline exceeded",
@@ -240,9 +240,9 @@
     },
     {
       "id": 24,
-      "title": "Windows successful RPC percentiles",
+      "title": "Native Linux successful RPC percentiles",
       "type": "stat",
-      "description": "Raw successful probe samples over the selected range, measured with Windows Stopwatch. Excludes failed/censored calls; always compare failures and sample coverage.",
+      "description": "Percentiles of raw successful native host samples over the selected range. Historical Windows samples are excluded; failures and sample coverage must be considered separately.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -260,7 +260,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT percentile(\"rpc_seconds\", 95) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1",
+          "query": "SELECT percentile(\"rpc_seconds\", 95) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1 AND \"observer\" = 'native_linux'",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "p95",
@@ -272,7 +272,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT percentile(\"rpc_seconds\", 99) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1",
+          "query": "SELECT percentile(\"rpc_seconds\", 99) FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"rpc_up\" = 1 AND \"observer\" = 'native_linux'",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "p99",
@@ -301,9 +301,9 @@
     },
     {
       "id": 26,
-      "title": "Windows successful probes over selected range",
+      "title": "Native Linux successful probes over selected range",
       "type": "stat",
-      "description": "Sample success percentage, not wall-clock uptime. Missing collection is excluded, not counted as success. Check latest sample and telemetry alerts.",
+      "description": "Native sample success percentage, not wall-clock uptime. Missing collection is excluded and never counted as success. Historical Windows samples are excluded.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -321,7 +321,7 @@
             "uid": "ddvyigh44dblsd"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"rpc_up\") * 100 FROM \"transmission_host_rpc\" WHERE $timeFilter",
+          "query": "SELECT mean(\"rpc_up\") * 100 FROM \"transmission_host_rpc\" WHERE $timeFilter AND \"observer\" = 'native_linux'",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "",
@@ -1093,7 +1093,7 @@
       "id": 18,
       "title": "Published RPC endpoint response time",
       "type": "timeseries",
-      "description": "Native Telegraf HTTP check from Windows through published port 9091. An expected 409 proves reachability only; functional health is measured separately.",
+      "description": "Native Telegraf checks the Linux loopback published RPC port. Expected HTTP 409 proves reachability only; the separate functional probes validate RPC.",
       "datasource": {
         "type": "influxdb",
         "uid": "ddvyigh44dblsd"
@@ -1223,6 +1223,13 @@
       "url": "/d/fdvyllsgg8v7kf/windows?var-hostname=Ben-Server&var-disk=E%3A",
       "targetBlank": true,
       "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "title": "Native Linux host",
+      "url": "/d/native-linux-host",
+      "type": "link",
+      "targetBlank": false,
       "keepTime": true
     }
   ],

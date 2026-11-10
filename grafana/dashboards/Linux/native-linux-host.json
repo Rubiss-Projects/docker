@@ -1,0 +1,431 @@
+{
+  "uid": "native-linux-host",
+  "title": "Native Linux Host",
+  "tags": [
+    "linux",
+    "native"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU used",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT 100 - mean(\"usage_idle\") FROM \"cpu\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' AND \"cpu\" = 'cpu-total' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory used",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"used_percent\") FROM \"mem\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Root filesystem used",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"used_percent\") FROM \"disk\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' AND \"path\" = '/' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Available memory",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"available\") FROM \"mem\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Root filesystem free",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 7,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"free\") FROM \"disk\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' AND \"path\" = '/' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "NAS media filesystem used",
+      "description": "Client filesystem view of the mounted NAS share. Native NAS quota, pool and drive monitoring remain separate.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 7,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"used_percent\") FROM \"disk\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' AND \"path\" = '/srv/Media' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Uptime (fresh sample only)",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"uptime\") FROM \"system\" WHERE time > now() - 90s AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux'",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Swap used",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"used_percent\") FROM \"swap\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Running processes",
+      "description": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ddvyigh44dblsd"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"running\") FROM \"processes\" WHERE $timeFilter AND \"host\" = 'ben-server' AND \"platform\" = 'native_linux' GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Unknown",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "title": "Transmission Stability",
+      "url": "/d/transmission-stability",
+      "type": "link",
+      "targetBlank": false,
+      "keepTime": true
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": []
+  },
+  "description": "Native Linux Telegraf observations only. Historical Windows measurements remain in their existing dashboard and database. Missing samples remain unknown."
+}

@@ -47,8 +47,7 @@ groups:
     execErrState: Error
     annotations:
       summary: Transmission telemetry missing
-      description: No recent Transmission samples. Check Windows Telegraf, Docker
-        exec, and InfluxDB. Missing telemetry is not a healthy RPC result. This alert
+      description: No recent Transmission samples. Check native Telegraf and InfluxDB. Missing telemetry is not a healthy RPC result. This alert
         does not restart Transmission.
       __dashboardUid__: transmission-stability
       __panelId__: '16'
@@ -194,7 +193,7 @@ groups:
     execErrState: Error
     annotations:
       summary: Transmission published endpoint failing
-      description: Windows cannot reliably reach the expected RPC 409 response on
+      description: The native host cannot reliably reach the expected RPC 409 response on
         port 9091. Compare the functional Docker check to distinguish endpoint/network
         failure from a daemon stall. This alert does not restart Transmission.
       __dashboardUid__: transmission-stability
@@ -203,7 +202,7 @@ groups:
       service: transmission
       severity: warning
   - uid: transmission_host_rpc_missing
-    title: Transmission Windows RPC telemetry missing
+    title: Transmission native host RPC telemetry missing
     condition: C
     data:
     - refId: A
@@ -216,7 +215,7 @@ groups:
           type: influxdb
           uid: ddvyigh44dblsd
         rawQuery: true
-        query: SELECT count("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter
+        query: SELECT count("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter AND "observer" = 'native_linux'
         resultFormat: time_series
         policy: default
         alias: ''
@@ -243,9 +242,9 @@ groups:
     noDataState: Alerting
     execErrState: Error
     annotations:
-      summary: Transmission Windows RPC telemetry missing
-      description: No Windows-native functional RPC samples for the evaluation window. Check
-        Windows Telegraf and InfluxDB. Missing telemetry is unknown, not a healthy service.
+      summary: Transmission native host RPC telemetry missing
+      description: No native Linux functional RPC samples for the evaluation window. Check
+        native Telegraf and InfluxDB. Missing telemetry is unknown, not a healthy service.
         Does not restart Transmission.
       __dashboardUid__: transmission-stability
       __panelId__: '25'
@@ -253,7 +252,7 @@ groups:
       service: transmission
       severity: warning
   - uid: transmission_host_rpc_failed
-    title: Transmission Windows functional RPC failing
+    title: Transmission native host functional RPC failing
     condition: C
     data:
     - refId: A
@@ -266,7 +265,7 @@ groups:
           type: influxdb
           uid: ddvyigh44dblsd
         rawQuery: true
-        query: SELECT mean("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter
+        query: SELECT mean("rpc_up") FROM "transmission_host_rpc" WHERE $timeFilter AND "observer" = 'native_linux'
         resultFormat: time_series
         policy: default
         alias: ''
@@ -293,10 +292,10 @@ groups:
     noDataState: OK
     execErrState: Error
     annotations:
-      summary: Transmission Windows functional RPC failing
-      description: Most Windows-native session-stats probes fail their three-second deadline
-        or response validation. Compare Windows endpoint reachability, guest RPC and disk
-        latency. Kuma and n8n remain the recovery owners.
+      summary: Transmission native host functional RPC failing
+      description: Most native Linux session-stats probes fail their three-second deadline
+        or response validation. Compare endpoint reachability, aggregate RPC and native
+        host telemetry. This alert does not restart Transmission.
       __dashboardUid__: transmission-stability
       __panelId__: '21'
     labels:
