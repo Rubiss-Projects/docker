@@ -706,7 +706,7 @@
       "id": 11,
       "title": "NAS pool state",
       "type": "stat",
-      "description": "Raw QuTS hero state from the vendor MIB; 0 means Ready. Missing scrapes remain unavailable.",
+      "description": "Raw NAS pool state. Only 0 is verified as Ready. Other values remain numeric because the vendor MIB describes conflicting QTS and QuTS hero enumerations; reconcile them with the native API. Missing collection remains unavailable.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -725,89 +725,17 @@
             {
               "type": "value",
               "options": {
-                "-4": {
-                  "text": "Locked",
-                  "color": "red"
-                },
-                "-3": {
-                  "text": "Error",
-                  "color": "red"
-                },
-                "-2": {
-                  "text": "Not ready",
-                  "color": "red"
-                },
-                "-1": {
-                  "text": "Warning",
-                  "color": "red"
-                },
                 "0": {
                   "text": "Ready",
                   "color": "green"
-                },
-                "1": {
-                  "text": "Resilvering",
-                  "color": "orange"
-                },
-                "2": {
-                  "text": "Exporting",
-                  "color": "orange"
-                },
-                "3": {
-                  "text": "Removing",
-                  "color": "orange"
-                },
-                "4": {
-                  "text": "Scrubbing",
-                  "color": "orange"
-                },
-                "5": {
-                  "text": "Creating",
-                  "color": "orange"
-                },
-                "6": {
-                  "text": "Locking",
-                  "color": "orange"
-                },
-                "7": {
-                  "text": "Unlocking",
-                  "color": "orange"
-                },
-                "8": {
-                  "text": "Stopping",
-                  "color": "orange"
-                },
-                "9": {
-                  "text": "Stopped",
-                  "color": "orange"
-                },
-                "10": {
-                  "text": "Starting",
-                  "color": "orange"
-                },
-                "11": {
-                  "text": "Importing",
-                  "color": "orange"
-                },
-                "12": {
-                  "text": "Read only",
-                  "color": "orange"
-                },
-                "13": {
-                  "text": "Pruning",
-                  "color": "orange"
-                },
-                "14": {
-                  "text": "Tuning",
-                  "color": "orange"
-                },
-                "255": {
-                  "text": "Unknown",
-                  "color": "orange"
                 }
               }
             }
-          ]
+          ],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "gray"
+          }
         },
         "overrides": []
       },

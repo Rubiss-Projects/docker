@@ -15,6 +15,11 @@ RECOVERY = 'instance="qnap-nas",job="qnap-snmp",sharedFolderIndex="2",sharedFold
 
 def fixture():
     dashboard = json.loads((ROOT / "grafana/dashboards/Infrastructure/qnap-nas.json").read_text())
+    state_panel = next(panel for panel in dashboard["panels"] if panel["id"] == 11)
+    # The vendor MIB describes conflicting QTS/QuTS hero codes. Only Ready has
+    # been reconciled with this NAS; other states must retain their raw number.
+    assert set(state_panel["fieldConfig"]["defaults"]["mappings"][0]["options"]) == {"0"}
+    assert state_panel["fieldConfig"]["defaults"]["color"] == {"mode": "fixed", "fixedColor": "gray"}
     queries = {panel["id"]: panel["targets"][0]["expr"] for panel in dashboard["panels"] if panel["id"] in range(9, 14)}
     expected = {
         9: [("{" + POOL + "}", 65.9167417899843)],
@@ -34,13 +39,20 @@ def fixture():
         ("sharedFolderFreeSize{" + RECOVERY + "}", 3853646241792),
     ]
     tests = []
-    for state in ("fresh", "failed-scrape", "missing-collection"):
-        inputs = [{"series": name, "values": f"{value} {value}"} for name, value in values]
+    for state in ("fresh", "unverified-pool-state", "failed-scrape", "missing-collection"):
+        inputs = []
+        for name, value in values:
+            if state == "unverified-pool-state" and name.startswith("storagepoolStatus{"):
+                value = -4
+            inputs.append({"series": name, "values": f"{value} {value}"})
         if state != "missing-collection":
-            inputs.append({"series": 'up{instance="qnap-nas",job="qnap-snmp"}', "values": "1 1" if state == "fresh" else "0 0"})
+            inputs.append({"series": 'up{instance="qnap-nas",job="qnap-snmp"}', "values": "0 0" if state == "failed-scrape" else "1 1"})
+        samples = dict(expected)
+        if state == "unverified-pool-state":
+            samples[11] = [("storagepoolStatus{" + POOL + "}", -4)]
         tests.append({"name": state, "interval": "1m", "input_series": inputs,
                       "promql_expr_test": [{"expr": expression, "eval_time": "1m",
-                          "exp_samples": [{"labels": labels, "value": value} for labels, value in expected[id_]] if state == "fresh" else []}
+                          "exp_samples": [{"labels": labels, "value": value} for labels, value in samples[id_]] if state in ("fresh", "unverified-pool-state") else []}
                           for id_, expression in queries.items()]})
     return {"evaluation_interval": "1m", "fuzzy_compare": True, "tests": tests}
 
