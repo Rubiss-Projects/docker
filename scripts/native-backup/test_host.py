@@ -19,6 +19,10 @@ def blob(data):
 
 
 class BootstrapSelectionTests(unittest.TestCase):
+    def test_healthy_runtime_with_historical_restarts_can_still_be_backed_up(self):
+        rows=[{'State':{'Running':True,'Health':{'Status':'healthy'}},'RestartCount':1} for _ in range(49)]
+        with patch.object(host,'command',side_effect=[b'fixture-id',json.dumps(rows).encode()]):
+            self.assertEqual(host.runtime(),rows)
     def test_resolved_system_timezone_bind_is_part_of_bootstrap_recovery(self):
         rows = [{'Config':{'Labels':None},'Mounts':[{'Type':'bind','Source':'/etc/localtime'}]}]
         zone = Path('/usr/share/zoneinfo/Etc/UTC')

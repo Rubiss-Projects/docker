@@ -36,7 +36,7 @@ def command(args: list[str], *, input: bytes | None = None) -> bytes:
 def runtime() -> list[dict]:
     ids = command(['docker', 'ps', '-q']).decode().split()
     rows = json.loads(command(['docker', 'inspect', *ids]))
-    if len(rows) != 49 or not all(r['State']['Running'] and r['RestartCount'] == 0
+    if len(rows) != 49 or not all(r['State']['Running']
             and r['State'].get('Health', {}).get('Status') in [None, 'healthy'] for r in rows):
         raise ValueError('Native host runtime requires fresh admission')
     return rows
