@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import selectors
+import shlex
 import stat
 import subprocess
 import time
@@ -17,6 +18,7 @@ import uuid
 
 from confined_files import SafeTree
 import portainer
+import vault_security
 
 APP = 'bitwarden'
 DATABASE = 'bitwarden-db-1'
@@ -193,6 +195,12 @@ def inspect_capture(destination: Path) -> dict:
             raise ValueError('PostgreSQL dump size differs')
         if job.digest('database.pgdump') != dump['sha256']:
             raise ValueError('PostgreSQL dump digest differs')
+        for name, row in proof['bootstrapFiles'].items():
+            job.require_regular(name)
+            if job.lstat(name).st_size != row['bytes'] or job.digest(name) != row['sha256']:
+                raise ValueError('PostgreSQL role or credential material differs')
+        if set(proof['bootstrapFiles']) != {'roles.private.sql', 'credentials.private.json'}:
+            raise ValueError('PostgreSQL bootstrap material is incomplete')
     with SafeTree(destination/'application-files') as payload:
         if file_inventory(payload) != proof['applicationFiles']:
             raise ValueError('Vault restored keys, attachments or metadata differ')
@@ -211,7 +219,12 @@ def capture(destination: Path) -> dict:
         job.write('intent.json', json.dumps({'at': dt.datetime.now(dt.timezone.utc).isoformat(),
             'applicationId': app['Id'], 'databaseId': database['Id'], 'applicationControls': 0}).encode())
         before = file_inventory(source)
+        prefix = ['docker', 'exec', '-i', DATABASE, 'psql', '-X', '-qAt', '--no-password',
+                  '-v', 'ON_ERROR_STOP=1', '-U', user, '-d', name]
+        security = vault_security.capture(command, job, app, database, user, name, prefix)
         dump = snapshot_database(job, user, name)
+        if vault_security.inventory(command, prefix) != security:
+            raise ValueError('PostgreSQL roles or privileges changed during capture')
         if file_inventory(source) != before:
             raise ValueError('Vault files changed across the database checkpoint')
         job.mkdir('application-files')
@@ -236,8 +249,11 @@ def capture(destination: Path) -> dict:
                  'postgresVersion': command(['docker', 'exec', DATABASE, 'postgres', '--version']).decode().strip(),
                  'postgresBinarySha256': command(['docker', 'exec', DATABASE, 'sha256sum', '/usr/lib/postgresql/14/bin/postgres']).decode().split()[0],
                  'database': dump, 'applicationFiles': before, 'applicationControls': 0,
+                 'securityInventory': security,
+                 'bootstrapFiles': {name: {'bytes': job.lstat(name).st_size,
+                     'sha256': job.digest(name)} for name in ['roles.private.sql', 'credentials.private.json']},
                  'sourceContainerIdentitiesUnchanged': True,
-                 'databaseRoleAndCredentialsRequireSeparateBootstrapRestore': True,
+                 'databaseRoleCredentialsOwnershipAclIncluded': True,
                  'encryptedRepositoryCapturePending': True}
         job.write('capture.json', json.dumps(proof, indent=2).encode())
     inspect_capture(destination)
@@ -252,9 +268,14 @@ def verify_database(destination: Path) -> None:
     check_no_retained_helpers()
     helper = 'native-backup-vault-'+uuid.uuid4().hex
     with SafeTree(destination) as job:
+        credentials = json.loads(job.read('credentials.private.json'))
+        bootstrap_user = credentials['user']
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', bootstrap_user):
+            raise ValueError('Unsupported PostgreSQL bootstrap role')
         job.write('restore-helper-intent.json', json.dumps({'helperName': helper,
             'label': HELPER_LABEL, 'network': 'none', 'applicationIdentityStarted': False}).encode())
-    startup = 'initdb -D /verify/pgdata -U verifier --auth-local=trust --auth-host=reject >/verify/init.log 2>&1; exec postgres -D /verify/pgdata -k /verify -c listen_addresses= -c unix_socket_permissions=0700'
+    # initdb's role also owns built-in grants and the initial public schema.
+    startup = 'initdb -D /verify/pgdata -U '+shlex.quote(bootstrap_user)+' --auth-local=trust --auth-host=scram-sha-256 >/verify/init.log 2>&1; exec postgres -D /verify/pgdata -k /verify -c listen_addresses=127.0.0.1 -c unix_socket_permissions=0700'
     identifier = command(['docker', 'run', '--detach', '--pull=never', '--name', helper,
         '--label', HELPER_LABEL, '--network', 'none', '--read-only', '--restart', 'no',
         '--user', '999:999', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
@@ -279,7 +300,7 @@ def verify_database(destination: Path) -> None:
                 or not any(s.split(':')[0] == 'no-new-privileges' for s in host['SecurityOpt'])
                 or any(m['Type'] != 'tmpfs' for m in state['Mounts'])):
             raise ValueError('Isolated PostgreSQL helper confinement differs')
-        ready = subprocess.run(['docker', 'exec', helper, 'pg_isready', '-h', '/verify', '-U', 'verifier'], capture_output=True, timeout=10)
+        ready = subprocess.run(['docker', 'exec', helper, 'pg_isready', '-h', '/verify', '-U', bootstrap_user], capture_output=True, timeout=10)
         if ready.returncode == 0:
             break
         if time.monotonic() >= deadline:
@@ -289,15 +310,26 @@ def verify_database(destination: Path) -> None:
         raise ValueError('PostgreSQL restore version differs')
     if command(['docker', 'exec', helper, 'sha256sum', '/usr/lib/postgresql/14/bin/postgres']).decode().split()[0] != proof['postgresBinarySha256']:
         raise ValueError('PostgreSQL restore binary differs')
-    command(['docker', 'exec', helper, 'createdb', '-h', '/verify', '-U', 'verifier', 'restored'])
     with SafeTree(destination) as job:
+        roles = vault_security.roles_for_existing_bootstrap(job.read('roles.private.sql'), bootstrap_user)
+        command(['docker', 'exec', '-i', helper, 'psql', '-X', '-q', '-v',
+            'ON_ERROR_STOP=1', '-h', '/verify', '-U', bootstrap_user, '-d', 'postgres'],
+            input=roles, diagnostic=(job, 'roles-restore.private.stderr'))
         command(['docker', 'exec', '-i', helper, 'pg_restore', '--exit-on-error',
-            '--single-transaction', '--no-owner', '--no-privileges', '-h', '/verify',
-            '-U', 'verifier', '-d', 'restored'], input=job.read('database.pgdump'), timeout=150,
+            '--create', '-h', '/verify',
+            '-U', bootstrap_user, '-d', 'postgres'], input=job.read('database.pgdump'), timeout=150,
             diagnostic=(job, 'pg-restore.private.stderr'))
         restored = table_inventory(command(['docker', 'exec', '-i', helper, 'psql', '-X',
-            '-qAt', '-v', 'ON_ERROR_STOP=1', '-h', '/verify', '-U', 'verifier', '-d', 'restored'],
+            '-qAt', '-v', 'ON_ERROR_STOP=1', '-h', '/verify', '-U', bootstrap_user, '-d', credentials['database']],
             input=TABLE_SQL.encode(), timeout=150, diagnostic=(job, 'restored-tables.private.stderr')))
+        prefix = ['docker', 'exec', '-i', helper, 'psql', '-X', '-qAt', '-v',
+                  'ON_ERROR_STOP=1', '-h', '/verify', '-U', bootstrap_user, '-d', credentials['database']]
+        if vault_security.inventory(command, prefix) != proof['securityInventory']:
+            raise ValueError('Restored PostgreSQL roles, ownership or privileges differ')
+        auth = command(prefix, input=b"SELECT count(*) FROM pg_hba_file_rules WHERE type='host' AND auth_method<>'scram-sha-256';")
+        if auth.strip() != b'0':
+            raise ValueError('Restored PostgreSQL TCP authentication is not password verified')
+        vault_security.verify_login(helper, credentials)
     if restored != proof['database']['tables']:
         raise ValueError('Restored PostgreSQL table contents differ')
     state = json.loads(command(['docker', 'inspect', helper]))[0]
@@ -316,7 +348,8 @@ def verify_database(destination: Path) -> None:
         job.write('database-restore-verification.json', json.dumps({'tablesVerified': len(restored),
             'rowsVerified': sum(row['rows'] for row in restored.values()),
             'matchingPostgresBinary': True, 'network': 'none', 'dataOnlyInPrivateTmpfs': True,
-            'ownerAndAclNotReplayedInRepresentativeRestore': True,
+            'rolesPasswordsMembershipsSettingsOwnershipAndAclMatched': True,
+            'capturedApplicationPasswordAuthenticatedOverTcp': True,
             'bitwardenApplicationIdentityStarted': False, 'helperRemovedAfterCleanExit': True}).encode())
 
 

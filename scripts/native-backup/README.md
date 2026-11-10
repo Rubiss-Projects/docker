@@ -26,15 +26,21 @@ capabilities, a read-only root, no host ports/bind mounts, fixed resource limits
 and private memory-backed database storage. An explicit tmpfs masks the image's
 declared data volume. It never starts a Bitwarden application identity. Every
 restored table count and content digest must match before a success heartbeat.
-The representative verifier skips ownership/ACL replay; the full dump retains
-that information, while database roles and credentials require the separately
-protected bootstrap configuration. Successful helpers are removed after a clean
+The producer also saves role definitions/password verifiers and current runtime
+database credentials privately inside the encrypted recovery set. Roles, grants,
+role settings, object ownership and ACL inventories must remain stable across
+capture and match the restored database. The verifier replays roles and restores
+the database with ownership/ACLs, then authenticates the captured application
+password over its isolated loopback using SCRAM. Custom tablespaces, extra
+application databases and a preexisting `verifier` account require separate
+admission. Successful helpers are removed after a clean
 exit. Failed or uncertain helpers and their intent remain for reconciliation;
 any retained helper blocks a new capture. Never clear that admission by blindly
 re-running the job.
 
 Use `scope: vault`, its own private `stateDirectory` and human-only push monitor,
-and the same admitted encrypted repository. Install `vault.py` before replacing
+and the same admitted encrypted repository. Install `vault_security.py` before
+`vault.py`, and both before replacing
 the shared runner. The supplied timer runs at 03:20 Eastern with up to ten
 minutes of jitter; it remains disabled until an actual fresh production capture,
 full encrypted repository read, isolated restore and real monitor heartbeat pass.
