@@ -6,14 +6,14 @@ Tracearr is the Plex monitoring and playback-history service. The previous monit
 - App: `tracearr:3000`; loopback maintenance access: `127.0.0.1:3040`.
 - Plex: `http://plex:32400`. No external history-import service is required for normal operation.
 - Health: `/health`. Homepage and Uptime Kuma use the internal Docker URL.
-- Start from this directory: `docker compose --env-file .env --env-file .env.secret up -d`.
+- Deploy from `/srv/Docker` using `python3 -B scripts/native-deploy/compose.py --stack tracearr -- ...`; preserve the admitted native volumes and settings.
 - Credentials are in git-crypt protected `.env.secret`. The owner's Plex account is linked with login enabled; use Sign in with Plex. The initial local username was `admin`, but Plex login synchronizes it to the Plex username. Local login by the owner's email remains available with `TRACEARR_ADMIN_PASSWORD`. Homepage uses `TRACEARR_API_KEY`.
-- The database uses `tracearr_tracearr_postgres`, a Docker-managed Linux volume. This is a necessary exception to relative bind mounts: PostgreSQL rejects the permissions provided by the Windows-backed E: drive. Never remove this volume during updates.
+- The database uses the restored `tracearr_tracearr_postgres` native Docker volume. Never remove or replace it during updates.
 - Redis persists in the external native volume `tracearr_redis_data`; the app's backup directory uses external `tracearr_backups`. The existing images write as UID 999 and 1001 respectively, which Windows VirtioFS mapping cannot preserve. Populate and verify both volumes before deployment; keep the old Windows directories as cold migration snapshots. See [`docs/virtiofs-storage-readiness.md`](../docs/virtiofs-storage-readiness.md).
 - Back up the database using Tracearr's backup feature or `pg_dump`; copying the repository alone does not back up the database. Export generated backup archives from `tracearr_backups` to protected host/off-host storage: a backup volume on the same Docker disk is not independent protection. Cold Redis backups must include the entire current volume, RDB and multipart AOF/manifest after the app and Redis stop cleanly. Preserve the secret overlay with backups.
 - TimescaleDB and Redis start before the app through health-gated Compose dependencies. Deployment ensures Plex is ready before Tracearr and prioritizes Tracearr immediately after the critical startup chain. Plex restarts do not force a Tracearr database restart; Tracearr reconnects automatically.
 - TimescaleDB follows `pg18@sha256:...` so weekly updates retain PostgreSQL major 18. The deploy helper calls `upgrade-database.sh` after pulling: before a changed database image or pending extension migration, it saves a checked `pg_dump` archive in the runner's `${XDG_STATE_HOME:-$HOME/.local/state}/docker-backups/tracearr` (override with `DOCKER_TRACEARR_BACKUP_DIR`), stops the app, waits for the new database, and upgrades both Timescale extensions. A failure stops deployment before the app resumes. Keep these backups and arrange off-host retention; do not delete them automatically. A manual Compose-only image upgrade must perform the same backup and extension migration steps.
-- Windows nightly maintenance and watchdog bind repair also prioritize Tracearr immediately after `socket-proxy -> uptime-kuma -> plex -> swag`. This ordering is maintained directly in `E:\Scripts\docker-desktop-common.ps1`; `E:\Scripts\docker-stateful-sentinel-check.sh` checks Tracearr health and playback-history persistence. These host scripts were updated during setup and are maintained directly on the server, not rewritten by service deployments.
+- The Windows watchdog and nightly restart are retired. Native deployment and existing UPS recovery preserve the accepted application identities and startup ordering.
 - Tautulli history was imported on 2026-09-18 (job 1): 8,518 new records, zero skipped, zero errors. All 8,518 records also completed stream-detail enrichment with zero failures. Check import status before starting another run.
 - Retirement reconciliation (job 2) updated one existing record, skipped 8,517 duplicates, and reported zero errors. The retired service's data and credentials are preserved under the ignored `backups/retired/` directory; its import URL/key have been cleared from Tracearr.
 - The active **No 4K transcodes** built-in policy preserves the former video-transcode stopper and its viewer-facing message. Existing notification automations remain unchanged.
@@ -27,6 +27,12 @@ Our Seerr fork returns book requests alongside movie/TV requests. Tracearr throu
 
 The image entrypoint is retained. The startup command verifies exact upstream module hashes and applies the patch before starting the app; repeat starts verify the exact patched output. A changed upstream module fails startup instead of silently applying an incompatible patch. Before updating the Tracearr image, review/remove the patch as appropriate and run `test-seerr-books.mjs` in the proposed image. PR validation runs this compatibility check automatically.
 
-## Opt-in local-login compatibility candidate
+## Local-login compatibility
 
-`compose.login-compat.yml` and `patch-login-case.mjs` are preparation only; the default stack does not load them. They address mixed-case stored staff identifiers in the pinned 3.1.3 image without rewriting accounts or credentials. See [LOGIN-COMPAT.md](LOGIN-COMPAT.md) for admission, tests and remaining release gates. PR validation tests both compatibility patches against the pinned image. Keep this candidate uninstalled on Windows production until the migration's explicit runtime and single-writer handoff gates are met.
+`patch-login-case.mjs` addresses mixed-case stored staff identifiers in the pinned
+3.1.3 image without rewriting accounts or credentials. The default Compose source
+does not opt in; the accepted native policy must explicitly admit its startup
+command and read-only bind before activation. `compose.login-compat.yml` describes
+those field changes for isolated preparation. See [LOGIN-COMPAT.md](LOGIN-COMPAT.md)
+for admission and validation. PR validation tests both compatibility patches
+against the pinned image.
