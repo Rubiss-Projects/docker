@@ -58,6 +58,18 @@ def fixture():
         case('Failed DFS collection never shows idle throughput', 'sunday_7',
              [('up{job="sunday-edge-dfs-workers",instance="worker-1"}', 0)], []),
     ]
+    storage_series = [(pool, 0),
+                      ('storagepoolFreeSize{job="qnap-snmp",instance="qnap-nas"}', 100),
+                      ('sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}', 100)]
+    tests += [
+        case('Expected storage present without retired Recovery share',
+             'nas_storage_metrics_missing', storage_series, []),
+        case('Missing Media quota remains actionable', 'nas_storage_metrics_missing',
+             storage_series[:2],
+             [('{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}', 1)]),
+        case('Missing pool free space remains actionable', 'nas_storage_metrics_missing',
+             storage_series[::2], [('{job="qnap-snmp",instance="qnap-nas"}', 1)]),
+    ]
     return {'evaluation_interval': '1m', 'tests': tests}
 
 

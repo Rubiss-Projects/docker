@@ -229,7 +229,7 @@ groups:
       datasourceUid: adw07verg2qrkd
       model:
         expr: absent(storagepoolStatus{job="qnap-snmp",instance="qnap-nas"}) or absent(storagepoolFreeSize{job="qnap-snmp",instance="qnap-nas"})
-          or absent(sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}) or absent(sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Recovery"})
+          or absent(sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"})
     - refId: B
       datasourceUid: __expr__
       model:
@@ -313,8 +313,8 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"}
-          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"})
+        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}
+          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"})
     - refId: B
       datasourceUid: __expr__
       model:
@@ -357,8 +357,8 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"}
-          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"})
+        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}
+          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"})
     - refId: B
       datasourceUid: __expr__
       model:

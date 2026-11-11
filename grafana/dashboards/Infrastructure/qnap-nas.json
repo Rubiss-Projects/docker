@@ -121,7 +121,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "Readings refresh every minute and history is retained for 15 days.\n\nFour installed drives are mapped by native ID and serial. The faulty original Bay 3 drive was replaced; its historical failure remains in the migration evidence. Current drive status is the NAS report, not a new qualification result.\n\nPool allocation includes reservations and thick allocations; it is not file payload usage. Media and Recovery charts show each shared folder's quota and available space, not physical pool headroom.\n\n[Migration acceptance and next steps](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress)"
+        "content": "Readings refresh every minute and history is retained for 15 days.\n\nFour installed drives are mapped by native ID and serial. The faulty original Bay 3 drive was replaced; its historical failure remains in the migration evidence. Current drive status is the NAS report, not a new qualification result.\n\nPool allocation includes reservations and thick allocations; it is not file payload usage. Media charts show the shared folder's quota and available space, not physical pool headroom.\n\n[Migration acceptance and next steps](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress)"
       }
     },
     {
@@ -767,7 +767,7 @@
       "id": 12,
       "title": "Shared-folder quota used",
       "type": "timeseries",
-      "description": "Media and Recovery used percentage within each reported quota. Do not aggregate thin quotas into physical pool utilization.",
+      "description": "Media used percentage within its reported quota. Do not aggregate thin quotas into physical pool utilization.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -792,7 +792,7 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"} / sharedFolderCapacity{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"}) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "expr": "100 * (1 - sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=\"Media\"} / sharedFolderCapacity{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=\"Media\"}) and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
           "legendFormat": "{{sharedFolderName}}",
           "refId": "A",
           "instant": false,
@@ -810,7 +810,7 @@
       "id": 13,
       "title": "Shared-folder available",
       "type": "timeseries",
-      "description": "Available bytes within each Media or Recovery shared-folder quota; not physical pool headroom.",
+      "description": "Available bytes within the Media shared-folder quota; not physical pool headroom.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -835,7 +835,7 @@
             "uid": "adw07verg2qrkd"
           },
           "editorMode": "code",
-          "expr": "sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=~\"Media|Recovery\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
+          "expr": "sharedFolderFreeSize{job=\"qnap-snmp\",instance=\"qnap-nas\",sharedFolderName=\"Media\"} and on(job, instance) (up{job=\"qnap-snmp\",instance=\"qnap-nas\"} == 1)",
           "legendFormat": "{{sharedFolderName}}",
           "refId": "A",
           "instant": false,
