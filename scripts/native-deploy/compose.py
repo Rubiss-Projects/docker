@@ -188,6 +188,44 @@ def write_recipe(stack: str, recipe: dict) -> Path:
             os.unlink(temporary)
 
 
+def recover_proxy_networks(recipe: dict, identities: dict) -> None:
+    """Restore only SWAG's admitted bridge attachments after a partial boot start."""
+    if set(recipe['services']) != {'swag'}:
+        raise ValueError('Proxy recovery requires the single accepted SWAG service')
+    service = recipe['services']['swag']
+    networks = recipe.get('networks', {})
+    if (service.get('container_name') != 'swag' or service.get('network_mode')
+            or set(service.get('networks', {})) != {'proxynet', 'socket-proxy-net'}):
+        raise ValueError('Proxy recovery requires the accepted two-network topology')
+    row = json.loads(capture(['docker', 'inspect', 'swag']))[0]
+    labels = row['Config'].get('Labels') or {}
+    image = json.loads(capture(['docker', 'image', 'inspect', service['image']]))[0]
+    expected = {networks[key]['name']: key for key in service['networks']}
+    attached = row['NetworkSettings']['Networks']
+    if (row['Name'] != '/swag' or row['Image'] != image['Id']
+            or labels.get('com.docker.compose.project') != 'swag'
+            or labels.get('com.docker.compose.service') != 'swag'
+            or not set(attached) <= set(expected)
+            or any(value['NetworkID'] != identities['networks'][expected[name]]
+                   for name, value in attached.items())):
+        raise ValueError('Existing proxy identity or network attachments differ')
+    commands = []
+    for name, key in expected.items():
+        if name in attached:
+            continue
+        settings = service['networks'][key] or {}
+        if set(settings) - {'aliases'}:
+            raise ValueError('Proxy recovery cannot infer missing static network settings')
+        aliases = sorted({'swag', *settings.get('aliases', [])})
+        command = ['docker', 'network', 'connect']
+        for alias in aliases:
+            command += ['--alias', alias]
+        commands.append(command + [name, row['Id']])
+    # Validate the whole plan before attaching anything. Never disconnect a network.
+    for command in commands:
+        capture(command)
+
+
 def compose_arguments(arguments: list[str], services: set[str], local_images: set[str]) -> list[str] | None:
     if not arguments or arguments[0] not in {'config', 'ps', 'pull', 'up', 'restart', 'start', 'stop', 'exec'}:
         raise ValueError('Unsupported native deployment Compose command')
@@ -227,6 +265,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, default=Path('/srv/Docker'))
     parser.add_argument('--policy', type=Path, default=POLICY)
+    parser.add_argument('--recover-proxy-networks', action='store_true')
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--admit', nargs='+')
     action.add_argument('--stack')
@@ -253,6 +292,10 @@ def main() -> int:
                 command = compose_arguments(arguments, set(recipe['services']), local)
                 if command is None:
                     return 0
+                if args.recover_proxy_networks:
+                    if stack != 'swag' or command != ['start', 'swag']:
+                        raise ValueError('Proxy network recovery is restricted to start swag')
+                    recover_proxy_networks(recipe, policy['stacks'][stack]['resourceIdentities'])
                 path = write_recipe(stack, recipe)
                 return subprocess.run(['docker', 'compose', '--profile', '*', '--project-name', stack,
                     '--project-directory', str(args.repo/stack), '-f', str(path), *command], check=False).returncode

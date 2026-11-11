@@ -111,4 +111,55 @@ class NativeRecipeTests(unittest.TestCase):
             self.assertEqual(list(root.iterdir()),[path])
 
 
+class ProxyRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.recipe = {'services': {'swag': {'container_name': 'swag', 'image': LOCAL,
+            'networks': {'proxynet': {'aliases': ['proxy']}, 'socket-proxy-net': None}}},
+            'networks': {name: {'name': name, 'external': True}
+                         for name in ['proxynet', 'socket-proxy-net']}}
+        self.identities = {'networks': {'proxynet': 'backend-id', 'socket-proxy-net': 'private-id'}}
+        self.row = {'Id': 'same-container', 'Name': '/swag', 'Image': LOCAL,
+            'Config': {'Labels': {'com.docker.compose.project': 'swag', 'com.docker.compose.service': 'swag'}},
+            'NetworkSettings': {'Networks': {'socket-proxy-net': {'NetworkID': 'private-id'}}}}
+
+    def capture(self, command):
+        if command[:3] == ['docker', 'inspect', 'swag']:
+            return json.dumps([self.row]).encode()
+        if command[:3] == ['docker', 'image', 'inspect']:
+            return json.dumps([{'Id': LOCAL}]).encode()
+        return b''
+
+    def test_partial_boot_restores_only_missing_network_with_aliases(self):
+        with patch.object(deploy, 'capture', side_effect=self.capture) as capture:
+            deploy.recover_proxy_networks(self.recipe, self.identities)
+        connections = [call.args[0] for call in capture.call_args_list if call.args[0][1:3] == ['network', 'connect']]
+        self.assertEqual(connections, [['docker', 'network', 'connect', '--alias', 'proxy',
+                                       '--alias', 'swag', 'proxynet', 'same-container']])
+
+    def test_complete_membership_is_unchanged(self):
+        self.row['NetworkSettings']['Networks']['proxynet'] = {'NetworkID': 'backend-id'}
+        with patch.object(deploy, 'capture', side_effect=self.capture) as capture:
+            deploy.recover_proxy_networks(self.recipe, self.identities)
+        self.assertEqual(capture.call_count, 2)
+
+    def test_identity_or_unexpected_network_refuses_before_connection(self):
+        for field, value in [('Image', 'other-image'), ('Name', '/other')]:
+            with self.subTest(field=field):
+                original = self.row[field];self.row[field] = value
+                with patch.object(deploy, 'capture', side_effect=self.capture) as capture:
+                    with self.assertRaises(ValueError):deploy.recover_proxy_networks(self.recipe, self.identities)
+                self.assertEqual(capture.call_count, 2);self.row[field] = original
+        self.row['NetworkSettings']['Networks']['unexpected'] = {'NetworkID': 'extra'}
+        with patch.object(deploy, 'capture', side_effect=self.capture) as capture:
+            with self.assertRaises(ValueError):deploy.recover_proxy_networks(self.recipe, self.identities)
+        self.assertEqual(capture.call_count, 2)
+
+    def test_missing_static_settings_are_not_guessed_or_partially_applied(self):
+        self.row['NetworkSettings']['Networks'] = {}
+        self.recipe['services']['swag']['networks']['socket-proxy-net'] = {'ipv4_address': '172.20.0.44'}
+        with patch.object(deploy, 'capture', side_effect=self.capture) as capture:
+            with self.assertRaises(ValueError):deploy.recover_proxy_networks(self.recipe, self.identities)
+        self.assertEqual(capture.call_count, 2)
+
+
 if __name__ == '__main__':unittest.main()
