@@ -1,0 +1,11 @@
+# Render the expected physical serial from the retained UPS identity before use.
+maxretry = 3
+
+[qnapups]
+    driver = usbhid-ups
+    port = auto
+    vendorid = 051d
+    productid = 0002
+    serial = EXPECTED_PHYSICAL_UPS_SERIAL
+    pollinterval = 2
+    desc = "APC BR1500MS2 on BEN-SERVER"

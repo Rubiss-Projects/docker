@@ -8,7 +8,7 @@ The patch accepts only the reviewed 3.1.3 authentication-module SHA-256 and its 
 
 The default `docker-compose.yml` is unchanged. `compose.login-compat.yml` describes the opt-in command and mount delta. It retains the image entrypoint, existing Seerr patch, loopback port, images, resources, environment, networks and state volumes. Its extra read-only bind refuses missing host files.
 
-On BEN-SERVER, first admit this exact command and read-only source bind in the root-controlled native policy. Run the existing native adapter's admission before activation. Recreate only the existing Tracearr app with the adapter's `--no-deps --pull never` operation; keep the database, Redis, images and accepted volumes unchanged. Never run the standalone override as a main-server deployment or start a second application owner.
+On BEN-SERVER, first admit this exact command and read-only source bind in the root-controlled native policy. Run the existing native adapter's admission before activation. Recreate only the existing Tracearr app with the adapter's `--no-deps` operation; keep the database, Redis, images and accepted volumes unchanged. Never run the standalone override as a main-server deployment or start a second application owner.
 
 Verify one sign-in by the existing owner email using the saved local credential, authenticated owner identity, sign-out and rejection of the old cookie. Do not reset credentials or normalize stored account fields to make a test pass. Preserve Plex login and session history. If startup or acceptance fails, restore the previously admitted command/bind and recreate only the app against the same current state.
 

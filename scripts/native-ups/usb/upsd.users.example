@@ -1,0 +1,6 @@
+# Render the existing NAS monitor identity privately; never commit its password.
+[NAS_MONITOR_USERNAME]
+    password = NAS_MONITOR_PASSWORD
+    upsmon secondary
+
+# No primary monitor, SET permission or instant commands are granted.
