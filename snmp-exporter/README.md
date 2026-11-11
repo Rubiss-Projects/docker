@@ -100,9 +100,8 @@ native API capture: pool capacity 40,475,771,797,504 bytes and unallocated space
 13,795,461,814,240 bytes, with state 0 (Ready). This is **pool allocation**,
 including reservations and thick allocations, not file payload usage.
 
-Media's quota is 30,500,000,000,000 bytes and Recovery's is 4,398,046,511,104
-bytes. Their available-space samples differed from the later native capture by
-only 288 bytes. These are shared-folder quota values: do not sum them to infer
+The Recovery share was intentionally removed after migration; alerts and quota
+charts now monitor Media only. Media's quota is reported live by the NAS. These are shared-folder quota values: do not sum them to infer
 physical pool utilization. Public's dynamic capacity is intentionally excluded
 from the quota charts. The dashboard keeps pool and shared-folder figures apart,
 gates them on successful collection and leaves failed/missing scrapes unavailable.

@@ -10,7 +10,6 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 POOL = 'instance="qnap-nas",job="qnap-snmp",storagepoolID="1",storagepoolIndex="1"'
 MEDIA = 'instance="qnap-nas",job="qnap-snmp",sharedFolderIndex="3",sharedFolderName="Media"'
-RECOVERY = 'instance="qnap-nas",job="qnap-snmp",sharedFolderIndex="2",sharedFolderName="Recovery"'
 
 
 def fixture():
@@ -25,8 +24,8 @@ def fixture():
         9: [("{" + POOL + "}", 65.9167417899843)],
         10: [("storagepoolFreeSize{" + POOL + "}", 13795461814240)],
         11: [("storagepoolStatus{" + POOL + "}", 0)],
-        12: [("{" + MEDIA + "}", 69.40463019394099), ("{" + RECOVERY + "}", 12.378229014575481)],
-        13: [("sharedFolderFreeSize{" + MEDIA + "}", 9331587790848), ("sharedFolderFreeSize{" + RECOVERY + "}", 3853646241792)],
+        12: [("{" + MEDIA + "}", 69.40463019394099)],
+        13: [("sharedFolderFreeSize{" + MEDIA + "}", 9331587790848)],
     }
     assert set(queries) == set(expected)
     values = [
@@ -35,8 +34,6 @@ def fixture():
         ("storagepoolStatus{" + POOL + "}", 0),
         ("sharedFolderCapacity{" + MEDIA + "}", 30500000000000),
         ("sharedFolderFreeSize{" + MEDIA + "}", 9331587790848),
-        ("sharedFolderCapacity{" + RECOVERY + "}", 4398046511104),
-        ("sharedFolderFreeSize{" + RECOVERY + "}", 3853646241792),
     ]
     tests = []
     for state in ("fresh", "unverified-pool-state", "failed-scrape", "missing-collection"):
