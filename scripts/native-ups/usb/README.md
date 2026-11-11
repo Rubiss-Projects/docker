@@ -10,6 +10,22 @@ keep `nut-monitor.service` masked and do not create a killpower flag. Boot recov
 is ordered after the NUT server/driver target and uses a 45-second readiness budget for
 local utility status; a current-boot shutdown intent or battery status holds it.
 
+The NUT server binds both loopback and the admitted LAN address. Install its
+network startup drop-in so it waits for network-online and spaces the package's
+existing failure retries five seconds apart. The default rapid retries can
+exhaust the service start limit before DHCP supplies the LAN address.
+
+```sh
+sudo install -d -m 0755 /etc/systemd/system/nut-server.service.d
+sudo install -o root -g root -m 0644 scripts/native-ups/usb/nut-server-network.conf /etc/systemd/system/nut-server.service.d/network.conf
+sudo systemd-analyze verify nut-server.service
+sudo systemctl daemon-reload
+```
+
+Reloading systemd does not restart a working NUT server or its USB driver.
+Retain the exact listener addresses and the local guard's MainPID ownership
+check; do not allow a partial listener as a substitute for network readiness.
+
 ## Prepare before requesting the cable move
 
 1. Verify utility power, no active battery deadline or current-boot shutdown
