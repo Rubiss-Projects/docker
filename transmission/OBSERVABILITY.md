@@ -120,8 +120,7 @@ it is not an exact event counter.
 5. Verify all torrent registrations remain present and both speed-limit flags
    and alternate-speed mode remain disabled. No tuning is part of this change.
 
-Focused tests: `python3 -m unittest discover -s transmission/scripts -p test_rpc_health.py`
-and `node --test n8n/scripts/self_heal_container.test.js`. Probe tests cover
+Focused tests: `python3 -m unittest discover -s transmission/scripts -p test_rpc_health.py`. Probe tests cover
 session renewal, malformed/incomplete RPC responses, listener-only failures,
 timeouts, aggregate inventory and read-only methods.
 

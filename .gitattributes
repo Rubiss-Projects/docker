@@ -2,8 +2,6 @@
 *.env.secret filter=git-crypt diff=git-crypt
 
 # IRC provider names, nicks, auth modes, and secret-key mappings are private.
-n8n/irc-recovery-policies.json filter=git-crypt diff=git-crypt
-n8n/irc-recovery-secrets.json filter=git-crypt diff=git-crypt
 
 # Encrypt Recyclarr secrets (API keys)
 **/secrets.yml filter=git-crypt diff=git-crypt

@@ -13,7 +13,6 @@ Compose operations use `native-deploy/compose.py` and its admitted host policy.
 | `grafana-maintenance.py`, `kuma-maintenance.py` | Scoped maintenance around existing deployment/lifecycle operations |
 | `sunday-edge-autoscale.py`, `native-sunday-edge/` | Native DFS controller and fixed SSH entry points; shared deployment admission and resource guards |
 | `login-sunday-edge-registry.py` | Private registry authentication through stdin |
-| `cleanup_crossseed_stuck.py` | Compatibility entry point for the existing n8n torrent-retention implementation |
 | `sync-contribution-forks.py`, contribution-fork installer/units | Existing contribution repository synchronization |
 | `check_image_pins.py` | Image pin validation used by CI |
 | `runner-docker-*` | Runner Docker authentication guidance/examples |

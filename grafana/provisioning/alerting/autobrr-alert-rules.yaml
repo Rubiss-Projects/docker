@@ -42,4 +42,3 @@ groups:
           description: "The enabled IRC channel for {{ $labels.network }} has remained unmonitored for at least three minutes. Deterministic recovery will verify current state before acting."
         labels:
           severity: critical
-          automation: autobrr-irc-recovery

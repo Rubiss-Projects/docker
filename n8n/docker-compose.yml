@@ -21,20 +21,9 @@ services:
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - TZ=${GENERIC_TIMEZONE}
       - N8N_USER_FOLDER=/root/.n8n
-      - DOCKER_HOST=tcp://socket-proxy:2375
-      - NODES_EXCLUDE=[]
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - AUTOBRR_IRC_WEBHOOK_PASSWORD=${AUTOBRR_IRC_WEBHOOK_PASSWORD}
     volumes:
       - ./config:/root/.n8n
-      - ./workflows:/files
-      # Host-executed code and Compose configuration must not be writable by n8n.
-      - ../:/mnt/e/Docker:ro
-      # Existing IRC recovery and cross-seed cleanup persist only their own data.
-      - ../autobrr/config:/mnt/e/Docker/autobrr/config
-      - ../cross-seed/config/cross-seeds:/mnt/e/Docker/cross-seed/config/cross-seeds
-    entrypoint: /bin/sh
-    command: -c "sh /files/import-workflows.sh"
+      - ./workflows:/files:ro
     labels:
       - homepage.group=AI & Automation
       - homepage.name=n8n
@@ -46,11 +35,7 @@ services:
       - swag.uptime-kuma.monitor.parent=AI & Automation
     networks:
       - proxynet
-      - socket-proxy-net
 
 networks:
   proxynet:
     name: proxynet
-  socket-proxy-net:
-    external: true
-    name: socket-proxy-net
