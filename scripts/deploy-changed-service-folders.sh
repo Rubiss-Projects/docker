@@ -792,6 +792,9 @@ main() {
   if [[ "$DRY_RUN" != "true" ]]; then
     log "Fast-forwarding $REPO_DIR to origin/$DEPLOY_BRANCH"
     git -C "$REPO_DIR" merge --ff-only FETCH_HEAD
+    if [[ "$DEPLOY_HOST" == "native-linux" ]]; then
+      python3 -B "$REPO_DIR/scripts/native-deploy/checkout_permissions.py" --repo "$REPO_DIR" --apply
+    fi
   fi
 
   if [[ ${#changed_files[@]} -eq 0 ]]; then

@@ -14,6 +14,16 @@ need native replacements. New services and changes to those protected fields
 require an explicit policy update. Application environment and ordinary labels
 continue to come from the current repository.
 
+After a native checkout update, the deployment helper restores Git-tracked file
+permissions: public source is 0644 (0755 for Git executables), git-crypt files
+are 0600, and their parent directories are 0755. This removes inherited NTFS
+permissions without traversing untracked application data or changing ownership.
+It refuses foreign-owned paths, unexpected file types and symlinked parents;
+public tracked symlinks remain untouched. Run a read-only plan with
+`python3 scripts/native-deploy/checkout_permissions.py --repo /srv/Docker` before
+an initial repair, then add `--apply` as the checkout owner. Secret files can
+still be read by the deployment account for Compose environment loading.
+
 An unchanged image pin can use the verified image already imported during the
 migration. A new registry digest uses the new source image and the usual pull;
 the adapter does not freeze later image updates to migration snapshots.
