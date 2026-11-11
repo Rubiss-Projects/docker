@@ -76,6 +76,15 @@ checks utility power again before each start, and records completion. Missing
 or changed identities hold recovery for operator reconciliation. Dormant stacks
 and unmanaged temporary containers are excluded.
 
+Pending identities survive a second outage during partial recovery. A new
+shutdown intent on the current boot holds further starts, including if utility
+power returns before the requested shutdown finishes. The unit preserves the
+media mount's admitted access mode inside its sandbox; admission still verifies
+the exact NFS source, mount options and directory access.
+The deployment account's home is read-only, allowing its installed Compose
+plugin and Docker configuration to be read during admission without permitting
+home-directory writes.
+
 Install the reviewed `native_ups_restore.py` beside `native_ups_guard.py` in
 `/usr/local/lib/nas-migration/`, and install the new restore unit in
 `/etc/systemd/system/`. Validate with `systemd-analyze verify`, reload systemd and

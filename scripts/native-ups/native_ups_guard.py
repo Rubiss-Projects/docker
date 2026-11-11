@@ -1,5 +1,6 @@
 """Native counterpart of the admitted Windows UPS policy; no forced-power tests."""
 import argparse
+import contextlib
 import fcntl
 import json
 import os
@@ -59,6 +60,15 @@ def write_state(path, row):
     temporary.replace(path)
 
 
+@contextlib.contextmanager
+def manifest_lock():
+    """Serialize shutdown snapshot writes with recovery completion."""
+    descriptor = os.open(ROOT / 'restore-manifest.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
 def capture_restore_manifest(ids, boot):
     """Remember only running identities before an intentional UPS drain."""
     rows = json.loads(subprocess.check_output(['docker', 'inspect', *ids], timeout=5))
@@ -70,9 +80,19 @@ def capture_restore_manifest(ids, boot):
         containers.append({'id': row['Id'], 'image': row['Image'],
                            'project': labels.get('com.docker.compose.project'),
                            'service': labels.get('com.docker.compose.service')})
-    if containers:
-        write_state(ROOT / 'restore-pending.json',
-                    {'version': 1, 'boot': boot, 'at': time.time(), 'containers': containers})
+    with manifest_lock():
+        path = ROOT / 'restore-pending.json'
+        if path.exists():
+            previous = json.loads(path.read_text())
+            if previous.get('version') != 1 or not isinstance(previous.get('containers'), list):
+                raise ValueError('Invalid pending UPS recovery manifest')
+            # A second outage may interrupt restoration. Keep identities that have
+            # not restarted yet as well as the running subset drained this time.
+            pending = {item['id']: item for item in previous['containers']}
+            pending.update({item['id']: item for item in containers})
+            containers = list(pending.values())
+        if containers:
+            write_state(path, {'version': 1, 'boot': boot, 'at': time.time(), 'containers': containers})
 
 
 def main():
@@ -124,7 +144,7 @@ def main():
                     if ids:
                         try:
                             capture_restore_manifest(ids, boot)
-                        except (OSError, ValueError, subprocess.SubprocessError) as error:
+                        except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
                             # Recovery bookkeeping must never prevent power protection.
                             print('Recovery manifest unavailable: ' + type(error).__name__, flush=True)
                         grace = '10' if outcome == 'critical' else '45'
