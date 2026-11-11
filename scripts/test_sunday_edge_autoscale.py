@@ -26,13 +26,12 @@ def resources(cpu=30, memory_gib=8):
 
 
 class AutoscaleTests(unittest.TestCase):
-    def test_resource_budget_reserves_new_quotas_on_both_systems(self):
+    def test_native_resource_budget_reserves_full_quota_and_headroom(self):
         limits = (2, 1024 ** 3, NOW)
-        self.assertEqual(m.resource_budget(resources(), resources(), *limits), 2)
+        self.assertEqual(m.resource_budget(resources(), *limits), 2)
         for constrained in (resources(cpu=80), resources(memory_gib=2)):
-            self.assertEqual(m.resource_budget(constrained, resources(), *limits), 0)
-            self.assertEqual(m.resource_budget(resources(), constrained, *limits), 0)
-        self.assertEqual(m.resource_budget(resources(cpu=70), resources(memory_gib=3), *limits), 1)
+            self.assertEqual(m.resource_budget(constrained, *limits), 0)
+        self.assertEqual(m.resource_budget(resources(cpu=70, memory_gib=3), *limits), 1)
 
     def test_missing_stale_or_invalid_resources_never_allow_additions(self):
         bad = [None, {}, {**resources(), "sampledAt": NOW - 60_001},
@@ -40,9 +39,9 @@ class AutoscaleTests(unittest.TestCase):
                {**resources(), "cpuCount": True}, {**resources(), "availableMemoryBytes": -1}]
         for sample in bad:
             with self.subTest(sample=sample), self.assertRaises((ValueError, KeyError)):
-                m.resource_budget(sample, resources(), 2, 1024 ** 3, NOW)
+                m.resource_budget(sample, 2, 1024 ** 3, NOW)
         with patch.object(m, "command", side_effect=RuntimeError("unavailable")):
-            self.assertEqual(m.admission(resources()), {"additionalSlots": 0, "reason": "RESOURCE_SAMPLE_UNAVAILABLE"})
+            self.assertEqual(m.admission(), {"additionalSlots": 0, "reason": "RESOURCE_SAMPLE_UNAVAILABLE"})
 
     def test_up_immediately_down_only_after_sustained_low_demand(self):
         self.assertEqual(m.next_state(state(2), demand(6), NOW)["desiredSlots"], 6)
@@ -130,7 +129,7 @@ class AutoscaleTests(unittest.TestCase):
              patch.object(m, "lifecycle") as lifecycle, patch.object(m.time, "time", return_value=NOW / 1000):
             result = m.reconcile()
         self.assertEqual(lifecycle.call_args.args[0], ["docker", "compose", "up", "-d", "--no-deps",
-            "--no-recreate", "--pull", "never", "--scale", "dfs=6", "--wait", "--wait-timeout", "90", "dfs"])
+            "--no-recreate", "--scale", "dfs=6", "--wait", "--wait-timeout", "90", "dfs"])
         self.assertEqual(result["onlineSlots"], [1, 2, 3, 4, 5, 6])
         self.assertEqual(result["drainingSlots"], [5, 6])
         self.assertEqual(report.call_args.args[1], final)
@@ -211,7 +210,7 @@ class AutoscaleTests(unittest.TestCase):
                         with self.assertRaises(SystemExit) as result:
                             exec(guarded[2], {})
                         self.assertEqual(result.exception.code, 0)
-                        docker.assert_called_once_with(docker_command)
+                        docker.assert_called_once_with(m.native_command(docker_command, NOW + 60_000))
                     else:
                         exec(guarded[2], {})
                         docker.assert_not_called()

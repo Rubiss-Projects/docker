@@ -87,6 +87,33 @@ class NativeRecipeTests(unittest.TestCase):
         self.assertEqual(deploy.compose_arguments(['exec','-T','database','psql','-X'],{'app','database'},set()),['exec','-T','database','psql','-X'])
         with self.assertRaises(ValueError):deploy.compose_arguments(['exec','-T','unreleased','sh'],{'app'},set())
 
+    def test_only_native_sunday_dfs_scale_is_admitted_within_existing_bounds(self):
+        args = ['up', '-d', '--no-deps', '--no-recreate', '--scale', 'dfs=4', 'dfs']
+        self.assertEqual(deploy.compose_arguments(args, {'dfs'}, set(), allow_dfs_scale=True), args)
+        for command in [args, ['up', '--scale', 'dfs=1'], ['up', '--scale', 'dfs=9'],
+                        ['up', '--scale', 'other=4'], ['up', '--scale'], ['restart', '--scale', 'dfs=4']]:
+            with self.subTest(command=command), self.assertRaises(ValueError):
+                deploy.compose_arguments(command, {'dfs'}, set(), allow_dfs_scale=command != args)
+
+    @unittest.skipUnless(hasattr(os, 'geteuid'), 'Native host admission requires Linux')
+    def test_expired_growth_sample_cannot_start_docker_after_slow_native_admission(self):
+        now = 1_800_000_000_000
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            policy = {'repository': str(root), 'hostname': os.uname().nodename,
+                      'stacks': {'sunday-edge': {'resourceIdentities': {}}}}
+            argv = ['compose.py', '--repo', str(root), '--stack', 'sunday-edge',
+                    '--resource-valid-until', str(now + 10), '--',
+                    'up', '-d', '--scale', 'dfs=4', 'dfs']
+            with patch.object(deploy.sys, 'argv', argv), patch.object(deploy, 'load_policy', return_value=policy), \
+                    patch.object(deploy, 'capture'), patch.object(deploy, 'render_source'), \
+                    patch.object(deploy, 'compile_recipe', return_value=({'services': {'dfs': {}}}, set())), \
+                    patch.object(deploy, 'validate_resources'), patch.object(deploy, 'validate_project'), \
+                    patch.object(deploy, 'write_recipe'), patch.object(deploy.time, 'time', side_effect=[now / 1000, (now + 11) / 1000]), \
+                    patch.object(deploy.subprocess, 'run') as docker, patch('builtins.print'):
+                self.assertEqual(deploy.main(), 0)
+                docker.assert_not_called()
+
     def test_existing_unadmitted_project_container_is_rejected_before_remove_orphans(self):
         def capture(command):
             return b'unknown-id' if command[1]=='ps' else json.dumps([{'Config':{'Labels':{'com.docker.compose.service':'old-extra'}}}]).encode()

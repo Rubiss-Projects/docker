@@ -2,7 +2,7 @@
   "id": "sundayEdgeAutoscale1",
   "active": true,
   "name": "Sunday Edge Worker Autoscaling",
-  "description": "Reconciles 2–6 DFS slots every 30 seconds through the host's locked controller. Pause with sunday-edge/autoscaling.paused. SSH credentials live in n8n's encrypted store.",
+  "description": "Reconciles 2–8 DFS slots every 30 seconds through the restricted native Linux controller. Pause with sunday-edge/autoscaling.paused. SSH credentials live in n8n's encrypted store.",
   "nodes": [
     {
       "parameters": { "rule": { "interval": [{ "field": "seconds", "secondsInterval": 30 }] } },
@@ -16,7 +16,7 @@
         "authentication": "privateKey",
         "resource": "command",
         "operation": "execute",
-        "command": "powershell.exe -NoProfile -NonInteractive -File E:\\Docker\\scripts\\sunday-edge-autoscale.ps1",
+        "command": "sunday-edge-autoscale-native",
         "cwd": "."
       },
       "name": "Reconcile DFS Workers",

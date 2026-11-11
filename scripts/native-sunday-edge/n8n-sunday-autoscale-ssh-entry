@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+case "${SSH_ORIGINAL_COMMAND-}" in
+  sunday-edge-autoscale-native|"cd '.' ; sunday-edge-autoscale-native") exec /usr/bin/sudo -n -- /usr/local/sbin/sunday-edge-autoscale-native ;;
+  "sunday-edge-autoscale-native --dry-run"|"cd '.' ; sunday-edge-autoscale-native --dry-run") exec /usr/bin/sudo -n -- /usr/local/sbin/sunday-edge-autoscale-native --dry-run ;;
+  *) printf '%s\n' 'Only the fixed Sunday controller is permitted.' >&2; exit 64 ;;
+esac

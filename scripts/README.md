@@ -10,7 +10,7 @@ Compose operations use `native-deploy/compose.py` and its admitted host policy.
 | `native-ups/` | Existing ordered UPS shutdown policy and reviewed recovery source |
 | `deploy-changed-service-folders.sh` | Trusted main-push deployment for the native host and Pi |
 | `grafana-maintenance.py`, `kuma-maintenance.py` | Scoped maintenance around existing deployment/lifecycle operations |
-| `sunday-edge-autoscale.py`, `sunday-edge-autoscale.ps1` | Previous-host controller source; retain until the installed native controller is reconciled into the repository |
+| `sunday-edge-autoscale.py`, `native-sunday-edge/` | Native DFS controller and fixed SSH entry points; shared deployment admission and resource guards |
 | `login-sunday-edge-registry.py` | Private registry authentication through stdin |
 | `cleanup_crossseed_stuck.py` | Compatibility entry point for the existing n8n torrent-retention implementation |
 | `sync-contribution-forks.py`, contribution-fork installer/units | Existing contribution repository synchronization |

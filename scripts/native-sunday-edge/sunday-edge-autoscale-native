@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+test "$(id -u)" -eq 0
+if test "$#" -eq 0; then
+  exec /usr/bin/python3 -B /usr/local/lib/nas-migration/sunday-edge-autoscale-native.py
+elif test "$#" -eq 1 && test "$1" = --dry-run; then
+  exec /usr/bin/python3 -B /usr/local/lib/nas-migration/sunday-edge-autoscale-native.py --dry-run
+fi
+exit 64

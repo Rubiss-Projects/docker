@@ -6,9 +6,9 @@ instead of one directory per container. `DFS_REPLICAS=2` in `.env` is the startu
 baseline; `DFS_MAX_WORKER_SLOTS=8` is independent allocation capacity. The n8n
 controller changes the live target between two and eight without rewriting `.env`.
 
-Private named volumes preserve Linux permissions for credentials and archives on
-Docker Desktop. Do not replace them with NTFS mounts, attach another role's
-volume/credentials, or remove a volume. Compute replicas and checkpoint recovery
+Private named volumes preserve native Linux ownership and modes for credentials
+and archives. Use the admitted restored volumes; do not replace them with bind
+mounts, attach another role's volume/credentials, or remove a volume. Compute replicas and checkpoint recovery
 share only the DFS volume's runtime subdirectory. No worker may receive a Docker
 socket or host drive mount.
 
@@ -94,17 +94,20 @@ uses the compute image with its own entrypoint. The web app stays on Vercel.
 
 ## Scaling and limits
 
-The n8n `Sunday Edge Worker Autoscaling` workflow invokes
-`scripts/sunday-edge-autoscale.ps1` over SSH every 30 seconds. The Windows wrapper
-takes the existing Docker Desktop operation lock; the Python helper shares the
-deployment lock. It reads signed application demand, wakes workers, and reconciles
-Compose scale-up. Fresh Windows and WSL CPU/memory samples admit at most two
-additional replicas per pass. Each admission budgets its full configured CPU and
-memory ceiling, leaving CPU at or below 85% and at least 2 GiB available on both systems.
-Missing, invalid or older-than-60-second resource samples block additions, including
-replacement of missing slots, while existing work and safe drains continue. This
-admission check does not evict work when load rises later; resource ceilings are
-not reservations, so sustained pressure still requires investigation.
+The n8n `Sunday Edge Worker Autoscaling` workflow invokes the fixed
+`sunday-edge-autoscale-native` SSH command every 30 seconds. The installed
+root-controlled controller comes from `scripts/sunday-edge-autoscale.py`; SSH
+entry-point source is in `scripts/native-sunday-edge/`. It shares the native
+deployment lock, reads signed application demand, wakes workers and reconciles
+scale-up through `scripts/native-deploy/compose.py`. No frozen migration Compose
+recipe or Windows/WSL wrapper is used.
+Fresh Linux CPU/memory samples admit at most two additions per pass. Each admission
+budgets the full configured replica ceiling, leaving CPU at or below 85% and at
+least 2 GiB available. Missing, invalid or older-than-60-second samples block
+additions, including replacement of missing slots; existing work and safe drains
+continue. The sample deadline is checked after maintenance and again after native
+policy admission, immediately before Compose. Resource ceilings are not
+reservations; sustained pressure still requires investigation.
 After five minutes of sustained lower demand, excess logical
 slots finish their work and acknowledge draining before removal. Unavailable
 metrics, stale demand, incompatible workers, and API failures hold capacity.
@@ -114,27 +117,25 @@ remain stable; Compose container ordinals are not logical slot identities. The
 app records intentional departures as `SCALED_DOWN`. Grafana and Homepage consume
 the live target exported by checkpoint recovery.
 
-For read-only diagnostics on the Windows host:
+For read-only diagnostics on BEN-SERVER:
 
-```powershell
-powershell -NoProfile -File E:\Docker\scripts\sunday-edge-autoscale.ps1 -DryRun
+```sh
+sudo /usr/local/sbin/sunday-edge-autoscale-native --dry-run
 ```
 
-Pause the controller by creating `sunday-edge/autoscaling.paused` (ignored by Git).
-Remove that file to resume. `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=8` must remain
-aligned with the bounded controller policy. To manually restore the baseline,
-hold both lifecycle locks across Compose and the control reset. Run on Windows:
+Pause by creating `sunday-edge/autoscaling.paused` (ignored by Git); remove only
+that pause file to resume. Keep `DFS_REPLICAS=2` and `DFS_MAX_WORKER_SLOTS=8`
+aligned with the bounded controller. Baseline restoration belongs to the existing
+maintenance-wrapped native deployment, which holds the shared lock and calls
+`--reset-control`; do not bypass admission with raw Compose.
 
-```powershell
-. E:\Scripts\docker-desktop-common.ps1
-if (-not (Enter-DockerOperationLock)) { throw 'Docker maintenance is already running' }
-try {
-    wsl -d Ubuntu -- flock -x /tmp/docker-compose-ops-deploy.lock.d bash -lc 'cd /mnt/e/Docker/sunday-edge && python3 ../scripts/grafana-maintenance.py run --reason planned-scaling -- docker compose up -d --wait && python3 ../scripts/sunday-edge-autoscale.py --reset-control'
-    if ($LASTEXITCODE -ne 0) { throw 'Baseline restoration failed' }
-} finally {
-    Exit-DockerOperationLock
-}
-```
+Promote the reviewed Python controller to
+`/usr/local/lib/nas-migration/sunday-edge-autoscale-native.py`, root-owned mode 0700,
+and its two fixed SSH wrappers to their matching `/usr/local/sbin/` names,
+root-owned mode 0755. Compare installed source hashes before replacement, hold
+the shared deployment lock, and verify a dry run plus a real scheduled n8n
+execution after promotion. Keep the existing dedicated SSH account/key and exact
+sudoers allowlist; no general shell or new Docker privileges are granted.
 
 The allocator supports 1–32 slots, but this controller deliberately supports 2–8.
 Do not use ad-hoc scale overrides while it is active.
@@ -184,7 +185,7 @@ missing telemetry. Verify real n8n executions, eight-slot allocation/reporting,
 fresh candidate timing and successful completion after promoting the worker images.
 
 For rollback to v0.2.44, first pause the controller with `autoscaling.paused` and
-acquire both lifecycle locks. While the current v0.2.45 checkpoint container is
+acquire the shared native lifecycle lock. While the current v0.2.45 checkpoint container is
 still running, use its supported atomic writer from Ubuntu:
 
 ```sh
