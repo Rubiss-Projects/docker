@@ -211,6 +211,10 @@ find_service_dir() {
   local dir
 
   changed_path=${changed_path#./}
+  # Guidance links do not change a running service or admit dormant game stacks.
+  case "${changed_path##*/}" in
+    AGENTS.md|CLAUDE.md) return 1 ;;
+  esac
   [[ "$changed_path" == */* ]] || return 1
 
   dir=${changed_path%/*}

@@ -9,6 +9,22 @@ SCRIPT=Path(__file__).resolve().parents[1]/'deploy-changed-service-folders.sh'
 
 @unittest.skipIf(os.name=='nt','Native dispatch requires POSIX bash')
 class DispatchTests(unittest.TestCase):
+    def test_guidance_changes_do_not_admit_dormant_stacks(self):
+        source=SCRIPT.read_text().rsplit('main "$@"',1)[0]
+        body='''
+if find_service_dir ark/CLAUDE.md; then exit 81; fi
+if find_service_dir ark/AGENTS.md; then exit 82; fi
+find_service_dir grafana/provisioning/alerting/nas-alert-rules.yaml || exit 83
+test "$SERVICE_DIR_RESULT" = grafana || exit 84
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['ark','grafana']:
+                (root/name).mkdir();(root/name/'docker-compose.yml').write_text('services: {}\n')
+            p=subprocess.run(['bash'],input=source+body,cwd=root,text=True,capture_output=True,
+                env=os.environ|{'DOCKER_REPO_DIR':str(root),'DOCKER_DEPLOY_HOST':'native-linux'})
+            self.assertEqual(p.returncode,0,p.stderr)
+
     def test_native_checkout_creates_private_files_and_restores_umask(self):
         source=SCRIPT.read_text().rsplit('main "$@"',1)[0]
         for failed in (False,True):
