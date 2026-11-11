@@ -7,6 +7,8 @@ import unittest
 import uuid
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).parent
 M = runpy.run_path(str(ROOT / "grafana-maintenance.py"))
 NOW = dt.datetime(2026, 9, 13, 4, 0, tzinfo=dt.timezone.utc)
@@ -30,6 +32,23 @@ class FakeGrafana:
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_silences_match_provisioned_native_rules(self):
+        source = ROOT.parent / "grafana/provisioning/alerting/sunday-edge-dfs-worker-alert-rules.yaml"
+        rules = {rule["uid"]: rule for group in yaml.safe_load(source.read_text())["groups"] for rule in group["rules"]}
+        expected = {
+            "sunday_edge_dfs_autoscaler_stale": M["AVAILABILITY_WINDOW"],
+            "sunday_edge_dfs_worker_pool_degraded": M["AVAILABILITY_WINDOW"],
+            "sunday_edge_dfs_worker_restarts": M["RESTART_WINDOW"],
+        }
+        for uid, window in expected.items():
+            with self.subTest(uid=uid):
+                labels = rules[uid]["labels"]
+                for matcher in M["matchers"](window):
+                    self.assertEqual(labels.get(matcher["name"]), matcher["value"])
+        for uid, rule in rules.items():
+            if uid not in expected:
+                self.assertNotIn("maintenance_window", rule.get("labels", {}))
+
     def test_scope(self):
         for target in ["sunday-edge", "sunday-edge-dfs-6", "all", "docker-desktop", "/mnt/e/Docker/sunday-edge/"]:
             self.assertTrue(M["affected"]([target]))
