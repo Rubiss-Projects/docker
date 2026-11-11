@@ -192,6 +192,6 @@ jobs:
 
           while IFS= read -r pr_number; do
             [[ -n "$pr_number" ]] || continue
-            printf 'Requesting Dependabot rebase for PR #%s\n' "$pr_number"
-            gh pr comment "$pr_number" --repo "$REPOSITORY" --body '@dependabot rebase'
+            printf 'Rebasing queued Dependabot PR #%s through GitHub\n' "$pr_number"
+            gh pr update-branch "$pr_number" --repo "$REPOSITORY" --rebase
           done < "$rebase_list"
