@@ -12,6 +12,7 @@ import time
 
 ALLOWED = set('OL OB LB FSD CHRG DISCHRG RB OVER BYPASS OFF TRIM BOOST ALARM CAL'.split())
 ROOT = Path('/var/lib/nas-migration-ups')
+PROC = Path('/proc')
 
 
 def decision(flags, elapsed):
@@ -27,15 +28,45 @@ def decision(flags, elapsed):
     return 'unknown'
 
 
+def require_local_nut_listener():
+    """Trust loopback only while systemd's NUT process owns its listening socket."""
+    try:
+        state = dict(line.split('=', 1) for line in subprocess.check_output(
+            ['systemctl', 'show', 'nut-server.service', '-p', 'ActiveState', '-p', 'MainPID'],
+            text=True, timeout=2).splitlines())
+    except (subprocess.SubprocessError, ValueError) as error:
+        raise ValueError('Local NUT service identity unavailable') from error
+    pid = state.get('MainPID', '')
+    if state.get('ActiveState') != 'active' or not pid.isdigit() or int(pid) <= 1:
+        raise ValueError('Local NUT service is not active')
+    address = socket.inet_aton('127.0.0.1')[::-1].hex().upper() + f':{3493:04X}'
+    listeners = {parts[9] for line in (PROC / 'net/tcp').read_text().splitlines()[1:]
+                 if len(parts := line.split()) >= 10 and parts[1] == address and parts[3] == '0A'}
+    owned = set()
+    for descriptor in (PROC / pid / 'fd').iterdir():
+        try:
+            target = os.readlink(descriptor)
+        except FileNotFoundError:
+            continue
+        if target.startswith('socket:[') and target.endswith(']'):
+            owned.add(target[8:-1])
+    if len(listeners) != 1 or not listeners <= owned:
+        raise ValueError('Local UPS listener does not belong to the admitted NUT service')
+    return pid, next(iter(listeners))
+
+
 def sample():
     host = os.environ.get('NATIVE_UPS_HOST', '192.168.50.91')
     if host not in {'192.168.50.91', '127.0.0.1'}:
         raise ValueError('UPS endpoint must be the admitted NAS or local driver')
+    owner = require_local_nut_listener() if host == '127.0.0.1' else None
     with socket.create_connection((host, 3493), timeout=2) as sock:
         sock.settimeout(2)
         sock.sendall(b'GET VAR qnapups ups.status\n')
         with sock.makefile('rb') as reader:
             line = reader.readline(513)
+    if owner is not None and require_local_nut_listener() != owner:
+        raise ValueError('Local NUT listener changed during the status read')
     match = re.fullmatch(rb'VAR qnapups ups\.status "([A-Z ]+)"\r?\n', line)
     if not match:
         raise ValueError('Invalid UPS response')

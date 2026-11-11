@@ -21,7 +21,10 @@ local utility status; a current-boot shutdown intent or battery status holds it.
    permissions. Do not put that password in logs, Git, arguments or task text.
 5. Promote the reviewed guard and recovery units together. Both load the optional
    root-controlled `/etc/nut/native-ups.env`. Keep its endpoint at the NAS during
-   preparation; both units must use the same endpoint after handoff.
+   preparation; both units must use the same endpoint after handoff. For loopback, the guard
+   verifies that systemd's active `nut-server.service` MainPID owns the exact
+   listening socket before connecting and after reading. A missing service,
+   unrelated responder or changed listener is rejected before a status is trusted.
 6. Validate `telegraf-ups.conf` with the installed collector against the current
    NAS using a temporary test-only server override. Check real status/charge/load/
    runtime and synthetic missing/conflicting/critical flags without any power
@@ -66,6 +69,6 @@ The collector fragment uses the installed Telegraf 1.40.3
 [UPSD input](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/inputs/upsd),
 [Starlark processor](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/processors/starlark)
 and [Prometheus output](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/outputs/prometheus_client).
-The isolated native validation passed all 14 guard/recovery tests, eight
+The isolated native validation passed all 17 guard/recovery tests, eight
 synthetic status cases and a read-only collection from the current NAS source.
 No production collector or power ownership changed during validation.
