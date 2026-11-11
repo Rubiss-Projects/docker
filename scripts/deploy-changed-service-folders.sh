@@ -107,7 +107,7 @@ deploy_windows_stack() {
 stack_dependencies() {
   case "$1" in
     prometheus)
-      printf '%s\n' snmp-exporter
+      printf '%s\n' snmp-exporter node-exporter
       ;;
     tracearr)
       printf '%s\n' plex

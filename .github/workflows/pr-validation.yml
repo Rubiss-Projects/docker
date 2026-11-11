@@ -301,6 +301,9 @@ jobs:
       - name: Test NAS storage queries and missing-data behavior
         run: python3 snmp-exporter/test_storage_queries.py
 
+      - name: Test infrastructure alert queries and missing telemetry
+        run: python3 grafana/test_infrastructure_queries.py
+
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 

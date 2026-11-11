@@ -235,7 +235,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (type, status) (rate(sunday_edge_dfs_worker_jobs_completed_total[5m])) * 60",
+          "expr": "(sum by (type, status) (rate(sunday_edge_dfs_worker_jobs_completed_total[5m])) * 60) or on() (0 * sum(up{job=\"sunday-edge-dfs-workers\"} == 1))",
           "legendFormat": "{{type}} {{status}} / min"
         }
       ],
@@ -244,7 +244,8 @@
           "unit": "ops"
         },
         "overrides": []
-      }
+      },
+      "description": "Per-job metrics appear after work is processed. A zero baseline is shown only while at least one worker is being scraped successfully; it does not prove a completed job."
     },
     {
       "id": 7,
@@ -263,7 +264,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (type) (rate(sunday_edge_dfs_worker_trials_total[5m]))",
+          "expr": "(sum by (type) (rate(sunday_edge_dfs_worker_trials_total[5m]))) or on() (0 * sum(up{job=\"sunday-edge-dfs-workers\"} == 1))",
           "legendFormat": "{{type}} trials / sec"
         }
       ],
@@ -272,7 +273,8 @@
           "unit": "ops"
         },
         "overrides": []
-      }
+      },
+      "description": "Per-job metrics appear after work is processed. A zero baseline is shown only while at least one worker is being scraped successfully; it does not prove a completed job."
     },
     {
       "id": 8,
@@ -297,10 +299,16 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "noValue": "No completed jobs observed",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
         },
         "overrides": []
-      }
+      },
+      "description": "No completed jobs observed means no successful completion samples exist in the query window. Availability and successful collection are separate checks; missing completion history is not a passing workload test."
     },
     {
       "id": 9,
@@ -319,8 +327,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sunday_edge_dfs_worker_resident_memory_bytes",
-          "legendFormat": "slot {{slot}}"
+          "expr": "max by (worker) (sunday_edge_dfs_worker_resident_memory_bytes)",
+          "legendFormat": "{{worker}}"
         }
       ],
       "fieldConfig": {
@@ -434,7 +442,7 @@
       "id": 13,
       "type": "stat",
       "title": "Last successful completion age",
-      "description": "Age of the most recent ben-server success detected in the last 24 hours. No data means no successful completion was observed during that lookback.",
+      "description": "No completed jobs observed means no successful completion samples exist in the query window. Availability and successful collection are separate checks; missing completion history is not a passing workload test.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -455,7 +463,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "decimals": 0
+          "decimals": 0,
+          "noValue": "No completed jobs observed",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
         },
         "overrides": []
       },
@@ -514,7 +527,7 @@
     "to": "now"
   },
   "timezone": "browser",
-  "title": "Sunday Edge DFS Compute — ben-server workers",
+  "title": "Sunday Edge DFS Compute \u00e2\u20ac\u201d ben-server workers",
   "uid": "sunday-edge-dfs-compute",
   "version": 5,
   "description": "Sunday Edge Docker replicas and supporting worker roles"

@@ -3,7 +3,13 @@
 Use this guidance when working on Grafana visualization and dashboard creation for Prometheus data.
 
 ## Service Overview
-Grafana provides visualization dashboards for metrics collected by Prometheus. It's the primary interface for monitoring container and system health across Windows and Raspberry Pi hosts.
+Grafana provides visualization dashboards for metrics collected by Prometheus. It's the primary interface for monitoring container and system health across the native Linux server and Raspberry Pi.
+
+Keep observability and human alert delivery in the existing Grafana channels.
+Provision dashboards, alert rules and notification policies as repository code;
+do not create additional NAS email or direct messaging paths. Both Linux hosts
+use the existing Node Exporter Full dashboard (`rYdddlPWk`) with host selectors.
+Host, NAS and UPS alert definitions live under `provisioning/alerting/`.
 
 ## Deployed storage
 
@@ -254,11 +260,10 @@ Message: Plex container CPU usage is high
 4. Simplify complex queries
 5. Enable query caching
 
-The Windows dashboard repeats three panels for every selected disk. Keep its
-`disk` variable query restricted to drive letters (`^[A-Z]:$`): InfluxDB retains
-historical `HarddiskVolume...` tag values, and selecting All can otherwise create
-thousands of panels and freeze the browser. The filter belongs in the query so
-the variable response stays small as old volume names accumulate.
+The retired Windows host and Caddy dashboards/rules are removed. Keep their
+alert deletion entries in `provisioning/alerting/retired-host-alerts.yaml` so an
+older Grafana database is reconciled on deployment. Historical measurements
+remain retained; do not delete InfluxDB or Prometheus data for dashboard cleanup.
 
 ## Best Practices
 
