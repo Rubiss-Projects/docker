@@ -6,6 +6,7 @@ phase/step format; phase 11 remains current until acceptance is reconciled.
 
 | Task | State | Completion evidence / remaining work |
 | --- | --- | --- |
+| Preserve working native DNS across network setup | Runtime recovered; persistent configuration reviewed next | An inconsistent router resolver caused service-name lookup failures while all 50 containers stayed running. Selecting Pi-hole and the public resolver restored all 45 Uptime Kuma monitors. The repository Netplan overlay passed generation against the actual installer configuration in an isolated root: DHCP/routes retained, intended DNS addresses only, DHCP/RA DNS disabled, live interface unchanged. Install the reviewed overlay and generate the production backend without restarting networking. |
 | Permanently skip NAS two-factor enrollment | Complete by owner decision | Recorded in the migration ledger and live progress page version 490; no NAS authentication settings changed. This is no longer a migration requirement. |
 | Remove nine stopped migration containers | Complete | Removed exactly eight assistant restore-test containers and one temporary SNMP candidate. All 49 running container identities/start times were preserved; no images, volumes or bind data removed. |
 | Clean leftover Docker containers on BEN-PC | Complete | Removed all 72 stopped migration containers: 15 stand-ins and 57 verification/temporary helpers. No containers remain on the gaming PC. All 93 volume names and 86 unique image IDs are unchanged; no bind data, volumes, images or torrent registrations were removed. |
