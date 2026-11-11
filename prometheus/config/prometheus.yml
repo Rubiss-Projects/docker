@@ -98,6 +98,15 @@ scrape_configs:
           instance: 'raspberry-pi'
           host: 'pi3'
 
+  # Native host - same Node Exporter Full dashboard and alerts as the Pi.
+  - job_name: node-exporter
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['192.168.50.40:9100']
+        labels:
+          instance: ben-server
+          host: ben-server
+
   # Raspberry Pi - System metrics
   - job_name: 'node-exporter-pi'
     scrape_interval: 15s

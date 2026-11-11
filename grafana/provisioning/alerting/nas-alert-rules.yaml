@@ -1,0 +1,569 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: nas-health
+  folder: Infrastructure
+  interval: 1m
+  rules:
+  - uid: nas_telemetry_missing
+    title: NAS telemetry unavailable
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: 1 - (max(up{job="qnap-snmp",instance="qnap-nas"}) or vector(0))
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 1
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '1'
+      summary: NAS telemetry unavailable
+      description: The NAS SNMP scrape is failing or absent. Storage and drive health cannot currently be verified.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_drive_health
+    title: NAS drive health changed
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: diskStatus{job="qnap-snmp",instance="qnap-nas",diskStatus!="Good"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 7
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '7'
+      summary: NAS drive health changed
+      description: NAS drive {{ $labels.diskSerialNumber }} (bay {{ $labels.bay }}) reports {{ $labels.diskStatus }}.
+        Inspect the NAS; no automated disk action is taken.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_drive_identity_missing
+    title: NAS expected drive identity missing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: (count(diskStatus{job="qnap-snmp",instance="qnap-nas",bay=~"1|2|3|4"}) or vector(0))
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 4
+            type: lt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 7
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '7'
+      summary: NAS expected drive identity missing
+      description: Fewer than four recorded drive identities are present. Check NAS collection, physical bay/serial mappings
+        and disk state.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_drive_temperature
+    title: NAS drive temperature high
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: diskTemperature{job="qnap-snmp",instance="qnap-nas",bay=~"1|2|3|4"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 50
+            type: gt
+          operator:
+            type: and
+    for: 2m
+    dashboardUid: qnap-nas
+    panelId: 4
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '4'
+      summary: NAS drive temperature high
+      description: NAS drive bay {{ $labels.bay }} exceeds 50 C. Inspect cooling and defer heavy storage work.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_pool_not_ready
+    title: NAS pool is not Ready
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: abs(storagepoolStatus{job="qnap-snmp",instance="qnap-nas"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 11
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '11'
+      summary: NAS pool is not Ready
+      description: NAS pool {{ $labels.storagepoolID }} has persistent nonzero state {{ $values.B.Value }}. Only zero
+        has been verified as Ready; inspect the NAS for its authoritative explanation.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_storage_metrics_missing
+    title: NAS storage metrics missing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: absent(storagepoolStatus{job="qnap-snmp",instance="qnap-nas"}) or absent(storagepoolFreeSize{job="qnap-snmp",instance="qnap-nas"})
+          or absent(sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Media"}) or absent(sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName="Recovery"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 1
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '1'
+      summary: NAS storage metrics missing
+      description: Expected NAS pool or quota metrics are absent; a successful scrape alone does not prove storage collection.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_share_not_ready
+    title: NAS shared folder is not Ready
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: sharedFolderStatus{job="qnap-snmp",instance="qnap-nas",sharedFolderStatus!="Ready"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 12
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '12'
+      summary: NAS shared folder is not Ready
+      description: NAS shared folder {{ $labels.sharedFolderName }} reports {{ $labels.sharedFolderStatus }}.
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_quota_warning
+    title: NAS shared-folder quota above 80%
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"}
+          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 80
+            type: gt
+          operator:
+            type: and
+    for: 10m
+    dashboardUid: qnap-nas
+    panelId: 12
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '12'
+      summary: NAS shared-folder quota above 80%
+      description: '{{ $labels.sharedFolderName }} is above 80% of its own quota. Thin quotas must not be summed as physical
+        pool capacity.'
+    labels:
+      severity: warning
+      service: nas
+  - uid: nas_quota_critical
+    title: NAS shared-folder quota above 90%
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: 100 * (1 - sharedFolderFreeSize{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"}
+          / sharedFolderCapacity{job="qnap-snmp",instance="qnap-nas",sharedFolderName=~"Media|Recovery"})
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 90
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 12
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '12'
+      summary: NAS shared-folder quota above 90%
+      description: '{{ $labels.sharedFolderName }} has less than 10% quota headroom.'
+    labels:
+      severity: critical
+      service: nas
+  - uid: nas_pool_headroom
+    title: NAS pool headroom below 10%
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: 100 * storagepoolFreeSize{job="qnap-snmp",instance="qnap-nas"} / storagepoolCapacity{job="qnap-snmp",instance="qnap-nas"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 10
+            type: lt
+          operator:
+            type: and
+    for: 10m
+    dashboardUid: qnap-nas
+    panelId: 10
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '10'
+      summary: NAS pool headroom below 10%
+      description: Physical pool unallocated capacity is below 10%; review pool allocation separately from shared-folder
+        quotas.
+    labels:
+      severity: critical
+      service: nas
+- orgId: 1
+  name: ups-health
+  folder: Infrastructure
+  interval: 15s
+  rules:
+  - uid: ups_telemetry_missing
+    title: UPS telemetry unavailable
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: 1 - (nut:telemetry_available or vector(0))
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 1m
+    dashboardUid: apc-ups
+    panelId: 1
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: apc-ups
+      __panelId__: '1'
+      summary: UPS telemetry unavailable
+      description: UPS status is unavailable. Inspect the driver, NUT server and exporter; communication loss alone does
+        not request shutdown.
+    labels:
+      severity: critical
+      service: ups
+  - uid: ups_on_battery
+    title: UPS running on battery
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: nut:ups_status{flag="OB"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 0s
+    dashboardUid: apc-ups
+    panelId: 3
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: apc-ups
+      __panelId__: '3'
+      summary: UPS running on battery
+      description: UPS reports on-battery power. The existing native shutdown guard remains the sole server shutdown
+        owner.
+    labels:
+      severity: warning
+      service: ups
+  - uid: ups_critical_status
+    title: UPS critical status
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: nut:ups_status{flag=~"LB|FSD|OFF|OVER|RB"}
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 0s
+    dashboardUid: apc-ups
+    panelId: 4
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: apc-ups
+      __panelId__: '4'
+      summary: UPS critical status
+      description: UPS reports {{ $labels.flag }}. Inspect power/battery state; Grafana alerts do not issue shutdown
+        or outlet commands.
+    labels:
+      severity: critical
+      service: ups

@@ -13,9 +13,9 @@
           username: "{{HOMEPAGE_VAR_QNAP_USERNAME}}"
           password: "{{HOMEPAGE_VAR_QNAP_PASSWORD}}"
           fields: ["cpuUsage", "memUsage", "systemTempC"]
-    - NAS UPS telemetry:
+    - APC UPS:
         icon: mdi-power-plug-battery
-        href: https://grafana.benlawson.dev/d/nut-ups
+        href: https://grafana.benlawson.dev/d/apc-ups
         description: BR1500MS2 · NAS NUT · server shutdown enabled
         widget:
           type: prometheusmetric

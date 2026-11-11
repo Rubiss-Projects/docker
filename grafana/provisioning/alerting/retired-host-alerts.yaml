@@ -1,0 +1,44 @@
+apiVersion: 1
+deleteRules:
+- uid: test_alert_rule
+- orgId: 1
+  uid: windows_memory_free_warning
+- orgId: 1
+  uid: windows_memory_free_critical
+- orgId: 1
+  uid: windows_drive_c_free_warning
+- orgId: 1
+  uid: windows_drive_c_free_critical
+- orgId: 1
+  uid: windows_drive_e_free_warning
+- orgId: 1
+  uid: windows_drive_e_free_critical
+- orgId: 1
+  uid: windows_host_down
+- orgId: 1
+  uid: windows_cpu_high
+- orgId: 1
+  uid: caddy_unavailable
+- orgId: 1
+  uid: caddy_channels_upstream_unavailable
+- orgId: 1
+  uid: caddy_channels_http_errors
+- orgId: 1
+  uid: caddy_plex_upstream_unavailable
+- orgId: 1
+  uid: caddy_http_errors
+- orgId: 1
+  uid: native_host_telemetry_missing
+- orgId: 1
+  uid: native_host_cpu_high
+- orgId: 1
+  uid: native_host_memory_low
+- orgId: 1
+  uid: native_host_root_disk_high
+deleteMuteTimes:
+- orgId: 1
+  name: transmission-windows-nightly
+- orgId: 1
+  name: sunday-edge-wsl-nightly-availability
+- orgId: 1
+  name: sunday-edge-wsl-nightly-restart

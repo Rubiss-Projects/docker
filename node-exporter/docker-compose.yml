@@ -1,0 +1,39 @@
+services:
+  node-exporter:
+    image: prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+    container_name: node-exporter
+    hostname: ben-server
+    restart: unless-stopped
+    # Host networking is required for the host NIC counters in Node Exporter Full.
+    network_mode: host
+    pid: host
+    user: "65534:65534"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave
+    command:
+      - --web.listen-address=192.168.50.40:9100
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|run|var/lib/docker)($$|/)
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Linux Host
+      - homepage.icon=grafana.png
+      - homepage.href=https://grafana.benlawson.dev/d/rYdddlPWk/node-exporter-full?var-job=node-exporter&var-nodename=ben-server&var-node=ben-server
+      - homepage.description=BEN-SERVER · Node Exporter Full
+      # Human host alerts use the existing Grafana channels.
+      - swag.uptime-kuma.enabled=false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

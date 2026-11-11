@@ -1,9 +1,9 @@
 # NUT UPS telemetry
 
-Read-only telemetry for the planned UPS USB data connection to the NAS. The
-existing Windows apcupsd service, APC exporter, Prometheus job and Grafana
-dashboard remain intact through this preparation. The new path is not active
-UPS protection and does not control shutdown, restart or UPS output.
+Read-only telemetry for the APC UPS. The current NUT endpoint is on the NAS;
+the owner has requested returning its USB cable to BEN-SERVER. Prepare and verify
+the local driver, NAS client protection and existing native shutdown guard before
+the physical move. The exporter does not control shutdown, restart or UPS output.
 
 The pinned official DRuggeri exporter reads the NAS NUT server on the LAN. It
 has no host port, public route, USB access, persistent mount, Docker socket or
@@ -33,8 +33,9 @@ externally. This stack does not edit NAS permissions or services.
 
 ## Metrics and displays
 
-The `nut` Prometheus job and `/d/nut-ups` dashboard are separate from historical
-`apcupsd` observations. Recording rules require successful scrapes, samples
+The `nut` Prometheus job supplies the single `/d/apc-ups` dashboard. The retired
+Windows exporter and duplicate NAS UPS dashboard are removed from the active
+configuration; historical `apcupsd` measurements remain retained. Recording rules require successful scrapes, samples
 less than 45 seconds old, and an active recognized UPS status. Missing or
 empty status, failed scrapes and old samples produce availability zero and
 hide numeric readings. Missing individual measurements remain missing.

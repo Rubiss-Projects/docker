@@ -105,6 +105,13 @@ service, certificate timer and temporary gaming-PC proxy are stopped. Do not
 install or start them during routine deployment. Plex uses direct native access;
 Channels At Home uses the server's port 8089. Away From Home remains deferred.
 
+**Narrow exception — native Node Exporter:** `node-exporter/` uses host network
+and PID namespaces to report BEN-SERVER's physical NIC and process metrics to
+the same Node Exporter Full dashboard used by the Pi. It has no proxynet
+attachment and listens only on `192.168.50.40:9100`; never add a public route.
+Keep its host filesystem mounts read-only and its unprivileged user/capability
+restrictions. Human host alerts use the existing Grafana notification channels.
+
 ### Port Management
 - **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
 - **Internal services**: Use non-standard ports to avoid conflicts
