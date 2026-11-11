@@ -7,6 +7,7 @@ Compose operations use `native-deploy/compose.py` and its admitted host policy.
 | --- | --- |
 | `native-deploy/` | Storage/image/network admission, mount guard, checkout permissions and HTTPS boot recovery |
 | `native-media-network/` | Host-networked Plex/Channels preparation and INPUT firewall |
+| `native-host-network/` | Native Ethernet DNS configuration, retaining DHCP addressing and routes |
 | `native-ups/` | Existing ordered UPS shutdown policy and reviewed recovery source |
 | `deploy-changed-service-folders.sh` | Trusted main-push deployment for the native host and Pi |
 | `grafana-maintenance.py`, `kuma-maintenance.py` | Scoped maintenance around existing deployment/lifecycle operations |
