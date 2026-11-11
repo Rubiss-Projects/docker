@@ -16,7 +16,7 @@
     - APC UPS:
         icon: mdi-power-plug-battery
         href: https://grafana.benlawson.dev/d/apc-ups
-        description: BR1500MS2 · NAS NUT · server shutdown enabled
+        description: BR1500MS2 · native USB · server, PC and NAS protection
         widget:
           type: prometheusmetric
           url: http://prometheus:9090

@@ -16,7 +16,7 @@
     "from": "now-6h",
     "to": "now"
   },
-  "description": "APC BR1500MS2 power telemetry from NUT. USB ownership can move between hosts without restoring the retired Windows exporter.",
+  "description": "APC BR1500MS2 on the native server: local NUT USB driver and native Telegraf telemetry. The server, gaming PC and NAS retain their existing power-protection policies.",
   "annotations": {
     "list": []
   },
@@ -28,7 +28,7 @@
       "id": 1,
       "type": "stat",
       "title": "UPS telemetry",
-      "description": "Available means a fresh successful scrape with a recognized active status, not healthy power. Expected unavailable before the NAS USB handoff.",
+      "description": "Available means a fresh valid UPS sample and successful native collector scrape; it does not mean utility power is healthy.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -518,7 +518,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "NUT supplies read-only UPS telemetry. The existing native UPS guard owns BEN-SERVER shutdown. Grafana sends alerts through the existing channels and never issues power commands. USB handoff to BEN-SERVER is pending; do not disconnect the cable until the server driver and NAS client handoff are ready."
+        "content": "The UPS USB data cable is attached to the native server. Local NUT supplies telemetry to Telegraf and status to the existing native/gaming-PC guards and NAS network client. The NAS retains its five-minute standby policy. Grafana is monitoring only; it does not issue shutdown or outlet commands. Runtime is an estimate."
       }
     },
     {

@@ -907,21 +907,6 @@ updates:
       tracearr-images:
         patterns: ['*']
   - package-ecosystem: docker-compose
-    directory: /apcupsd-exporter
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "10:15"
-      timezone: America/Chicago
-    open-pull-requests-limit: 1
-    commit-message:
-      prefix: deps
-      include: scope
-    labels: [dependencies, docker-compose]
-    groups:
-      apcupsd-exporter-images:
-        patterns: ['*']
-  - package-ecosystem: docker-compose
     directory: /snmp-exporter
     schedule:
       interval: weekly
@@ -935,21 +920,6 @@ updates:
     labels: [dependencies, docker-compose]
     groups:
       snmp-exporter-images:
-        patterns: ['*']
-  - package-ecosystem: docker-compose
-    directory: /nut-exporter
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "10:25"
-      timezone: America/Chicago
-    open-pull-requests-limit: 1
-    commit-message:
-      prefix: deps
-      include: scope
-    labels: [dependencies, docker-compose]
-    groups:
-      nut-exporter-images:
         patterns: ['*']
   - package-ecosystem: docker-compose
     directory: /node-exporter

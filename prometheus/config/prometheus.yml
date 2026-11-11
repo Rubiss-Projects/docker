@@ -38,15 +38,17 @@ scrape_configs:
     static_configs:
       - targets: ['autobrr:9074']
 
-  # Current UPS telemetry comes from the NAS USB connection and NUT exporter.
-  - job_name: nut
-    metrics_path: /ups_metrics
-    scrape_interval: 15s
-    scrape_timeout: 5s
+  # Native Telegraf reads the locally attached UPS; power protection is separate.
+  - job_name: native-ups
+    scrape_interval: 5s
+    scrape_timeout: 4s
     static_configs:
-      - targets: ['nut-exporter:9199']
+      - targets: ['192.168.50.40:9273']
         labels:
-          instance: nas-ups
+          instance: ben-server-ups
+    metric_relabel_configs:
+      - action: labeldrop
+        regex: serial
 
   # Read-only NAS telemetry. No disk tests or recovery actions are triggered.
   - job_name: qnap-snmp

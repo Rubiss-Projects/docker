@@ -1,40 +1,33 @@
-# Observations only. No alert, shutdown or recovery action is defined here.
+# Observations only. The native and NAS power clients remain the shutdown owners.
+# Stable recording names preserve existing APC dashboard links and history.
 groups:
-  - name: nut-telemetry
-    interval: 15s
-    rules:
-      # Reject old values even while Prometheus's normal lookback retains them.
-      - record: nut:ups_status
-        expr: >-
-          network_ups_tools_ups_status{job="nut"}
-          and (time() - timestamp(network_ups_tools_ups_status{job="nut"}) < 45)
-          and on(job, instance) (up{job="nut"} == 1)
-          and on(job, instance) (time() - timestamp(up{job="nut"}) < 45)
-      # A working HTTP process or an empty status is not usable UPS telemetry.
-      # This is availability, not a claim that the power supply is healthy.
-      - record: nut:telemetry_available
-        expr: >-
-          (count(nut:ups_status{flag=~"OL|OB|LB|HB|RB|CHRG|DISCHRG|BYPASS|CAL|OFF|OVER|TRIM|BOOST|FSD|SD"} == 1) > bool 0)
-          or vector(0)
-      - record: nut:battery_charge_percent
-        expr: >-
-          network_ups_tools_battery_charge{job="nut"}
-          and (time() - timestamp(network_ups_tools_battery_charge{job="nut"}) < 45)
-          and on() (nut:telemetry_available == 1)
-      - record: nut:battery_runtime_seconds
-        expr: >-
-          network_ups_tools_battery_runtime{job="nut"}
-          and (time() - timestamp(network_ups_tools_battery_runtime{job="nut"}) < 45)
-          and on() (nut:telemetry_available == 1)
-      - record: nut:load_percent
-        expr: >-
-          network_ups_tools_ups_load{job="nut"}
-          and (time() - timestamp(network_ups_tools_ups_load{job="nut"}) < 45)
-          and on() (nut:telemetry_available == 1)
-      - record: nut:nominal_watts
-        expr: >-
-          network_ups_tools_ups_realpower_nominal{job="nut"}
-          and (time() - timestamp(network_ups_tools_ups_realpower_nominal{job="nut"}) < 45)
-          and on() (nut:telemetry_available == 1)
-      - record: nut:estimated_load_watts
-        expr: nut:load_percent * on(job, instance) nut:nominal_watts / 100
+- name: nut-telemetry
+  interval: 5s
+  rules:
+  - record: nut:telemetry_available
+    expr: max(upsd_telemetry_valid{job="native-ups"} and (time() - timestamp(upsd_telemetry_valid{job="native-ups"})
+      < 30) and on(job, instance) (up{job="native-ups"} == 1) and on(job, instance) (time() - timestamp(up{job="native-ups"})
+      < 30)) or vector(0)
+  - record: nut:ups_status
+    expr: (label_replace(max by(job, instance) (upsd_online{job="native-ups"} and (time() - timestamp(upsd_online{job="native-ups"})
+      < 30)), "flag", "OL", "", "") or label_replace(max by(job, instance) (upsd_on_battery{job="native-ups"} and (time()
+      - timestamp(upsd_on_battery{job="native-ups"}) < 30)), "flag", "OB", "", "") or label_replace(max by(job, instance)
+      (upsd_low_battery{job="native-ups"} and (time() - timestamp(upsd_low_battery{job="native-ups"}) < 30)), "flag",
+      "LB", "", "")) and on() (nut:telemetry_available == 1)
+  - record: nut:battery_charge_percent
+    expr: (max by(job, instance) (upsd_battery_charge_percent{job="native-ups"} and (time() - timestamp(upsd_battery_charge_percent{job="native-ups"})
+      < 30))) and on() (nut:telemetry_available == 1)
+  - record: nut:battery_runtime_seconds
+    expr: (max by(job, instance) (upsd_time_left_ns{job="native-ups"} and (time() - timestamp(upsd_time_left_ns{job="native-ups"})
+      < 30)) / 1000000000) and on() (nut:telemetry_available == 1)
+  - record: nut:load_percent
+    expr: (max by(job, instance) (upsd_load_percent{job="native-ups"} and (time() - timestamp(upsd_load_percent{job="native-ups"})
+      < 30))) and on() (nut:telemetry_available == 1)
+  - record: nut:nominal_watts
+    expr: (max by(job, instance) (upsd_nominal_power{job="native-ups"} and (time() - timestamp(upsd_nominal_power{job="native-ups"})
+      < 30))) and on() (nut:telemetry_available == 1)
+  - record: nut:critical_status
+    expr: (max by(job, instance) (upsd_critical_status{job="native-ups"} and (time() - timestamp(upsd_critical_status{job="native-ups"})
+      < 30))) and on() (nut:telemetry_available == 1)
+  - record: nut:estimated_load_watts
+    expr: nut:load_percent * on(job, instance) nut:nominal_watts / 100

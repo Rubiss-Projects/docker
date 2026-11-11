@@ -1,7 +1,10 @@
 # UPS USB ownership handoff
 
-This is preparation source. The NAS retains USB ownership until the local driver
-and both clients are ready. No power-loss, forced-shutdown or outlet test is part
+The USB data cable is now on BEN-SERVER. The local driver and guard, gaming-PC
+guard and supported NAS network client passed online acceptance on November 11.
+The NAS uses its vendor `upsutil` client in network-slave mode; its inactive old
+`upsmon.conf` does not describe the live network client. The five-minute standby
+policy is preserved. No power-loss, forced-shutdown or outlet test is part
 of this handoff. The existing native guard remains the server shutdown owner;
 keep `nut-monitor.service` masked and do not create a killpower flag. Boot recovery
 is ordered after the NUT server/driver target and uses a 45-second readiness budget for
@@ -13,8 +16,9 @@ local utility status; a current-boot shutdown intent or battery status holds it.
    intent, the existing protection on both computers, and clean native main.
 2. Install the distribution's signed `nut-server` package with its services held
    stopped during configuration. Preserve the existing masked native monitor.
-3. Render `ups.conf.example` with the exact physical UPS serial observed on the
-   NAS. Confirm APC USB identity `051d:0002`. Install it and `upsd.conf` under
+3. Render `ups.conf.example` with the physical UPS serial observed on the NAS,
+   trimming surrounding spaces as the USB driver does when matching. Confirm
+   APC USB identity `051d:0002`. Install it and `upsd.conf` under
    `/etc/nut`, owned by root with the package's `nut` group and mode 0640.
 4. Render `upsd.users.example` privately with the NAS's existing monitor identity
    and password. Grant only `upsmon secondary`; no primary, SET or instant-command
@@ -71,4 +75,15 @@ The collector fragment uses the installed Telegraf 1.40.3
 and [Prometheus output](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/outputs/prometheus_client).
 The isolated native validation passed all 17 guard/recovery tests, eight
 synthetic status cases and a read-only collection from the current NAS source.
-No production collector or power ownership changed during validation.
+Subsequent physical handoff acceptance verified the local USB serial and live
+online readings, both computer guards and the NAS's saved network-slave settings
+and current status. The reviewed collector fragment is installed alongside the
+existing native Telegraf configuration; its InfluxDB output remains unchanged.
+
+Prometheus scrapes `192.168.50.40:9273` as `native-ups`. The stable `nut:*`
+recordings preserve the existing APC dashboard and Homepage queries. Runtime is
+converted from Telegraf nanoseconds to seconds. Samples older than 30 seconds,
+invalid status or failed scrapes are unavailable, even while HTTP still works.
+Critical status comes from the validated collector field, including FSD/OFF and
+battery replacement, rather than only the OL/OB/LB presentation flags. Test with
+`promtool test rules prometheus/tests/native-ups.test.yml` from the repository root.

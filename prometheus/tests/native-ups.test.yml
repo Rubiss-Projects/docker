@@ -1,0 +1,274 @@
+rule_files:
+- ../config/nut-recording-rules.yml
+evaluation_interval: 5s
+tests:
+- name: online conversion
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94+0x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000+0x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60+0x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900+0x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_runtime_seconds",instance="ben-server-ups",job="native-ups"}'
+      value: 600
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:estimated_load_watts",instance="ben-server-ups",job="native-ups"}'
+      value: 540
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:critical_status",instance="ben-server-ups",job="native-ups"}'
+      value: 0
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",flag="OB",instance="ben-server-ups",job="native-ups"}'
+      value: 0
+- name: on battery
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94+0x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000+0x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60+0x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900+0x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_runtime_seconds",instance="ben-server-ups",job="native-ups"}'
+      value: 600
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:estimated_load_watts",instance="ben-server-ups",job="native-ups"}'
+      value: 540
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:critical_status",instance="ben-server-ups",job="native-ups"}'
+      value: 0
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",flag="OB",instance="ben-server-ups",job="native-ups"}'
+      value: 1
+- name: critical status
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94+0x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000+0x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60+0x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900+0x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 1
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:battery_runtime_seconds",instance="ben-server-ups",job="native-ups"}'
+      value: 600
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:estimated_load_watts",instance="ben-server-ups",job="native-ups"}'
+      value: 540
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:critical_status",instance="ben-server-ups",job="native-ups"}'
+      value: 1
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:ups_status",flag="OB",instance="ben-server-ups",job="native-ups"}'
+      value: 0
+- name: invalid or conflicting flags
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94+0x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000+0x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60+0x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900+0x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples: []
+- name: failed scrape
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 0+0x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94+0x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000+0x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60+0x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900+0x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples: []
+- name: collector serving expired samples
+  interval: 5s
+  input_series:
+  - series: up{job="native-ups",instance="ben-server-ups"}
+    values: 1+0x12
+  - series: upsd_telemetry_valid{job="native-ups",instance="ben-server-ups"}
+    values: 1 _x12
+  - series: upsd_online{job="native-ups",instance="ben-server-ups"}
+    values: 1 _x12
+  - series: upsd_on_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0 _x12
+  - series: upsd_low_battery{job="native-ups",instance="ben-server-ups"}
+    values: 0 _x12
+  - series: upsd_critical_status{job="native-ups",instance="ben-server-ups"}
+    values: 0 _x12
+  - series: upsd_battery_charge_percent{job="native-ups",instance="ben-server-ups"}
+    values: 94 _x12
+  - series: upsd_time_left_ns{job="native-ups",instance="ben-server-ups"}
+    values: 600000000000 _x12
+  - series: upsd_load_percent{job="native-ups",instance="ben-server-ups"}
+    values: 60 _x12
+  - series: upsd_nominal_power{job="native-ups",instance="ben-server-ups"}
+    values: 900 _x12
+  promql_expr_test:
+  - expr: nut:telemetry_available
+    eval_time: 1m
+    exp_samples:
+    - labels: '{__name__="nut:telemetry_available"}'
+      value: 0
+  - expr: nut:battery_runtime_seconds
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:estimated_load_watts
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:critical_status
+    eval_time: 1m
+    exp_samples: []
+  - expr: nut:ups_status{flag="OB"}
+    eval_time: 1m
+    exp_samples: []

@@ -304,6 +304,15 @@ jobs:
       - name: Test infrastructure alert queries and missing telemetry
         run: python3 grafana/test_infrastructure_queries.py
 
+      - name: Test native UPS recording rules
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          image=$(python3 -c 'import yaml; print(yaml.safe_load(open("prometheus/docker-compose.yml"))["services"]["prometheus"]["image"])')
+          docker run --rm --network none --entrypoint promtool \
+            --mount "type=bind,source=$PWD/prometheus,target=/workspace/prometheus,readonly" \
+            "$image" test rules /workspace/prometheus/tests/native-ups.test.yml
+
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 

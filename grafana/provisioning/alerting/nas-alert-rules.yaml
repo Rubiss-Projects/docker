@@ -476,7 +476,7 @@ groups:
       __dashboardUid__: apc-ups
       __panelId__: '1'
       summary: UPS telemetry unavailable
-      description: UPS status is unavailable. Inspect the driver, NUT server and exporter; communication loss alone does
+      description: UPS status is unavailable. Inspect the USB driver, NUT server and native Telegraf collector; communication loss alone does
         not request shutdown.
     labels:
       severity: critical
@@ -534,7 +534,7 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: nut:ups_status{flag=~"LB|FSD|OFF|OVER|RB"}
+        expr: nut:critical_status
     - refId: B
       datasourceUid: __expr__
       model:
@@ -562,7 +562,7 @@ groups:
       __dashboardUid__: apc-ups
       __panelId__: '4'
       summary: UPS critical status
-      description: UPS reports {{ $labels.flag }}. Inspect power/battery state; Grafana alerts do not issue shutdown
+      description: UPS reports a critical power or battery status. Inspect power/battery state; Grafana alerts do not issue shutdown
         or outlet commands.
     labels:
       severity: critical
