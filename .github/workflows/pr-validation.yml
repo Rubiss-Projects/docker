@@ -352,6 +352,10 @@ jobs:
 
           find . -name '*.env.secret' -delete
 
+          # Homelable requires its secret overlay at runtime. This job only
+          # renders Compose; an empty fixture keeps credentials out of CI.
+          touch homelable/.env.secret
+
           mapfile -d '' compose_files < <(
             find . \
               -path './.git' -prune -o \
