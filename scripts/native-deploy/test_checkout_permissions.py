@@ -47,6 +47,17 @@ class CheckoutPermissionTests(unittest.TestCase):
         self.assertEqual(target.stat().st_mode & 0o777, 0o777)
         self.assertTrue((self.repo / 'reference').is_symlink())
 
+    def test_git_metadata_and_local_encryption_key_are_private(self):
+        (self.repo / 'source.txt').write_text('source');self.stage()
+        keys = self.repo / '.git/git-crypt/keys';keys.mkdir(parents=True)
+        key = keys / 'default';key.write_text('test key fixture')
+        for path in [self.repo / '.git', keys.parent, keys, key]:path.chmod(0o777)
+        permissions.apply(permissions.plan(self.repo))
+        for path in [self.repo / '.git', keys.parent, keys]:
+            self.assertEqual(path.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(key.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(key.read_text(), 'test key fixture')
+
     def test_symlinked_parent_rejects_entire_plan_before_any_repair(self):
         directory = self.repo / 'source';directory.mkdir();(directory / 'file').write_text('retained')
         self.stage();outside = Path(self.temp.name) / 'moved';directory.rename(outside);directory.symlink_to(outside, target_is_directory=True)

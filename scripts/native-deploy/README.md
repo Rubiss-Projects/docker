@@ -14,9 +14,12 @@ need native replacements. New services and changes to those protected fields
 require an explicit policy update. Application environment and ordinary labels
 continue to come from the current repository.
 
-After a native checkout update, the deployment helper restores Git-tracked file
+Native checkout writes use a temporary private umask so decrypted secrets are
+private from creation. The caller's umask is restored on success or failure.
+After a successful checkout update, the helper restores Git-tracked file
 permissions: public source is 0644 (0755 for Git executables), git-crypt files
-are 0600, and their parent directories are 0755. This removes inherited NTFS
+are 0600, and their parent directories are 0755. The standalone `.git` directory
+and its git-crypt key directories are 0700; local key files are 0600. This removes inherited NTFS
 permissions without traversing untracked application data or changing ownership.
 It refuses foreign-owned paths, unexpected file types and symlinked parents;
 public tracked symlinks remain untouched. Run a read-only plan with

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore native permissions only on Git-tracked source and its parent folders."""
+"""Protect native Git metadata, tracked source and source parent folders."""
 import argparse
 import json
 import os
@@ -19,6 +19,24 @@ class Change(NamedTuple):
 def plan(repo: Path) -> list[Change]:
     if not repo.is_absolute() or repo.resolve() != repo or repo.stat().st_uid != os.geteuid():
         raise ValueError('Checkout must be a real directory owned by the caller')
+    private = []
+
+    def private_path(path: Path, directory: bool) -> None:
+        info = path.lstat()
+        correct_type = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
+        if not correct_type or info.st_uid != os.geteuid():
+            raise ValueError('Git metadata must be real paths owned by the caller')
+        private.append(Change(path, 0o700 if directory else 0o600, info.st_ino, directory))
+
+    private_path(repo / '.git', True)
+    crypt = repo / '.git/git-crypt'
+    if os.path.lexists(crypt):
+        private_path(crypt, True)
+        keys = crypt / 'keys'
+        if os.path.lexists(keys):
+            private_path(keys, True)
+            for key in keys.iterdir():
+                private_path(key, False)
     entries = subprocess.check_output(['git', '-C', str(repo), 'ls-files', '--stage', '-z']).split(b'\0')
     tracked = []
     for entry in filter(None, entries):
@@ -56,7 +74,8 @@ def plan(repo: Path) -> list[Change]:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid():
             raise ValueError('Tracked parent must be an owned real directory')
         parents.append(Change(path, 0o755, info.st_ino, True))
-    return parents + files
+    # Protect the repository entry and Git metadata before its other source paths.
+    return parents[:1] + private + parents[1:] + files
 
 
 def apply(changes: list[Change]) -> None:
@@ -85,8 +104,8 @@ def main() -> None:
     needed = sum(stat.S_IMODE(c.path.lstat().st_mode) != c.mode for c in changes)
     if args.apply:
         apply(changes)
-    print(json.dumps({'trackedPathsAndParentsChecked': len(changes), 'permissionChangesNeeded': needed,
-                      'applied': args.apply, 'untrackedFilesChanged': 0, 'ownershipChanged': False}))
+    print(json.dumps({'sourceAndGitMetadataPathsChecked': len(changes), 'permissionChangesNeeded': needed,
+                      'applied': args.apply, 'untrackedApplicationFilesChanged': 0, 'ownershipChanged': False}))
 
 
 if __name__ == '__main__':
