@@ -59,6 +59,22 @@ def write_state(path, row):
     temporary.replace(path)
 
 
+def capture_restore_manifest(ids, boot):
+    """Remember only running identities before an intentional UPS drain."""
+    rows = json.loads(subprocess.check_output(['docker', 'inspect', *ids], timeout=5))
+    containers = []
+    for row in rows:
+        labels = row['Config'].get('Labels') or {}
+        if not labels.get('com.docker.compose.project') or not labels.get('com.docker.compose.service'):
+            continue
+        containers.append({'id': row['Id'], 'image': row['Image'],
+                           'project': labels.get('com.docker.compose.project'),
+                           'service': labels.get('com.docker.compose.service')})
+    if containers:
+        write_state(ROOT / 'restore-pending.json',
+                    {'version': 1, 'boot': boot, 'at': time.time(), 'containers': containers})
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--observe', action='store_true')
@@ -106,6 +122,11 @@ def main():
                     ids = listing.stdout.split() if listing.returncode == 0 else []
                     assert all(re.fullmatch('[0-9a-f]{12,64}', item) for item in ids)
                     if ids:
+                        try:
+                            capture_restore_manifest(ids, boot)
+                        except (OSError, ValueError, subprocess.SubprocessError) as error:
+                            # Recovery bookkeeping must never prevent power protection.
+                            print('Recovery manifest unavailable: ' + type(error).__name__, flush=True)
                         grace = '10' if outcome == 'critical' else '45'
                         subprocess.run(['docker', 'stop', '--time', grace, *ids], timeout=60, check=True)
                 except (OSError, subprocess.SubprocessError, AssertionError) as error:

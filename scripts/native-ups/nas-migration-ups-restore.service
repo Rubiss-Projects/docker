@@ -1,0 +1,21 @@
+[Unit]
+Description=Restore admitted services drained by a previous UPS shutdown
+Requires=docker.service
+After=docker.service network-online.target
+Before=native-https-startup.service
+ConditionPathExists=/var/lib/nas-migration-ups/restore-pending.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -B /usr/local/lib/nas-migration/native_ups_restore.py
+RemainAfterExit=yes
+TimeoutStartSec=240
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/nas-migration-ups
+
+[Install]
+WantedBy=docker.service
