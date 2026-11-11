@@ -15,90 +15,20 @@ n8n is a fair-code licensed workflow automation tool that allows you to connect 
 ./workflows:/files          # Auto-import directory for JSON workflows
 ```
 
-## Torrent Retention
+## Native workflows and recovery
 
-Ben approved selective cleanup: tracker-deleted registrations may be removed
-when every tracker of a private torrent freshly confirms deletion. Preserve
-local media and any torrent with a working or unconfirmed tracker. Failed
-cross-seed cleanup is limited to aged, stopped, low-completion injections with
-no download/upload/completion history in the dedicated cross-seed directory.
-Neither job deletes local media. Genuine downloads and near-complete torrents
-are retained. Other removals require explicit immediate approval.
+The only retained workflow is Sunday Edge worker autoscaling. Native startup
+uses the admitted wrapper and exact published workflow identity; it does not
+import or activate every export. Preserve its encrypted SSH credential and
+existing n8n database. Workflow changes need deliberate admission.
 
-The legacy `scripts/cleanup_crossseed_stuck.py` command delegates to the same
-JavaScript implementation and requires Node.js. Run policy tests with
-`node --test n8n/scripts/torrent-cleanup-policy.test.cjs`.
-
-## Native workflow admission
-
-BEN-SERVER uses the admitted native startup wrapper, not the public Compose
-default's filesystem importer. It verifies the accepted published Sunday Edge
-autoscaler workflow, requires other restored workflows to remain inactive, and
-rejects pending restored executions. It does not import or activate every JSON
-export. Keep its dedicated encrypted SSH credential and published workflow
-identity intact; restarting n8n is not a workflow-promotion procedure.
-
-The Transmission and IRC recovery sources below are retained definitions, not
-currently activated native workflows. Do not enable them or import all exports
-as part of migration cleanup. Future workflow changes need deliberate admission.
-
-### Transmission recovery
-
-`scripts/self_heal_container.js` handles Uptime Kuma down alerts. The
-`transmission-recovery-watchdog-workflow.json` fallback runs every five minutes.
-Both paths use the same per-container `flock` in Linux `/tmp`, preventing
-overlapping restarts. Transmission gets a five-minute unhealthy grace period,
-a 60-second Docker shutdown grace, and up to ten minutes of verification (a
-late start gets a fresh verification window). Workflow timeouts are 30 minutes.
-
-Before starting or restarting Transmission, probe Sonarr and Radarr `/ping` in
-parallel with five-second absolute deadlines. At least one must return HTTP 200
-and JSON `status: OK`; otherwise leave recovery intent unchanged and inspect
-host responsiveness. A Docker inspection alone does not prove applications are
-responsive. The host gate also applies to an owned late start during verification.
-The next fallback run retries deferred recovery; it does not count as success.
-
-A timed-out restart is observed, not followed by another kill: Docker may still
-be completing its stop/start. Recovery intent is saved under
-`/root/.n8n/recovery` (host `n8n/config/recovery`) before mutation. The fallback
-starts an exited container only with matching saved container identity, so
-ordinary intentional stops and replacement containers stay stopped. Starts and
-restarts retain a separate, identity-bound 15-minute cooldown even after recovery
-succeeds; that cooldown record alone never authorizes a watchdog start.
-Pending intent supplies the cooldown until recovery succeeds, keeping the
-pre-mutation state write unchanged. Observation during cooldown releases the lock
-at expiry so the next watchdog run can act if the service is still unhealthy.
-Transmission must remain healthy with no failing health checks for two minutes
-in the same container lifecycle before recovery clears the intent. Unhealthy or
-unknown observations reset that interval. Expiring verification while the last
-sample is healthy still fails if the full healthy interval was not observed.
-A natural recovery that relapses without pending intent or cooldown releases
-the lock for the next unhealthy admission. The existing bounded late-stop start
-remains allowed with matching pending intent, including an inspection admitted
-before expiry that returns the stopped state just afterward.
-
-Before an unhealthy Transmission restart, capture bounded Docker state/resource
-statistics and the structured health-probe diagnostics (Linux thread waits and
-cgroup pressure). Keep the newest 20 snapshots in Linux
-`/tmp/container-recovery-diagnostics` and include each snapshot in the existing
-n8n execution output; omit environment variables, raw logs, media paths and
-tracker URLs. Avoid extra synchronous writes to the suspect Windows mount
-before recovery. The Linux copies survive Transmission restarts but not n8n
-container recreation; use execution history afterward. Capture failures do not
-prevent recovery. No extra Docker proxy permissions are required.
-
-For planned Transmission maintenance, pause **both** recovery paths first:
-`docker exec n8n sh -c 'mkdir -p /root/.n8n/recovery && touch /root/.n8n/recovery/transmission.paused'`.
-Wait for any already-issued Docker restart to finish before stopping the service.
-Resume with `docker exec n8n rm /root/.n8n/recovery/transmission.paused`.
-The pause does not hide Uptime Kuma alerts. Recovery never removes torrents or
-media and never restarts Docker Desktop. A fallback failure remains a failed n8n
-execution; inspect its JSON actions and the original Kuma alert.
-
-Run focused recovery tests with `node --test n8n/scripts/self_heal_container.test.js`.
-`./workflows` contains source exports. The retained public `import-workflows.sh`
-describes the earlier filesystem-import behavior; native startup overrides it.
-Do not use it to bypass the current admission checks.
+The owner retired the former Uptime Kuma-triggered container restarts,
+Transmission watchdog, IRC recovery loops and automatic torrent cleanup.
+Docker's `unless-stopped` policy handles exited containers. An unhealthy check
+alone does not cause an automatic restart; failures use existing Grafana
+notification channels. Inspect the affected service before intervening.
+Never remove torrent registrations or data without the owner's immediate,
+specific approval. Git history retains the retired automation if needed later.
 
 ## Environment Variables
 - `N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true` - Enforce file permission checks
@@ -148,20 +78,6 @@ n8n can connect to all services in this infrastructure:
 - **Plex**: Automate media library management
 - **Bitwarden**: Password management automation
 
-## autobrr IRC Recovery
-
-- `irc-recovery-policies.json` is git-crypt protected because provider names, nicks, auth modes, and secret-key mappings are private.
-- `scripts/autobrr_irc_recovery.js` performs provider-specific recovery from Grafana alerts.
-- `scripts/autobrr_irc_watchdog.js` is the scheduled missed-alert fallback.
-- If watchdog state is malformed, the fallback preserves a `.corrupt-*` copy in
-  n8n's private `/root/.n8n/recovery/irc-watchdog` directory,
-  resets failure counters, and waits a full cooldown before restarting any
-  network. Dry runs only report the corruption. State writes are flushed before
-  atomic replacement. Symlinked state is rejected before reading or backing up.
-  Run `node --test n8n/scripts/autobrr_irc_watchdog.test.js`
-  to verify recovery and cooldown behavior.
-- Recovery credentials and the recovery API key live only in git-crypt protected `irc-recovery-secrets.json`. This file is intentionally separate from Compose dotenv files so `$` and other password characters are never interpolated by Compose.
-
 ## Sunday Edge autoscaling
 
 `workflows/sunday-edge-autoscale-workflow.json` runs every 30 seconds using the
@@ -179,9 +95,9 @@ key restriction and exact sudoers commands. The entry point permits only the fix
 controller command and its dry run, including the SSH node's literal `cd '.' ;`
 prefix. Other commands and forwarding must be refused. Its two shell sources are
 in `scripts/native-sunday-edge/`; no Windows OpenSSH or PowerShell wrapper remains.
-The repository mount is read-only so n8n cannot replace the host-executed helper
-or its Compose configuration. Existing writes stay in the n8n data/workflow mounts,
-autobrr's config directory, and the cross-seed registration directory.
+The workflow invokes the restricted host controller over SSH. n8n has no Docker
+proxy attachment or writable autobrr/cross-seed mount. Its workflow export is
+read-only; application writes stay in its existing configuration directory.
 
 ## Security Notes
 
