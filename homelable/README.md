@@ -18,8 +18,14 @@ HTTPS address. Preserve single
 quotes around the bcrypt hash to prevent Compose dollar interpolation.
 
 Prometheus, Grafana and Uptime Kuma remain the monitoring authorities.
-Homelable's status checker is disabled, so canvas state is unknown rather than
-a second alert source. Network scanning is manual; bridge networking cannot
+Homelable checks machine reachability every 60 seconds: BEN-SERVER, the Pi and
+NAS use ping; BEN-PC uses TCP port 135 because its firewall blocks ping.
+These indicators measure reachability, not CPU, memory or application health.
+Service checks remain disabled in both the environment and persisted app settings.
+Only those four inventory entries have a check method; leave all other entries'
+check methods empty (not `none`, which reports online without probing).
+Review newly approved scan results: Homelable can assign ping automatically.
+Network scanning is manual; bridge networking cannot
 discover LAN MAC addresses. MCP, shared live/document views, and Git sync are
 disabled. Do not store secrets in inventory notes or upload credentials.
 
