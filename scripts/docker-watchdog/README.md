@@ -1,5 +1,12 @@
 # Docker Desktop watchdog
 
+> **Archived Windows-host implementation.** Production now runs native Ubuntu.
+> These scripts and their historical instructions are retained in place for exact
+> rollback reference; they are not installed or scheduled on the native server.
+> Do not enable the old tasks or transplant their recovery loops. Use the
+> [native deployment and startup runbook](../native-deploy/README.md) and
+> [previous-host operations index](../../docs/previous-host-operations.md).
+
 Versioned source for the Windows scripts installed in `E:\Scripts`. The minute
 task remains `Start Docker Desktop if not running`. Image updates and service
 deployments do not install these scripts automatically.

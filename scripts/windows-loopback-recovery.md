@@ -1,3 +1,9 @@
+# Archived Windows loopback recovery
+
+This is previous-host evidence, not a recovery procedure for native Ubuntu.
+Do not re-enable Windows tasks on the current server. See
+[previous-host operations](../docs/previous-host-operations.md).
+
 Windows health checks must use `127.0.0.1` for the local IPv4 Docker listeners.
 After the Windows update, native PowerShell requests to `localhost:32400` and
 `localhost:8086` timed out while the same requests to `127.0.0.1` returned 200.

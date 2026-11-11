@@ -9,8 +9,7 @@ This is a Docker-based home lab infrastructure managing 30+ self-hosted services
 The main server now runs native Ubuntu at `/srv/Docker`; `/mnt/e/Docker` is a
 compatibility path. Use the native deployment adapter described in
 `scripts/native-deploy/README.md` to preserve the accepted restored volumes,
-mount guards, image references and native settings. The later Windows/WSL
-startup examples describe the previous host context. Keep the canonical native
+mount guards, image references and native settings. Keep the canonical native
 checkout clean on `main` and release the native runner only after its policy
 admission passes. Pi deployment remains separate.
 
@@ -53,9 +52,9 @@ someone else's work to satisfy this requirement.
 - **Shared networking**: All services connect to the `proxynet` external network for internal communication
 
 ### Volume Mounting Conventions
-- **Relative paths**: All service volumes use relative paths (e.g., `./config:/config`) for portability and WSL compatibility
-- **Media paths**: Shared media volumes use `../../Media/{type}` relative pattern (e.g., `../../Media/movies:/movies`)
-- **Host execution**: Services are started via WSL to preserve path registration, except main-host `cadvisor`, which must be started with Windows Docker Compose so its host mounts resolve in the Windows context. Raspberry Pi `pi/cadvisor` remains a native Pi deployment.
+- **Source defaults**: Compose files may retain relative-path defaults. On the main server, the admitted native policy selects the restored volumes and exact NAS paths; bypassing it can start an empty application state.
+- **Media paths**: The verified NAS media tree is mounted at `/srv/Media`. Preserve the mount guard and accepted service mappings.
+- **Host execution**: Run all main-server stacks, including `cadvisor`, through `scripts/native-deploy/compose.py`. Pi services retain their separate native Pi deployment.
 
 ### Environment & Secrets
 - **Per-service .env files**: Each service has a public `.env` file for non-secret defaults in the service directory
@@ -98,14 +97,13 @@ All three AI Assistant containers use the same immutable release version.
 and Channels DVR use `network_mode: host` without published ports or a proxynet
 attachment. Install the dedicated media INPUT guard first and preserve consumer
 reachability. Use `scripts/native-media-network/README.md` for preparation,
-acceptance and backout. Keep the Windows base stacks and temporary Caddy route
-available until the native direct routes pass acceptance.
+acceptance and backout. Direct routes have passed acceptance; retain original
+source data and rollback definitions without activating a second owner.
 
-**Narrow exception — Caddy Plex proxy:** `caddy/` is a native Ubuntu systemd
-service, outside Docker Desktop NAT so it can observe remote client IPs. It has
-no Compose stack or `proxynet` attachment. Use its explicit native installer,
-Homepage configuration and Kuma monitor; keep its admin Unix socket private.
-Read `caddy/README.md` for routing, watchdog recovery, deployment and backout.
+**Retired Caddy proxy:** `caddy/` is archived rollback reference. Its systemd
+service, certificate timer and temporary gaming-PC proxy are stopped. Do not
+install or start them during routine deployment. Plex uses direct native access;
+Channels At Home uses the server's port 8089. Away From Home remains deferred.
 
 ### Port Management
 - **SWAG**: Handles external SSL termination and reverse proxy (80, 443)
@@ -134,7 +132,7 @@ Save PNG to `homepage/config/icons/{service}.png`, reference as `homepage.icon=/
 ## Special Configurations
 
 ### GPU Services (Plex)
-NVIDIA GPU passthrough for hardware transcoding:
+Native NVIDIA GPU reservation for hardware transcoding:
 ```yaml
 deploy:
   resources:
@@ -143,10 +141,10 @@ deploy:
         - driver: nvidia
           count: all
           capabilities: [gpu, compute, utility, video]
-volumes:
-  - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
-  - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
 ```
+
+Use the installed native NVIDIA runtime and admitted Plex recipe. Do not add WSL
+GPU library mounts. Verify GPU visibility in the container after a relevant change.
 
 ### Gaming Servers
 - **Resource management**: Use `cap_add: [sys_nice]` for scheduling priority
@@ -157,7 +155,10 @@ Multi-container services use `depends_on` for startup ordering (e.g., Bitwarden 
 
 ## Terminal Commands
 
-**Important**: Avoid multiline commands in the terminal for this WSL/Docker Desktop environment. The WSL/Docker Desktop environment does not handle them correctly. Always use single-line commands with `&&` to chain operations or `;` to separate commands.
+Use single-line commands when crossing the Windows controller/SSH boundary.
+For complex native operations, create an LF-terminated script and execute it
+explicitly on the server. Run Git as the deployment account and preserve its
+ownership; a root-owned index can break the runner.
 
 **Avoid:**
 ```bash
@@ -178,26 +179,18 @@ For complex operations, create a script file first, then execute it.
 - Network connectivity: All services should reach each other via container names
 - Volume permissions: Ensure PUID/PGID match host filesystem permissions
 
-## Docker Desktop Recovery
+## Native recovery
 
-Windows Scheduled Task `Start Docker Desktop if not running` runs
-`E:\Scripts\start-docker-desktop.ps1` every minute and should remain enabled. It
-uses `E:\Scripts\docker-desktop-common.ps1`, the shared health-monitor lock, and
-the ordered critical startup chain:
+Docker requires the verified NAS media mount and admission guard. Preserve the
+media firewall and assistant AppArmor ordering, the existing UPS guard, and the
+reviewed Docker shutdown allowance. `native-https-startup.service` recovers the
+existing admitted SWAG container and missing bridge attachments after Docker
+setup; see `scripts/native-deploy/README.md`.
 
-```text
-socket-proxy -> uptime-kuma -> plex -> swag
-```
-
-The watchdog can recreate all running WSL Compose stacks to repair Docker Desktop
-bind mounts. That operation produces a burst of Uptime Kuma alerts unless a
-maintenance window is active. Before manual Docker Desktop recovery, check the
-task state and either let it own recovery or temporarily disable it; always
-re-enable it afterward. The former nightly restart task is disabled; its entry
-point now delegates to the same service-aware watchdog. Never run a competing
-manual restart. See `scripts/docker-watchdog/README.md` for restart admission,
-validation, installation, and backout. Control-plane failure alone must not
-interrupt working services.
+Inspect the failing service before taking action. Control-plane failure alone
+must not interrupt working applications. The old Windows watchdog, WSL recovery
+tasks and Caddy helpers are archived reference, not native recovery procedures;
+see `docs/previous-host-operations.md`. Do not import their tasks or recovery loops.
 
 # New Service Setup
 
@@ -283,7 +276,7 @@ This enables:
 
 ### Deployment Dependencies
 
-If the service must start before or after another stack, update the dependency maps in `scripts/deploy-changed-service-folders.sh` so GitHub Actions deploys changed services in a safe order. For critical Docker Desktop startup services, keep `../scripts/docker-desktop-common.ps1` in sync with the same order.
+If the service must start before or after another stack, update the dependency maps in `scripts/deploy-changed-service-folders.sh` so GitHub Actions deploys changed services in a safe order. Do not update or reinstall the retired Windows watchdog for native deployments.
 
 For documentation-only or no-op repository hygiene changes, include `[skip deploy]` in the merge commit message to skip the self-hosted deploy jobs.
 
@@ -481,13 +474,14 @@ Use the service directory as the `directory` value and a unique group name such 
 ## Step 8: Start the Service
 
 ```bash
-cd /mnt/e/Docker/myservice
-docker compose --env-file .env --env-file .env.secret up -d
+cd /srv/Docker
+python3 scripts/native-deploy/compose.py --stack myservice -- up -d
 ```
 
-If the service does not have a `.env.secret` file, omit the second `--env-file` argument. This is required when secrets are referenced in the Compose YAML itself, such as Homepage widget keys in labels.
-
-**Important**: Start services from WSL for proper path registration, except main-host `cadvisor`, which must be started from Windows. The deployment automation enforces this exception.
+First release the new stack through reviewed native policy admission. The adapter
+loads `.env` and an existing `.env.secret`, including substitutions used in labels.
+Pi stacks use their separate deployment helper. Do not bypass admission with a
+raw main-server Compose invocation.
 
 ---
 

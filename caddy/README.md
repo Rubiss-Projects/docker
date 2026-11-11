@@ -1,5 +1,13 @@
 # Caddy Plex remote and Channels LAN proxy
 
+> **Archived previous-host setup.** This proxy and its certificate timer are
+> disabled after native route acceptance. The temporary gaming-PC proxy is also
+> stopped. Plex now uses direct native access (the existing external TCP 18443
+> rule targets server port 32400); Channels At Home uses `192.168.50.40:8089`.
+> Away From Home is deferred. Keep the following definitions for deliberate
+> rollback only; do not run these installers or restore the old relay as normal
+> maintenance. See [previous-host operations](../docs/previous-host-operations.md).
+
 Caddy is a **native Ubuntu systemd service**, deliberately outside Docker Desktop
 NAT. Plex remains in Docker Desktop. This narrow native-service exception is
 necessary to see the incoming public IPv4 peer before forwarding to Plex.

@@ -18,22 +18,6 @@ permissions:
   contents: read
 
 jobs:
-  watchdog-validation:
-    name: Windows watchdog validation
-    runs-on: windows-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check out pull request
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          persist-credentials: false
-      - name: Test watchdog decisions and installation helpers
-        shell: powershell
-        run: |
-          & ./scripts/docker-watchdog/test-existing-watchdog.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ./scripts/docker-watchdog/test-install.ps1
-
   repository-validation:
     name: Repository validation
     runs-on: ubuntu-latest
@@ -334,20 +318,6 @@ jobs:
 
       - name: Test native deployment wiring and image updates
         run: sudo python3 -B -m unittest discover -s scripts/native-deploy -p 'test_*.py'
-
-      - name: Test native Caddy proxy and watchdog
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          url=$(python3 -c 'import json; print(json.load(open("caddy/release.json"))["url"])')
-          digest=$(python3 -c 'import json; print(json.load(open("caddy/release.json"))["sha256"])')
-          curl --fail --location --max-time 90 "$url" --output "$RUNNER_TEMP/caddy.tar.gz"
-          printf '%s  %s\n' "$digest" "$RUNNER_TEMP/caddy.tar.gz" | sha256sum --check --status
-          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
-          # Only this disposable GitHub-hosted runner pulls the pinned fixture image.
-          image=$(python3 -c 'import yaml; print(yaml.safe_load(open("swag/docker-compose.yml"))["services"]["swag"]["image"])')
-          docker pull "$image"
-          CADDY_BINARY="$RUNNER_TEMP/caddy" NGINX_TEST_IMAGE="$image" python3 -m unittest discover -s caddy -p 'test_*.py'
 
       - name: Test memory telemetry parsing and configuration
         shell: pwsh
