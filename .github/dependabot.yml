@@ -936,3 +936,18 @@ updates:
     groups:
       node-exporter-images:
         patterns: ['*']
+  - package-ecosystem: docker-compose
+    directory: /homelable
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "10:35"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels: [dependencies, docker-compose]
+    groups:
+      homelable-images:
+        patterns: ['*']

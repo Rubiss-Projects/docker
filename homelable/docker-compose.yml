@@ -1,0 +1,51 @@
+services:
+  homelable:
+    image: ghcr.io/pouzor/homelable-frontend:3.7.0@sha256:edb040f2bfe172d155643e190cb2f9eadc7d140a2300f88d7ed8dc7bdd5acfd7
+    container_name: homelable
+    restart: unless-stopped
+    environment:
+      BACKEND_UPSTREAM: homelable-backend:8000
+    depends_on:
+      homelable-backend:
+        condition: service_healthy
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 100
+    networks: [proxynet]
+    labels:
+      - homepage.group=Observability
+      - homepage.name=Homelable
+      - homepage.icon=mdi-lan
+      - homepage.href=https://homelable.benlawson.dev:4443/
+      - homepage.description=Office topology and hardware inventory
+      - homepage.siteMonitor=http://homelable/api/v1/health
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.url=http://homelable/api/v1/health
+      - swag.uptime-kuma.monitor.parent=Observability
+  homelable-backend:
+    image: ghcr.io/pouzor/homelable-backend:3.7.0@sha256:b6af85d83f42ee48de6227d25441835c12831b974d9b5fd3ab7fc3b4e551eaea
+    container_name: homelable-backend
+    restart: unless-stopped
+    user: '1000:1000'
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 100
+    env_file:
+      - .env
+      - .env.secret
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8000/api/v1/health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks: [proxynet]
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
