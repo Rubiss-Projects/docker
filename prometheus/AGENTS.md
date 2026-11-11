@@ -8,12 +8,10 @@ Prometheus scrapes metrics from various exporters (cAdvisor, node-exporter) and 
 ## Deployed storage
 
 The external native Docker volume `prometheus_data` mounts at `/prometheus`.
-The existing TSDB is its **data/** child (`/prometheus/data`); copy the complete old
-`./data` contents without flattening this child. UID 65534 must retain ownership
-of private writable files such as `queries.active`. Windows VirtioFS owner mapping
-does not preserve that ownership. Populate and verify the volume before deployment;
-an existing empty volume is not a valid migration. See
-[`docs/virtiofs-storage-readiness.md`](../docs/virtiofs-storage-readiness.md).
+The TSDB uses its `data/` child (`/prometheus/data`). Preserve that layout and
+UID 65534 ownership, including private writable files such as `queries.active`.
+Use the admitted existing volume during updates; do not replace it with an empty
+volume or flatten the data directory.
 
 ## Technical Configuration
 
@@ -39,7 +37,6 @@ restart: unless-stopped
 - `config/prometheus.yml` - Main configuration (scrape targets, jobs)
 - `config/alerts.yml` - Alert rules (optional)
 - `prometheus_data` volume, `data/` child - current TSDB, blocks, WAL and head chunks
-- The retained Windows `data/` becomes a cold migration snapshot after cutover.
 
 ### Default Ports
 - 9090 - Web UI and API

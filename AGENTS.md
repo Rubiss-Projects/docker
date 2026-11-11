@@ -195,9 +195,8 @@ existing admitted SWAG container and missing bridge attachments after Docker
 setup; see `scripts/native-deploy/README.md`.
 
 Inspect the failing service before taking action. Control-plane failure alone
-must not interrupt working applications. The old Windows watchdog, WSL recovery
-tasks and Caddy helpers are archived reference, not native recovery procedures;
-see `docs/previous-host-operations.md`. Do not import their tasks or recovery loops.
+must not interrupt working applications. Use the native admission and recovery
+procedures; do not import retired host recovery tasks or loops.
 
 # New Service Setup
 
