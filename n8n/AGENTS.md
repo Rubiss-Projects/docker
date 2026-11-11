@@ -29,7 +29,18 @@ The legacy `scripts/cleanup_crossseed_stuck.py` command delegates to the same
 JavaScript implementation and requires Node.js. Run policy tests with
 `node --test n8n/scripts/torrent-cleanup-policy.test.cjs`.
 
-## Workflow Management (Auto-Import)
+## Native workflow admission
+
+BEN-SERVER uses the admitted native startup wrapper, not the public Compose
+default's filesystem importer. It verifies the accepted published Sunday Edge
+autoscaler workflow, requires other restored workflows to remain inactive, and
+rejects pending restored executions. It does not import or activate every JSON
+export. Keep its dedicated encrypted SSH credential and published workflow
+identity intact; restarting n8n is not a workflow-promotion procedure.
+
+The Transmission and IRC recovery sources below are retained definitions, not
+currently activated native workflows. Do not enable them or import all exports
+as part of migration cleanup. Future workflow changes need deliberate admission.
 
 ### Transmission recovery
 
@@ -42,8 +53,8 @@ late start gets a fresh verification window). Workflow timeouts are 30 minutes.
 
 Before starting or restarting Transmission, probe Sonarr and Radarr `/ping` in
 parallel with five-second absolute deadlines. At least one must return HTTP 200
-and JSON `status: OK`; otherwise defer to the existing host watchdog and leave
-recovery intent unchanged. A Docker inspection alone does not prove WSL apps are
+and JSON `status: OK`; otherwise leave recovery intent unchanged and inspect
+host responsiveness. A Docker inspection alone does not prove applications are
 responsive. The host gate also applies to an owned late start during verification.
 The next fallback run retries deferred recovery; it does not count as success.
 
@@ -85,19 +96,9 @@ media and never restarts Docker Desktop. A fallback failure remains a failed n8n
 execution; inspect its JSON actions and the original Kuma alert.
 
 Run focused recovery tests with `node --test n8n/scripts/self_heal_container.test.js`.
-This service is configured to automatically import and activate workflows from the filesystem on startup.
-
-1.  **Location**: Place your workflow JSON files in `./workflows`.
-2.  **Mechanism**: A custom startup script (`import-workflows.sh`) runs when the container starts.
-3.  **Behavior**:
-    *   Scans `/files/*.json` (mapped to `workflows` folder).
-    *   Imports the workflow using `n8n import:workflow`.
-    *   Extracts the ID and activates the workflow using `n8n update:workflow`.
-    *   Starts the main n8n process.
-4.  **To Apply Changes**: Simply restart the container:
-    ```bash
-    docker compose restart n8n
-    ```
+`./workflows` contains source exports. The retained public `import-workflows.sh`
+describes the earlier filesystem-import behavior; native startup overrides it.
+Do not use it to bypass the current admission checks.
 
 ## Environment Variables
 - `N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true` - Enforce file permission checks
@@ -138,8 +139,8 @@ docker logs n8n
 
 ### Restart Service
 ```bash
-cd /mnt/e/Docker/n8n
-docker compose restart
+cd /srv/Docker
+python3 scripts/native-deploy/compose.py --stack n8n -- restart n8n
 ```
 
 ## Integration with Other Services
