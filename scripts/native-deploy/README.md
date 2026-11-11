@@ -51,7 +51,12 @@ sudo systemctl enable --now native-https-startup.service
 ```
 
 The unit starts after Docker finishes setup, takes the existing deployment lock,
-applies the adapter's admission checks and starts only the existing SWAG container. It retries a failed
+applies the adapter's admission checks, restores any missing admitted SWAG bridge
+attachments, and starts only the existing SWAG container. A failed Docker boot
+start can leave either attachment missing, even though both remain in Compose.
+Recovery checks the existing container, image and network identities, preserves
+aliases, and rejects unexpected networks or unsupported missing static settings.
+It never attaches the Docker socket proxy to the backend network. It retries a failed
 initial start every 15 seconds and remains satisfied after success. It neither
 recreates nor restarts a running proxy. Docker restarts also re-run this startup
 step. Confirm the unit is active/exited and both LAN HTTPS and Tailscale access
