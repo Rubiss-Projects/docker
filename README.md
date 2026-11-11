@@ -67,5 +67,4 @@ Pull requests run a GitHub-hosted validation workflow before merge. Deployment r
 The main server runs native Ubuntu at `/srv/Docker` and deploys through the
 [native admission adapter](scripts/native-deploy/README.md). Preserve the runner's
 [dedicated Docker CLI configuration](scripts/runner-docker-auth.md) for image
-pulls. Pi deployment remains separate. Windows/WSL watchdog and retired Caddy
-procedures are [archived rollback reference](docs/previous-host-operations.md).
+pulls. Pi deployment remains separate.

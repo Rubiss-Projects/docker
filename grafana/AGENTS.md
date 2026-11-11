@@ -13,13 +13,11 @@ Host, NAS and UPS alert definitions live under `provisioning/alerting/`.
 
 ## Deployed storage
 
-The external native Docker volume `grafana_data` holds `/var/lib/grafana`, including
-SQLite state and plugins. The official image runs as UID 472; it does not consume
-LinuxServer-style PUID/PGID settings. Windows VirtioFS owner mapping can make its
-mode-640 database inaccessible. Populate and verify the volume before deploying;
-volume existence alone does not prove a successful migration. See
-[`docs/virtiofs-storage-readiness.md`](../docs/virtiofs-storage-readiness.md).
-Configuration, provisioning and dashboard sources remain read-only bind mounts.
+The external native Docker volume `grafana_data` holds `/var/lib/grafana`,
+including SQLite state and plugins. Preserve UID 472 ownership; the official
+image does not consume LinuxServer-style PUID/PGID settings. Use the admitted
+existing volume during updates. Configuration, provisioning and dashboard
+sources remain read-only bind mounts.
 
 ## Technical Configuration
 
