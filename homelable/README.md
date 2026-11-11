@@ -12,8 +12,9 @@ proxynet identity, and the canonical `/srv/Docker/homelable/data` bind.
 Deploy only through `scripts/native-deploy/compose.py` after admission.
 
 Public defaults are in `.env`; `SECRET_KEY` and the quoted bcrypt
-`AUTH_PASSWORD_HASH` are in git-crypt-encrypted `.env.secret`. Login is `ben`.
-Generate a unique password; never reuse the upstream default. Preserve single
+`AUTH_USERNAME` and `AUTH_PASSWORD_HASH` are in git-crypt-encrypted `.env.secret`.
+Use the shared `ben-server` Bitwarden login, whose URIs include this private
+HTTPS address. Preserve single
 quotes around the bcrypt hash to prevent Compose dollar interpolation.
 
 Prometheus, Grafana and Uptime Kuma remain the monitoring authorities.
