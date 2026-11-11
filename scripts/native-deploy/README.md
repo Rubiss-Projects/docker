@@ -1,8 +1,9 @@
 # Native Linux deployments
 
 The main-host job runs on BEN-SERVER with `native-docker-ops`; Pi deployments
-retain their existing runner and helper. Keep the workflow disabled until the
-native runner and its host policy are accepted.
+retain their existing runner and helper. The native runner and policy have passed
+acceptance, and the workflow is enabled. On a replacement host, hold deployment
+until its runner, mounts, restored state and policy pass admission.
 
 The existing deployment helper selects this adapter with
 `DOCKER_DEPLOY_HOST=native-linux`. It renders the current service Compose file
