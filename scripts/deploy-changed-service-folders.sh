@@ -753,6 +753,22 @@ add_stack_dependents() {
   done < <(stack_dependents "$stack_dir")
 }
 
+fast_forward_checkout() {
+  if [[ "$DEPLOY_HOST" == native-linux ]]; then
+    local previous_umask
+    previous_umask=$(umask)
+    umask 077
+    if ! git -C "$REPO_DIR" merge --ff-only FETCH_HEAD; then
+      umask "$previous_umask"
+      return 1
+    fi
+    umask "$previous_umask"
+    python3 -B "$REPO_DIR/scripts/native-deploy/checkout_permissions.py" --repo "$REPO_DIR" --apply
+  else
+    git -C "$REPO_DIR" merge --ff-only FETCH_HEAD
+  fi
+}
+
 main() {
   require_command docker
   require_command flock
@@ -791,10 +807,7 @@ main() {
 
   if [[ "$DRY_RUN" != "true" ]]; then
     log "Fast-forwarding $REPO_DIR to origin/$DEPLOY_BRANCH"
-    git -C "$REPO_DIR" merge --ff-only FETCH_HEAD
-    if [[ "$DEPLOY_HOST" == "native-linux" ]]; then
-      python3 -B "$REPO_DIR/scripts/native-deploy/checkout_permissions.py" --repo "$REPO_DIR" --apply
-    fi
+    fast_forward_checkout
   fi
 
   if [[ ${#changed_files[@]} -eq 0 ]]; then

@@ -9,6 +9,25 @@ SCRIPT=Path(__file__).resolve().parents[1]/'deploy-changed-service-folders.sh'
 
 @unittest.skipIf(os.name=='nt','Native dispatch requires POSIX bash')
 class DispatchTests(unittest.TestCase):
+    def test_native_checkout_creates_private_files_and_restores_umask(self):
+        source=SCRIPT.read_text().rsplit('main "$@"',1)[0]
+        for failed in (False,True):
+            with self.subTest(failed=failed),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)
+                body='''
+git() { touch "$REPO_DIR/new-secret"; return "${SIMULATE_FAILURE}"; }
+python3() { test "$1" = -B && test "$3" = --repo && test "$5" = --apply; }
+umask 022
+if fast_forward_checkout; then result=0; else result=$?; fi
+test "$result" = "$SIMULATE_FAILURE" || exit 71
+test "$(umask)" = 0022 || exit 72
+test "$(stat -c %a "$REPO_DIR/new-secret")" = 600 || exit 73
+'''
+                p=subprocess.run(['bash'],input=source+body,cwd=root,text=True,capture_output=True,
+                    env=os.environ|{'DOCKER_REPO_DIR':str(root),'DOCKER_DEPLOY_HOST':'native-linux',
+                                    'SIMULATE_FAILURE':'1' if failed else '0'})
+                self.assertEqual(p.returncode,0,p.stderr)
+
     def test_native_cadvisor_and_compose_use_linux_adapter(self):
         source=SCRIPT.read_text().rsplit('main "$@"',1)[0]
         body='\npython3() { printf "%s\\n" "$@"; }\nif is_windows_compose_stack cadvisor; then exit 90; fi\ncompose config --quiet\n'
