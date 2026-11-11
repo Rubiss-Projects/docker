@@ -137,6 +137,7 @@ jobs:
         env:
           DOCKER_DEPLOY_BRANCH: main
           DOCKER_DEPLOY_SCOPE: pi
+          DOCKER_DEPLOY_HOST: pi
           DOCKER_DEPLOY_START_STOPPED: "false"
           DOCKER_REPO_DIR: /home/rubiss/docker
         run: |

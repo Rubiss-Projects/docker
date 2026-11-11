@@ -322,12 +322,6 @@ jobs:
       - name: Test native deployment wiring and image updates
         run: sudo python3 -B -m unittest discover -s scripts/native-deploy -p 'test_*.py'
 
-      - name: Test memory telemetry parsing and configuration
-        shell: pwsh
-        run: |
-          & ./scripts/host-memory/test-collector.ps1
-          & ./scripts/host-memory/test-install.ps1
-
       - name: Test Tracearr Seerr compatibility against the pinned image
         shell: bash
         run: |

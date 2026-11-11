@@ -147,10 +147,9 @@ Deployment verification calls `sunday-edge-autoscale.py --reset-control` after
 Compose restores the baseline replica count. Reset fills missing logical slots
 1 and 2; any surviving high slot finishes its work before the controller removes
 it, so the physical count can temporarily exceed two. A changed lower-demand
-recommendation starts a new five-minute cooldown. Install the nightly/recovery hook once with
-`python3 scripts/install-grafana-maintenance-hooks.py --apply`; it backs up the
-Windows helper and resets controls after the Sunday Edge Compose recreation.
-Both paths already hold lifecycle locks/maintenance. A plain `docker restart`
+recommendation starts a new five-minute cooldown. The former Windows nightly
+restart and recovery hook are retired. Native deployment holds the lifecycle
+lock and maintenance scope. A plain `docker restart`
 does not reset replica count or the live target.
 Under those locks, `--reset-control` may restore missing baseline slots 1 and 2
 without resource admission; every ordinary autoscaler addition still requires it.
@@ -366,19 +365,13 @@ singleton monitors. For a sequence of lifecycle actions, pass a script as the
 command so maintenance covers the whole sequence. Direct `docker restart` or
 `docker compose` lifecycle commands bypass these hooks and can still notify.
 
-The Windows watchdog and nightly restart use `scripts/grafana-maintenance.ps1`
-through the shared Windows helper. After initially installing/updating the hooks,
-run `python3 scripts/install-grafana-maintenance-hooks.py --apply` from the repository
-root. The installer backs up the two affected Windows scripts and leaves task
-definitions, enabled states, and locking intact. It is idempotent. These host
-scripts live outside Git; the installer and the functions they load are versioned.
+The former Windows watchdog and nightly restart are retired. Native deployments
+and the installed native controller use `scripts/grafana-maintenance.py` through
+the existing Grafana alert channel and scoped maintenance lifecycle.
 
-Windows recovery attempts Grafana maintenance before touching containers. If
-Grafana is already unavailable, recovery continues and the fixed nightly mute
-remains a fallback. On exit, availability notifications resume and the restart
-grace begins. The helper reads the existing Grafana password from the container
-without logging it; the username defaults to `rubiss` (`GRAFANA_MAINTENANCE_USER`
-can override it). Grafana's published local port 3000 must be reachable from WSL.
+The active Python helper reads the existing Grafana credential privately.
+Native deployments use the installed native collector and existing alert routes;
+the old Windows nightly mute schedules and recovery tasks are retired.
 
 ### Health and metrics
 

@@ -906,21 +906,6 @@ updates:
     groups:
       tracearr-images:
         patterns: ['*']
-  - package-ecosystem: docker
-    directory: /scripts/transmission-diagnostics
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "10:10"
-      timezone: America/Chicago
-    open-pull-requests-limit: 1
-    commit-message:
-      prefix: deps
-      include: scope
-    labels: [dependencies, docker-compose]
-    groups:
-      transmission-diagnostics-images:
-        patterns: ['*']
   - package-ecosystem: docker-compose
     directory: /apcupsd-exporter
     schedule:

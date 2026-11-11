@@ -40,7 +40,7 @@ appear as unchanged version tags or as backtick-wrapped hexadecimal hashes.
 New app releases after a check, publisher image build delays, and beta release
 notifications can legitimately appear before the next stable image update.
 
-Native Caddy is governed by `caddy/release.json`, outside Docker Dependabot. Game
+The former native Caddy proxy and its release manifest are retired. Game
 server downloads and Homebridge plugins installed inside containers are also
 separate from the container image; image digest protection does not cover them.
 
@@ -113,8 +113,8 @@ Other changes below add missing digests or catch up rebuilds in existing channel
 | `uptime-kuma` | `uptime-kuma:2` | Track supported v2 channel; deprecated latest points to v1 |
 | `valheim` | `valheim-server:latest` | Current stable release/channel; retain pin |
 
-The separate `scripts/transmission-diagnostics/Dockerfile` retains Transmission
-4.1.3, refreshes its base digest, and gains weekly Dockerfile coverage.
+The temporary Windows/WSL Transmission diagnostic image was retired after the
+native migration; its old pin audit remains historical context.
 
 References: [Docker digest pinning](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions),
 [Dependabot Docker tag parsing](https://github.com/dependabot/dependabot-core/blob/main/docker/lib/dependabot/docker/tag.rb),
