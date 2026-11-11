@@ -42,3 +42,6 @@ notifications can legitimately appear before the next stable image update.
 
 Game server downloads and Homebridge plugins installed inside containers are also
 separate from the container image; image digest protection does not cover them.
+
+n8n version changes also require its publisher GitHub release to be non-draft
+and non-prerelease. Numeric beta tags must not bypass the stable-release policy.
