@@ -7,6 +7,7 @@ ConditionPathExists=/var/lib/nas-migration-ups/restore-pending.json
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/nut/native-ups.env
 ExecStart=/usr/bin/python3 -B /usr/local/lib/nas-migration/native_ups_restore.py
 RemainAfterExit=yes
 TimeoutStartSec=240

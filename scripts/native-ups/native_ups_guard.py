@@ -28,7 +28,10 @@ def decision(flags, elapsed):
 
 
 def sample():
-    with socket.create_connection(('192.168.50.91', 3493), timeout=2) as sock:
+    host = os.environ.get('NATIVE_UPS_HOST', '192.168.50.91')
+    if host not in {'192.168.50.91', '127.0.0.1'}:
+        raise ValueError('UPS endpoint must be the admitted NAS or local driver')
+    with socket.create_connection((host, 3493), timeout=2) as sock:
         sock.settimeout(2)
         sock.sendall(b'GET VAR qnapups ups.status\n')
         with sock.makefile('rb') as reader:
