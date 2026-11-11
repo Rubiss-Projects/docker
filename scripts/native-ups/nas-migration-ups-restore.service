@@ -1,7 +1,7 @@
 [Unit]
 Description=Restore admitted services drained by a previous UPS shutdown
 Requires=docker.service
-After=docker.service network-online.target
+After=docker.service network-online.target nut-server.service nut-driver.target
 Before=native-https-startup.service
 ConditionPathExists=/var/lib/nas-migration-ups/restore-pending.json
 

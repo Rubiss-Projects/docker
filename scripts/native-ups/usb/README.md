@@ -3,7 +3,9 @@
 This is preparation source. The NAS retains USB ownership until the local driver
 and both clients are ready. No power-loss, forced-shutdown or outlet test is part
 of this handoff. The existing native guard remains the server shutdown owner;
-keep `nut-monitor.service` masked and do not create a killpower flag.
+keep `nut-monitor.service` masked and do not create a killpower flag. Boot recovery
+is ordered after the NUT server/driver target and uses a 45-second readiness budget for
+local utility status; a current-boot shutdown intent or battery status holds it.
 
 ## Prepare before requesting the cable move
 
@@ -64,6 +66,6 @@ The collector fragment uses the installed Telegraf 1.40.3
 [UPSD input](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/inputs/upsd),
 [Starlark processor](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/processors/starlark)
 and [Prometheus output](https://github.com/influxdata/telegraf/tree/v1.40.3/plugins/outputs/prometheus_client).
-The isolated native validation passed all 11 guard/recovery tests, eight
+The isolated native validation passed all 14 guard/recovery tests, eight
 synthetic status cases and a read-only collection from the current NAS source.
 No production collector or power ownership changed during validation.

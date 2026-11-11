@@ -73,5 +73,44 @@ class RestoreSelectionTests(unittest.TestCase):
             sample.assert_not_called()
 
 
+class LocalUpsReadinessTests(unittest.TestCase):
+    def test_delayed_driver_readiness_waits_for_online_status(self):
+        with patch.dict(restore.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(restore, 'require_no_shutdown_intent') as intent, \
+                patch.object(restore, 'sample', side_effect=[OSError('starting'), ValueError('not ready'), 'OL CHRG']), \
+                patch.object(restore.time, 'monotonic', side_effect=[0, 1, 2]), \
+                patch.object(restore.time, 'sleep') as sleep:
+            restore.wait_for_local_ups('current-boot')
+            self.assertEqual(sleep.call_count, 2)
+            self.assertEqual(intent.call_count, 3)
+
+    def test_missing_driver_times_out_and_battery_status_holds_immediately(self):
+        with patch.dict(restore.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(restore, 'require_no_shutdown_intent'), \
+                patch.object(restore, 'sample', side_effect=OSError('unavailable')), \
+                patch.object(restore.time, 'monotonic', side_effect=[0, 45]), \
+                patch.object(restore.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(ValueError, 'timed out'):
+                restore.wait_for_local_ups('current-boot')
+            sleep.assert_not_called()
+        with patch.dict(restore.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(restore, 'require_no_shutdown_intent'), \
+                patch.object(restore, 'sample', return_value='OB'), \
+                patch.object(restore.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(ValueError, 'not on utility'):
+                restore.wait_for_local_ups('current-boot')
+            sleep.assert_not_called()
+
+    def test_shutdown_intent_interrupts_readiness_before_any_next_probe(self):
+        with patch.dict(restore.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(restore, 'require_no_shutdown_intent', side_effect=[None, ValueError('already committed')]), \
+                patch.object(restore, 'sample', side_effect=OSError('starting')) as sample, \
+                patch.object(restore.time, 'monotonic', side_effect=[0, 1]), \
+                patch.object(restore.time, 'sleep'):
+            with self.assertRaisesRegex(ValueError, 'already committed'):
+                restore.wait_for_local_ups('current-boot')
+            sample.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()

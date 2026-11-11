@@ -7,6 +7,7 @@ import re
 import socket
 import stat
 import subprocess
+import time
 
 from native_ups_guard import ROOT, decision, manifest_lock, sample, write_state
 
@@ -56,13 +57,37 @@ def load_manifest(path, *, private=True):
         return json.load(stream)
 
 
-def require_online(boot):
+def require_no_shutdown_intent(boot):
     """Hold if this boot has already committed to a protective shutdown."""
     intent = ROOT / 'shutdown-intent.json'
     if intent.exists() and load_manifest(intent).get('boot') == boot:
         raise ValueError('UPS shutdown is already committed on this boot')
+
+
+def require_online(boot):
+    require_no_shutdown_intent(boot)
     if decision(sample(), 0) != 'online':
         raise ValueError('UPS recovery held until utility power is confirmed')
+
+
+def wait_for_local_ups(boot):
+    """Allow the local USB driver up to 45 seconds to publish fresh utility status."""
+    if os.environ.get('NATIVE_UPS_HOST') != '127.0.0.1':
+        return
+    deadline = time.monotonic() + 45
+    while True:
+        require_no_shutdown_intent(boot)
+        try:
+            outcome = decision(sample(), 0)
+        except (OSError, ValueError):
+            outcome = 'unknown'
+        if outcome == 'online':
+            return
+        if outcome != 'unknown':
+            raise ValueError('UPS recovery held: local UPS is not on utility power')
+        if time.monotonic() >= deadline:
+            raise ValueError('Local UPS readiness timed out; retain recovery manifest')
+        time.sleep(1)
 
 
 def main():
@@ -76,6 +101,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         manifest = load_manifest(path)
         boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+        wait_for_local_ups(boot)
         require_online(boot)
         ids = [c['id'] for c in manifest['containers']]
         if not ids or any(not re.fullmatch('[0-9a-f]{64}', cid) for cid in ids):
