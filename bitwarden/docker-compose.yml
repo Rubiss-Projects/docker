@@ -41,7 +41,7 @@ services:
       - path: db.env
       - path: db.env.secret
         required: false
-    image: postgres:14@sha256:0472f5295d05c211cc42b3daa5e84a128e390c5267b60ced9fe044bcf4edfdb8
+    image: postgres:14@sha256:834a046089d76edd1d2e81c4741f3ad5d1853646ededc86c2708936aad31c1ed
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
