@@ -436,7 +436,7 @@ groups:
 - orgId: 1
   name: ups-health
   folder: Infrastructure
-  interval: 15s
+  interval: 10s
   rules:
   - uid: ups_telemetry_missing
     title: UPS telemetry unavailable
