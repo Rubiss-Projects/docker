@@ -97,6 +97,20 @@ jobs:
                   return False
 
               for old, new in update_pairs:
+                  # Numeric n8n beta tags need publisher metadata, not just SemVer.
+                  if re.search(r"Updates `n8nio/n8n`", pr.get("body") or "") and version_pattern.fullmatch(new):
+                      try:
+                          release = json.loads(subprocess.check_output([
+                              'gh', 'api', f'repos/n8n-io/n8n/releases/tags/n8n%40{new}'
+                          ], text=True, timeout=20))
+                      except (subprocess.SubprocessError, ValueError):
+                          print(f'Skipping PR #{pr["number"]}: n8n release metadata unavailable', file=sys.stderr)
+                          return False
+                      if (release.get('tag_name') != 'n8n@' + new
+                              or release.get('prerelease') is not False
+                              or release.get('draft') is not False):
+                          print(f'Skipping PR #{pr["number"]}: n8n publisher has not marked this release stable', file=sys.stderr)
+                          return False
                   if old == new or (digest_pattern.fullmatch(old) and digest_pattern.fullmatch(new)):
                       continue
 
