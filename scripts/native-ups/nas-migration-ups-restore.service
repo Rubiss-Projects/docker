@@ -13,9 +13,9 @@ TimeoutStartSec=240
 UMask=0077
 NoNewPrivileges=yes
 ProtectSystem=strict
-ProtectHome=yes
+ProtectHome=read-only
 PrivateTmp=yes
-ReadWritePaths=/var/lib/nas-migration-ups
+ReadWritePaths=/var/lib/nas-migration-ups /srv/Media
 
 [Install]
 WantedBy=docker.service

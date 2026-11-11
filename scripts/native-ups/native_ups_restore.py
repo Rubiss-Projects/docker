@@ -8,7 +8,7 @@ import socket
 import stat
 import subprocess
 
-from native_ups_guard import ROOT, decision, sample, write_state
+from native_ups_guard import ROOT, decision, manifest_lock, sample, write_state
 
 
 def select_stopped(manifest, current, policy, boot):
@@ -56,6 +56,15 @@ def load_manifest(path, *, private=True):
         return json.load(stream)
 
 
+def require_online(boot):
+    """Hold if this boot has already committed to a protective shutdown."""
+    intent = ROOT / 'shutdown-intent.json'
+    if intent.exists() and load_manifest(intent).get('boot') == boot:
+        raise ValueError('UPS shutdown is already committed on this boot')
+    if decision(sample(), 0) != 'online':
+        raise ValueError('UPS recovery held until utility power is confirmed')
+
+
 def main():
     if os.geteuid() != 0 or socket.gethostname() != 'ben-server' or ROOT.resolve() != ROOT:
         raise ValueError('UPS recovery is restricted to the admitted native host')
@@ -67,8 +76,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         manifest = load_manifest(path)
         boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
-        if decision(sample(), 0) != 'online':
-            raise ValueError('UPS recovery held until utility power is confirmed')
+        require_online(boot)
         ids = [c['id'] for c in manifest['containers']]
         if not ids or any(not re.fullmatch('[0-9a-f]{64}', cid) for cid in ids):
             raise ValueError('UPS recovery requires exact saved container IDs')
@@ -87,17 +95,20 @@ def main():
         saved_by_id = {c['id']: c for c in manifest['containers']}
         stopped.sort(key=lambda cid: priority.get(saved_by_id[cid]['project'], 3))
         for cid in stopped:
-            if decision(sample(), 0) != 'online':
-                raise ValueError('UPS power changed during recovery; remaining containers held')
+            require_online(boot)
             subprocess.run(['docker', 'start', cid], check=True, timeout=30,
                            stdout=subprocess.DEVNULL)
         after = json.loads(subprocess.check_output(['docker', 'inspect', *ids], timeout=15))
         if select_stopped(manifest, after, policy, boot):
             raise ValueError('UPS recovery has containers still stopped')
-        write_state(ROOT / 'restore-result.json',
-                    {'boot': boot, 'shutdownBoot': manifest['boot'],
-                     'startedContainers': len(stopped), 'recreatedContainers': 0})
-        path.rename(ROOT / ('restore-completed-' + manifest['boot'] + '.json'))
+        with manifest_lock():
+            require_online(boot)
+            if load_manifest(path) != manifest:
+                raise ValueError('Pending UPS recovery changed; retain it for reconciliation')
+            write_state(ROOT / 'restore-result.json',
+                        {'boot': boot, 'shutdownBoot': manifest['boot'],
+                         'startedContainers': len(stopped), 'recreatedContainers': 0})
+            path.rename(ROOT / ('restore-completed-' + manifest['boot'] + '.json'))
 
 
 if __name__ == '__main__':
