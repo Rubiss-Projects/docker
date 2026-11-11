@@ -6,8 +6,13 @@
         href: https://nas.benlawson.dev/
         description: TS-664 · RAID5 · storage details in Grafana
         siteMonitor: http://192.168.50.91:8080/
-        # Enable the authenticated widget after initialization and storage validation.
-        # See docs/qnap-monitoring.md for the account, secrets and acceptance checks.
+        # Storage allocation and quotas remain separate verified Grafana panels.
+        widget:
+          type: qnap
+          url: https://nas.benlawson.dev:4443
+          username: "{{HOMEPAGE_VAR_QNAP_USERNAME}}"
+          password: "{{HOMEPAGE_VAR_QNAP_PASSWORD}}"
+          fields: ["cpuUsage", "memUsage", "systemTempC"]
     - NAS UPS telemetry:
         icon: mdi-power-plug-battery
         href: https://grafana.benlawson.dev/d/nut-ups
