@@ -60,3 +60,28 @@ CI runs the pure decision tests on Linux. They exercise utility power, battery
 timing, critical flags, invalid/conflicting data and loss of status after a
 battery event without invoking application drain or poweroff.
 
+## Recover after a protective shutdown
+
+The November 11 voltage event exposed Docker's `unless-stopped` behavior:
+containers explicitly drained by the guard stay stopped on the next boot.
+The guard now records the running Compose container IDs, image IDs and ownership
+in its private state directory before draining. Failure to record recovery state
+still allows the existing protective shutdown to proceed.
+
+`nas-migration-ups-restore.service` runs once after Docker starts and before the
+HTTPS startup helper. It requires a previous-boot manifest, confirmed utility
+power, unchanged container/image/Compose identities, and native mount/policy
+admission for every affected project. It starts only the saved stopped IDs,
+checks utility power again before each start, and records completion. Missing
+or changed identities hold recovery for operator reconciliation. Dormant stacks
+and unmanaged temporary containers are excluded.
+
+Install the reviewed `native_ups_restore.py` beside `native_ups_guard.py` in
+`/usr/local/lib/nas-migration/`, and install the new restore unit in
+`/etc/systemd/system/`. Validate with `systemd-analyze verify`, reload systemd and
+enable the restore unit. Promote the reviewed guard only while utility power
+is confirmed and its observation has no active battery deadline. Preserve all
+existing state and shutdown intents. The new unit has no periodic timer or
+restart loop. The owner-waived physical outage test remains waived; unit and
+identity/admission checks must not claim an exercised outage.
+
