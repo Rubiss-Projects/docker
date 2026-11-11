@@ -4,7 +4,7 @@
     - QNAP NAS:
         icon: qnap.png
         href: https://nas.benlawson.dev/
-        description: TS-664 · RAID5 · storage details in Grafana
+        description: Network-attached storage
         siteMonitor: http://192.168.50.91:8080/
         # Storage allocation and quotas remain separate verified Grafana panels.
         widget:
@@ -16,16 +16,12 @@
     - APC UPS:
         icon: mdi-power-plug-battery
         href: https://grafana.benlawson.dev/d/apc-ups
-        description: BR1500MS2 · native USB · server, PC and NAS protection
+        description: Uninterruptible power supply
         widget:
           type: prometheusmetric
           url: http://prometheus:9090
           refreshInterval: 15000
           metrics:
-            - label: Data available (1=yes)
-              query: nut:telemetry_available
-              format:
-                type: number
             - label: Charge
               query: nut:battery_charge_percent
               format:
