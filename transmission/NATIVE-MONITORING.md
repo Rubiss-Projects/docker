@@ -3,7 +3,7 @@
 The Ubuntu host uses its native Telegraf service and the existing InfluxDB output,
 organization, bucket and write token. Linux host inputs replace Windows counters.
 No Docker socket, Docker group membership, recovery command or second collector
-is required. The Windows installer remains available for a deliberate rollback.
+is required. Retired Windows probe/installer sources remain in Git history.
 
 The five-second host probe negotiates Transmission's token, reads and validates
 the full `session-stats` response within one three-second monotonic deadline.
@@ -42,11 +42,11 @@ functional success. Neither probe restarts the application or changes torrents.
    system and Transmission samples. A write-only token may hide buckets and query
    results; that is not evidence of lost data. Keep the existing InfluxQL mapping.
 
-`Native Linux Host` displays host CPU, memory, root/NAS filesystem use, uptime and
-processes. Its alerts cover missing telemetry, CPU pressure, available memory and
-root space. The existing Transmission dashboard and alert UIDs are preserved;
-host-latency panels select only native observations. Windows history remains in
-the database and the Windows dashboard remains available for historical use.
+The native server and Pi share the provisioned Node Exporter Full dashboard for
+host CPU, memory, filesystem and network metrics. The existing Transmission
+dashboard and alert UIDs are preserved; host-latency panels select only native
+observations. Historical metric data remains retained. The former Windows and
+duplicate native host dashboards are retired.
 Missing telemetry and query errors remain distinguishable from successful RPC.
 
 ## Validation and recovery
@@ -60,5 +60,6 @@ Before restoring a prior collector revision, preserve current configuration and
 restore the managed probe files and fragment together from the reported private
 backup directory. Validate as `telegraf`, then restart only that collector. Keep
 the current credentials, base output, metric history and application volumes.
-The existing application health/recovery controls remain independent of metrics;
-native recovery acceptance is a separate migration gate.
+Docker crash recovery remains independent of metrics. The owner retired the
+legacy health-check-triggered restart workflows; inspect failures before taking
+action instead of restarting containers automatically from a health alert.

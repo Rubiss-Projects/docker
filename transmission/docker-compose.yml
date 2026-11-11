@@ -60,7 +60,7 @@ services:
       - swag.uptime-kuma.monitor.type=docker
       - swag.uptime-kuma.monitor.docker_container=transmission
       - swag.uptime-kuma.monitor.docker_host=1
-      - swag.uptime-kuma.monitor.description=Functional RPC health via Docker; Windows Docker host
+      - swag.uptime-kuma.monitor.description=Functional RPC health via Docker
     networks:
       - proxynet
 
