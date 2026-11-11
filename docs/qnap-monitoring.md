@@ -103,35 +103,38 @@ creation or interruption of an active test.
 5. Verify the resulting readings in Prometheus, Grafana and, once enabled,
    Homepage before the media copy.
 
-## Homepage widget activation — deferred
+## Homepage NAS statistics
 
-The SNMP collector does not enable this widget. Wait for a verified production
-pool and create a dedicated local account, initially with the **System Monitoring**
-delegated role and no share access. Test the API with that role before granting
-anything broader; do not reuse the interactive administrator. Homepage's current
-widget does not support an OTP login flow.
+The native migration verified a dedicated local **System Monitoring** account
+(role 4 on this QuTS hero firmware). It is not an administrator, belongs only to
+`everyone`, and is explicitly denied access to Media, Public and Recovery shares.
+AFP, FTP, SMB, WebDAV and File Station access are also denied. Both APIs used by
+Homepage v2.7.0 pass with this account; no broader delegated role is needed.
 
-Store `HOMEPAGE_VAR_QNAP_USERNAME` and `HOMEPAGE_VAR_QNAP_PASSWORD` in
-`homepage/.env.secret`, which is already covered by git-crypt and loaded by the
-Compose stack. Confirm the staged Git blob is encrypted before committing it.
-Recreate Homepage through the normal deployment when those environment variables
-are added. Add this block to the existing **QNAP NAS** card in
-`homepage/config/services.yaml` only after the prerequisites above pass:
+`HOMEPAGE_VAR_QNAP_USERNAME` and `HOMEPAGE_VAR_QNAP_PASSWORD` live in
+`homepage/.env.secret`, covered by git-crypt and loaded by the existing Compose
+secret overlay. Verify the staged Git blob is encrypted before committing a
+credential change. Recreate Homepage through the normal admitted native deployment
+when changing these environment variables; do not use the interactive admin
+account. The widget does not support an OTP login flow.
 
-```yaml
-        widget:
-          type: qnap
-          url: http://192.168.50.91:8080
-          username: "{{HOMEPAGE_VAR_QNAP_USERNAME}}"
-          password: "{{HOMEPAGE_VAR_QNAP_PASSWORD}}"
-          fields: ["cpuUsage", "memUsage", "systemTempC", "poolUsage"]
-```
+The widget uses the existing private `https://nas.benlawson.dev:4443` route, whose
+certificate was verified from the Homepage container. This adds no NAS listener,
+WAN forward or TLS-validation exception. It displays CPU, memory and system
+temperature only. The dedicated-account API test returned numeric fields for all
+three, and both the system and volume API requests were authenticated.
 
-Check the widget's `poolUsage` carefully: Homepage documents it as an aggregate
-of reported volumes, which is not necessarily the physical ZFS pool utilization.
-Omit that field if the semantics or figures do not agree. Selecting only CPU
-fields does not eliminate the widget's volume API request, so wait for the
-verified pool before enabling it. Update the card description once active.
+Keep storage statistics in the verified Grafana panels. The widget's
+[`poolUsage` implementation](https://github.com/gethomepage/homepage/blob/v2.7.0/src/widgets/qnap/component.jsx)
+sums reported volume sizes/free space. This NAS exposes thin shared-folder quotas
+through that endpoint, which do not describe physical ZFS pool allocation.
+Selecting only CPU/memory/temperature fields still makes the volume API request;
+its permission test must continue to pass after a firmware or widget update.
+
+To roll back just this widget, remove its block and the two dedicated credentials
+through a reviewed change, then deploy Homepage normally. Preserve the NAS link,
+availability check, SNMP collection and storage dashboards. Remove the dedicated
+NAS account only after confirming no consumer still uses it.
 
 ## Validation and rollback
 
