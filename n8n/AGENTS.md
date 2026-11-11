@@ -164,18 +164,20 @@ n8n can connect to all services in this infrastructure:
 ## Sunday Edge autoscaling
 
 `workflows/sunday-edge-autoscale-workflow.json` runs every 30 seconds using the
-encrypted `sundayEdgeHostSsh` SSH credential. Its fixed command enters the Windows
-Docker operation lock and calls `scripts/sunday-edge-autoscale.py` in WSL. The
-controller also shares the deployment lock; overlapping executions skip safely.
-The result node turns a nonzero SSH command exit into a failed workflow execution.
-See `sunday-edge/AGENTS.md` for baseline reset, draining, pause, and rollout steps.
-No Docker API privileges are added to n8n or the workers.
+encrypted `sundayEdgeHostSsh` SSH credential. The fixed
+`sunday-edge-autoscale-native` command invokes the installed root-controlled native
+controller, whose source is `scripts/sunday-edge-autoscale.py`. It shares the
+native deployment lock and routes Compose operations through native admission;
+overlapping executions skip safely. The result node converts a nonzero SSH exit
+into a failed workflow execution. See `sunday-edge/AGENTS.md` for limits, drains,
+pause, source promotion and validation. No new Docker API privileges are granted.
 
-The credential is a dedicated `sshPrivateKey`, never the host login password.
-Its public key must have server-side `restrict,command="powershell.exe -NoProfile
--NonInteractive -File E:/Docker/scripts/sunday-edge-autoscale.ps1"` options on one
-line in Windows OpenSSH's authorized-keys file. Verify that requesting another
-command still invokes the controller and forwarding is refused before activation.
+The dedicated `sshPrivateKey` stays in n8n's encrypted credential store. Preserve
+the native SSH account's existing `restrict,command="/usr/local/sbin/n8n-sunday-autoscale-ssh-entry"`
+key restriction and exact sudoers commands. The entry point permits only the fixed
+controller command and its dry run, including the SSH node's literal `cd '.' ;`
+prefix. Other commands and forwarding must be refused. Its two shell sources are
+in `scripts/native-sunday-edge/`; no Windows OpenSSH or PowerShell wrapper remains.
 The repository mount is read-only so n8n cannot replace the host-executed helper
 or its Compose configuration. Existing writes stay in the n8n data/workflow mounts,
 autobrr's config directory, and the cross-seed registration directory.

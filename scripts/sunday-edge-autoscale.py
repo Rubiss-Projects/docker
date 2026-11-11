@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconcile the DFS pool. n8n invokes this through the Windows operation lock.
+"""Reconcile the DFS pool on native Linux under its shared deployment lock.
 
 The runtime volume holds desired slots and cooldown state, not Compose overrides.
 Only acknowledged, idle, excess logical slots can be stopped. Metrics/API failures
@@ -22,7 +22,8 @@ import time
 import urllib.request
 import uuid
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path("/srv/Docker")
+ADAPTER = ROOT / "scripts/native-deploy/compose.py"
 STACK = ROOT / "sunday-edge"
 CHECKPOINT = "sunday-edge-checkpoint-recovery"
 MINIMUM, MAXIMUM = 2, 8
@@ -34,7 +35,19 @@ MAX_ADDITIONS = 2
 DEPLOY_LOCK = Path("/tmp/docker-compose-ops-deploy.lock.d")
 
 
+def native_command(args, valid_until=None):
+    """Use current admitted native wiring instead of a frozen migration recipe."""
+    if args[:2] != ["docker", "compose"]:
+        return args
+    prefix = (["runuser", "-u", "rubiss", "--"] if os.geteuid() == 0 else [])
+    prefix += [sys.executable, "-B", str(ADAPTER), "--repo", str(ROOT), "--stack", "sunday-edge"]
+    if valid_until is not None:
+        prefix += ["--resource-valid-until", str(valid_until)]
+    return prefix + ["--", *args[2:]]
+
+
 def command(args, *, input=None, timeout=45):
+    args = native_command(args)
     result = subprocess.run(args, cwd=STACK, input=input, text=True,
                             capture_output=True, timeout=timeout)
     if result.returncode:
@@ -105,7 +118,7 @@ if(!r.ok) throw Error('metrics unavailable'); return {id,metrics:await r.text()}
 
 
 def linux_resources():
-    """Measure this WSL VM, including other containers and Linux services."""
+    """Measure this native Linux host, including all containers and host services."""
     def cpu_times():
         # Guest ticks are already included in user/nice ticks.
         ticks = [int(value) for value in Path("/proc/stat").read_text().splitlines()[0].split()[1:9]]
@@ -122,12 +135,12 @@ def linux_resources():
             "availableMemoryBytes": int(memory["MemAvailable"]) * 1024}
 
 
-def resource_budget(windows, linux, cpu_per_worker, memory_per_worker, now):
-    """Admit full replica limits while retaining headroom on BOTH host systems."""
+def resource_budget(native, cpu_per_worker, memory_per_worker, now):
+    """Admit full replica limits while retaining headroom on the native host."""
     if not math.isfinite(cpu_per_worker) or cpu_per_worker <= 0 or memory_per_worker <= 0:
         raise ValueError("Invalid worker resource limits")
     allowed = MAX_ADDITIONS
-    for resources in (windows, linux):
+    for resources in (native,):
         if not isinstance(resources, dict):
             raise ValueError("Missing resource sample")
         sampled = resources["sampledAt"]
@@ -145,17 +158,17 @@ def resource_budget(windows, linux, cpu_per_worker, memory_per_worker, now):
     return allowed
 
 
-def admission(windows):
+def admission():
     try:
         # Budget the desired Compose limits, not potentially older running quotas.
         config = json.loads(command(["docker", "compose", "config", "--format", "json"]))
         limits = config["services"]["dfs"]
         linux = linux_resources()
-        allowed = resource_budget(windows, linux, float(limits["cpus"]), int(limits["mem_limit"]),
+        allowed = resource_budget(linux, float(limits["cpus"]), int(limits["mem_limit"]),
                                   int(time.time() * 1000))
         return {"additionalSlots": allowed, "reason": "HEADROOM" if allowed else "RESOURCE_PRESSURE",
-                "validUntil": min(windows["sampledAt"], linux["sampledAt"]) + RESOURCE_MAX_AGE_MS,
-                "windows": windows, "linux": linux}
+                "validUntil": linux["sampledAt"] + RESOURCE_MAX_AGE_MS,
+                "nativeLinux": linux}
     except (KeyError, ValueError, TypeError, OSError, RuntimeError, subprocess.TimeoutExpired):
         # Telemetry failures hold additions without interrupting leases or drains.
         return {"additionalSlots": 0, "reason": "RESOURCE_SAMPLE_UNAVAILABLE"}
@@ -198,6 +211,7 @@ def report(state, workers):
 
 
 def lifecycle(args, admission_valid_until=None):
+    args = native_command(args, admission_valid_until)
     if admission_valid_until is not None:
         # This guard executes AFTER Grafana/Kuma setup, immediately before Docker.
         # Maintenance setup can exceed the lifetime of otherwise fresh samples.
@@ -235,7 +249,7 @@ def apply_state(state, workers, max_additions=0, admission_valid_until=None):
         # Draining high slots still own their locks but do not supply the target's
         # active capacity. Fill missing identities within this pass's admission budget.
         replicas = len(workers) + additions
-        lifecycle(["docker", "compose", "up", "-d", "--no-deps", "--no-recreate", "--pull", "never",
+        lifecycle(["docker", "compose", "up", "-d", "--no-deps", "--no-recreate",
                    "--scale", f"dfs={replicas}", "--wait", "--wait-timeout", "90", "dfs"],
                   admission_valid_until=admission_valid_until)
         workers = snapshot()
@@ -243,7 +257,7 @@ def apply_state(state, workers, max_additions=0, admission_valid_until=None):
     return workers
 
 
-def reconcile(dry_run=False, windows_resources=None):
+def reconcile(dry_run=False):
     workers = snapshot()
     demand = app_request("GET")
     if demand.get("protocolVersion") != 1 or any(worker["version"] != demand.get("workerVersion") for worker in workers):
@@ -258,7 +272,7 @@ def reconcile(dry_run=False, windows_resources=None):
     now = int(time.time() * 1000)
     # Validate the signed recommendation before applying resource limits.
     state = next_state(previous, demand, now)
-    guard = admission(windows_resources)
+    guard = admission()
     current = previous["desiredSlots"]
     missing = len(set(range(1, current + 1)) - {worker["slot"] for worker in workers})
     growth = max(0, guard["additionalSlots"] - missing)
@@ -311,7 +325,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--reset-control", action="store_true")
-    parser.add_argument("--windows-resources-stdin", action="store_true")
     args = parser.parse_args()
     if args.reset_control:
         print(json.dumps(reset_control()))
@@ -319,15 +332,9 @@ def main():
     if (STACK / "autoscaling.paused").exists():
         print(json.dumps({"paused": True}))
         return
-    windows_resources = None
-    if args.windows_resources_stdin:
-        try:
-            windows_resources = json.load(sys.stdin)
-        except (ValueError, OSError):
-            pass  # Invalid host telemetry must never grant additional capacity.
     try:
         with deployment_lock():
-            print(json.dumps(reconcile(args.dry_run, windows_resources)))
+            print(json.dumps(reconcile(args.dry_run)))
     except BlockingIOError:
         print(json.dumps({"skipped": "deployment or another controller owns the lock"}))
 

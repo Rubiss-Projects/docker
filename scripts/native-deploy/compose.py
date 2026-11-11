@@ -13,6 +13,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 POLICY = Path('/etc/docker-ops/native-policy.json')
 STATE = Path('/var/lib/docker-ops/compiled')
@@ -226,7 +227,7 @@ def recover_proxy_networks(recipe: dict, identities: dict) -> None:
         capture(command)
 
 
-def compose_arguments(arguments: list[str], services: set[str], local_images: set[str]) -> list[str] | None:
+def compose_arguments(arguments: list[str], services: set[str], local_images: set[str], *, allow_dfs_scale: bool = False) -> list[str] | None:
     if not arguments or arguments[0] not in {'config', 'ps', 'pull', 'up', 'restart', 'start', 'stop', 'exec'}:
         raise ValueError('Unsupported native deployment Compose command')
     if arguments[0] == 'exec':
@@ -246,7 +247,13 @@ def compose_arguments(arguments: list[str], services: set[str], local_images: se
         position = 1
         while position < len(arguments):
             value = arguments[position]
-            if value in {'--wait-timeout', '--timeout'}:
+            if value == '--scale':
+                position += 1
+                if (arguments[0] != 'up' or not allow_dfs_scale or 'dfs' not in services
+                        or position >= len(arguments)
+                        or not re.fullmatch(r'dfs=[2-8]', arguments[position])):
+                    raise ValueError('Native scale is restricted to two through eight Sunday Edge DFS replicas')
+            elif value in {'--wait-timeout', '--timeout'}:
                 position += 1
                 if position >= len(arguments) or not arguments[position].isdigit() or int(arguments[position]) > 600:
                     raise ValueError('Invalid native Compose timeout')
@@ -266,6 +273,7 @@ def main() -> int:
     parser.add_argument('--repo', type=Path, default=Path('/srv/Docker'))
     parser.add_argument('--policy', type=Path, default=POLICY)
     parser.add_argument('--recover-proxy-networks', action='store_true')
+    parser.add_argument('--resource-valid-until', type=int)
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--admit', nargs='+')
     action.add_argument('--stack')
@@ -289,14 +297,24 @@ def main() -> int:
                 arguments = args.compose_arguments
                 if arguments[:1] == ['--']:
                     arguments = arguments[1:]
-                command = compose_arguments(arguments, set(recipe['services']), local)
+                command = compose_arguments(arguments, set(recipe['services']), local,
+                    allow_dfs_scale=stack == 'sunday-edge')
                 if command is None:
                     return 0
                 if args.recover_proxy_networks:
                     if stack != 'swag' or command != ['start', 'swag']:
                         raise ValueError('Proxy network recovery is restricted to start swag')
                     recover_proxy_networks(recipe, policy['stacks'][stack]['resourceIdentities'])
+                deadline = args.resource_valid_until
+                if deadline is not None:
+                    if (stack != 'sunday-edge' or command[0] != 'up' or '--scale' not in command
+                            or deadline <= 0 or deadline > int(time.time() * 1000) + 60_000):
+                        raise ValueError('Resource deadline is restricted to freshly admitted DFS growth')
                 path = write_recipe(stack, recipe)
+                # Rendering and policy checks may outlive the controller's sample.
+                if deadline is not None and int(time.time() * 1000) > deadline:
+                    print('Resource admission expired during native admission; holding capacity')
+                    return 0
                 return subprocess.run(['docker', 'compose', '--profile', '*', '--project-name', stack,
                     '--project-directory', str(args.repo/stack), '-f', str(path), *command], check=False).returncode
         print('Native deployment storage, networks, images and mount admission passed')
