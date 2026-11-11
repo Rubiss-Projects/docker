@@ -1,34 +1,25 @@
-# Previous-host operations — archived
+# Previous-host operations
 
-BEN-SERVER now runs native Ubuntu. `/srv/Docker` is the deployment checkout;
+BEN-SERVER runs native Ubuntu. `/srv/Docker` is the deployment checkout;
 `/mnt/e/Docker` is its compatibility path. Use the
 [native deployment runbook](../scripts/native-deploy/README.md), admitted host
-policies and existing systemd units. The reviewed automatic startup path has
-passed a normal boot with the existing application identities retained.
+policies and installed systemd units.
 
-The following source is archived in place so its paths and rollback definitions
-remain intact. It is not a list of tasks to install or enable:
+The retired Windows Docker Desktop/WSL watchdog, host-memory collector,
+Transmission ETW diagnostics, Windows Compose bridge and Caddy proxy source
+were removed during final migration cleanup. Their historical definitions remain
+in Git history. Do not reinstall their scheduled tasks, blanket recovery loops,
+certificate-copy timer or nightly Docker restart on the native server.
 
-- [`scripts/docker-watchdog/`](../scripts/docker-watchdog/README.md): previous
-  Windows Docker Desktop/WSL watchdog and installer.
-- [`scripts/windows-loopback-recovery.md`](../scripts/windows-loopback-recovery.md):
-  historical Windows loopback diagnosis.
-- [`caddy/`](../caddy/README.md): retired Plex/Channels proxy, Windows watchdog
-  integration and certificate-copy definitions.
-- Windows-only command examples in service history and retained `.ps1` wrappers:
-  previous-host context, not native controller or deployment commands.
+Plex and Channels use admitted host networking and the media firewall. Plex's
+accepted public TCP 18443 mapping reaches native TCP 32400 directly. Channels
+At Home uses `192.168.50.40:8089`; Away From Home remains deferred. SWAG retains
+its admitted backend and private socket-proxy networks. The native HTTPS starter
+recovers SWAG after Docker setup. Never attach the socket proxy to the backend
+network or import old recovery workflows.
 
-Plex and Channels use admitted host networking and the media firewall. SWAG
-uses its admitted backend and private socket-proxy networks; never put the socket
-proxy on the backend network. The native HTTPS starter recovers SWAG after Docker
-setup. Do not recreate the old blanket recovery or workflow-import behavior.
-
-Routine CI validates the active native deployment and media paths. Archived
-Windows watchdog installation and retired Caddy integration are no longer routine
-PR jobs. A deliberate rollback change must explicitly validate the affected
-archived components before use.
-
-Original disks, current application state and migration recovery archives remain
-retained. Archiving these instructions does not authorize disk erasure, volume
-pruning, torrent removal, or starting a second copy of a service. Reconcile the
-newest writes and endpoint ownership before any rollback.
+Original disks and retained migration recovery archives are separate from this
+source cleanup. Removing obsolete helpers does not authorize disk erasure,
+volume pruning, torrent removal, or starting a second application owner. Any
+rollback must first reconcile newest application writes, current routes and
+explicitly admitted storage.

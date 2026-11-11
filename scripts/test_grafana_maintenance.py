@@ -9,7 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 M = runpy.run_path(str(ROOT / "grafana-maintenance.py"))
-INSTALL = runpy.run_path(str(ROOT / "install-grafana-maintenance-hooks.py"))
 NOW = dt.datetime(2026, 9, 13, 4, 0, tzinfo=dt.timezone.utc)
 
 
@@ -79,35 +78,6 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaises(OSError):
             M["start"](api, 30, "test", NOW)
         self.assertEqual(api.expired, set(api.silences))
-
-    def test_installer_idempotent_and_preserves_kuma_failure_cleanup(self):
-        text = ('# Shared Docker Desktop maintenance helpers.\n'
-                'function Start-UptimeKumaMaintenance {\n'
-                '    Write-DockerLog "Creating Uptime Kuma maintenance window for Docker Desktop maintenance."\n'
-                '    if ($failed) { return $false }\n}\n'
-                'function Stop-UptimeKumaMaintenance {\n}\n'
-                '        $composeResult = Invoke-WslDockerCompose -ProjectPath $projectPath -Arguments @("up", "-d", "--force-recreate")\n')
-        updated = INSTALL["common_hooks"](text)
-        self.assertEqual(INSTALL["common_hooks"](updated), updated)
-        self.assertIn('if ($failed) { return $grafanaStarted }', updated)
-        self.assertIn('function Stop-UptimeKumaMaintenance {\n    Stop-GrafanaMaintenance', updated)
-        self.assertIn('sunday-edge-autoscale.py --reset-control', updated)
-        nightly = '} finally {\n    Remove-Item -Path $DockerMaintenanceLockPath\n}\n'
-        updated = INSTALL["nightly_hooks"](nightly)
-        self.assertEqual(INSTALL["nightly_hooks"](updated), updated)
-
-    def test_installer_rejects_unrecognized_script(self):
-        with self.assertRaises(ValueError):
-            INSTALL["common_hooks"]("a different script")
-
-    def test_versioned_watchdog_and_nightly_wrapper_already_have_hooks(self):
-        for name, transform in [
-            ("docker-desktop-common.ps1", "common_hooks"),
-            ("docker-desktop-nightly-maintenance.ps1", "nightly_hooks"),
-        ]:
-            source = (ROOT / "docker-watchdog" / name).read_text()
-            self.assertEqual(INSTALL[transform](source), source)
-
 
 if __name__ == "__main__":
     unittest.main()

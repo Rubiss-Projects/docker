@@ -1,2 +1,0 @@
-Microsoft-Windows-Kernel-File 0x3f0 4
-Microsoft-Windows-Kernel-Disk 0xffffffffffffffff 4

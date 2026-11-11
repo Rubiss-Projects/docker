@@ -100,10 +100,10 @@ reachability. Use `scripts/native-media-network/README.md` for preparation,
 acceptance and backout. Direct routes have passed acceptance; retain original
 source data and rollback definitions without activating a second owner.
 
-**Retired Caddy proxy:** `caddy/` is archived rollback reference. Its systemd
-service, certificate timer and temporary gaming-PC proxy are stopped. Do not
-install or start them during routine deployment. Plex uses direct native access;
-Channels At Home uses the server's port 8089. Away From Home remains deferred.
+**Retired Caddy proxy:** Its source, systemd service and certificate timer are
+retired. Do not install or start them during routine deployment. Plex uses direct
+native access; Channels At Home uses the server's port 8089. Away From Home remains
+deferred. Historical definitions remain available in Git history.
 
 **Narrow exception — native Node Exporter:** `node-exporter/` uses host network
 and PID namespaces to report BEN-SERVER's physical NIC and process metrics to

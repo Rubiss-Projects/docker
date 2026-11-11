@@ -9,6 +9,23 @@ SCRIPT=Path(__file__).resolve().parents[1]/'deploy-changed-service-folders.sh'
 
 @unittest.skipIf(os.name=='nt','Native dispatch requires POSIX bash')
 class DispatchTests(unittest.TestCase):
+    def test_pi_dispatch_preserves_local_compose_and_env_files(self):
+        source = SCRIPT.read_text().rsplit('main "$@"', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.env').touch()
+            (root / '.env.secret').touch()
+            body = '''
+docker() { printf '%s\\n' "$@"; }
+compose ps --services
+'''
+            result = subprocess.run(['bash'], input=source + body, cwd=root,
+                text=True, capture_output=True,
+                env=os.environ | {'DOCKER_REPO_DIR': str(root), 'DOCKER_DEPLOY_HOST': 'pi'})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(),
+                ['compose', '--env-file', '.env', '--env-file', '.env.secret', 'ps', '--services'])
+
     def test_guidance_changes_do_not_admit_dormant_stacks(self):
         source=SCRIPT.read_text().rsplit('main "$@"',1)[0]
         body='''
