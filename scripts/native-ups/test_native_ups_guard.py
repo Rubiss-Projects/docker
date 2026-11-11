@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+import tempfile
 from unittest.mock import patch
 import native_ups_guard as guard
 from native_ups_guard import advance, decision
@@ -8,6 +10,7 @@ class PowerDecisionTests(unittest.TestCase):
     def test_handoff_endpoint_selects_only_admitted_hosts(self):
         for host in ['192.168.50.91', '127.0.0.1']:
             with self.subTest(host=host), patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': host}), \
+                    patch.object(guard, 'require_local_nut_listener', return_value=('100', '200')), \
                     patch.object(guard.socket, 'create_connection') as connect:
                 socket = connect.return_value.__enter__.return_value
                 reader = socket.makefile.return_value.__enter__.return_value
@@ -21,6 +24,34 @@ class PowerDecisionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 guard.sample()
             connect.assert_not_called()
+
+    def test_unprivileged_loopback_responder_is_rejected_when_nut_is_stopped(self):
+        with patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(guard.subprocess, 'check_output', return_value='ActiveState=inactive\nMainPID=0\n'), \
+                patch.object(guard.socket, 'create_connection') as connect:
+            with self.assertRaisesRegex(ValueError, 'not active'):
+                guard.sample()
+            connect.assert_not_called()
+
+    def test_listener_must_belong_to_systemds_nut_main_process(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(guard, 'PROC', Path(folder)), \
+                patch.object(guard.subprocess, 'check_output', return_value='ActiveState=active\nMainPID=100\n'):
+            proc = Path(folder);(proc/'net').mkdir();(proc/'100/fd').mkdir(parents=True)
+            (proc/'net/tcp').write_text('header\n0: 0100007F:0DA5 00000000:0000 0A 0:0 0:0 0 999 0 200\n')
+            (proc/'100/fd/3').symlink_to('socket:[201]')
+            with self.assertRaisesRegex(ValueError, 'does not belong'):
+                guard.require_local_nut_listener()
+            (proc/'100/fd/3').unlink();(proc/'100/fd/3').symlink_to('socket:[200]')
+            self.assertEqual(guard.require_local_nut_listener(), ('100', '200'))
+
+    def test_replaced_listener_cannot_supply_a_critical_status(self):
+        with patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': '127.0.0.1'}), \
+                patch.object(guard, 'require_local_nut_listener', side_effect=[('100', '200'), ('101', '201')]), \
+                patch.object(guard.socket, 'create_connection') as connect:
+            socket = connect.return_value.__enter__.return_value
+            socket.makefile.return_value.__enter__.return_value.readline.return_value = b'VAR qnapups ups.status "FSD"\n'
+            with self.assertRaisesRegex(ValueError, 'changed during'):
+                guard.sample()
 
     def test_admitted_policy_cases(self):
         cases = [('OL', 0, 'online'), ('OL CHRG', 50, 'online'),
