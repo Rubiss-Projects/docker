@@ -24,6 +24,8 @@ SERVICE = "sunday-edge-dfs-simulator"
 GRACE_MINUTES = 35
 CREATOR = "docker-planned-maintenance"
 API_PATH = "/api/alertmanager/grafana/api/v2"
+AVAILABILITY_WINDOW = "planned-availability"
+RESTART_WINDOW = "planned-restart"
 
 
 def affected(targets: list[str]) -> bool:
@@ -73,7 +75,7 @@ def start(api, ttl: int, reason: str, now=None) -> str:
     now = now or dt.datetime.now(dt.timezone.utc)
     ids = []
     try:
-        for window, extra in [("wsl-nightly-availability", 0), ("wsl-nightly-restart", GRACE_MINUTES)]:
+        for window, extra in [(AVAILABILITY_WINDOW, 0), (RESTART_WINDOW, GRACE_MINUTES)]:
             result = api.request("POST", "/silences", {
                 "matchers": matchers(window),
                 "startsAt": timestamp(now),
@@ -97,7 +99,7 @@ def stop(api, token: str, now=None):
     availability_id, restart_id = [str(uuid.UUID(value)) for value in token.split(":")]
     silences = []
     # Validate both before modifying either; never alter another operator's silence.
-    for silence_id, window in [(availability_id, "wsl-nightly-availability"), (restart_id, "wsl-nightly-restart")]:
+    for silence_id, window in [(availability_id, AVAILABILITY_WINDOW), (restart_id, RESTART_WINDOW)]:
         silence = api.request("GET", f"/silence/{silence_id}")
         actual = sorted(silence["matchers"], key=lambda item: item["name"])
         if silence["createdBy"] != CREATOR or actual != sorted(matchers(window), key=lambda item: item["name"]):
