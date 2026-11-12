@@ -1,6 +1,6 @@
 # Tracearr
 
-Tracearr is the Plex monitoring and playback-history service. The previous monitoring service was retired after its history and 4K-transcode policy were migrated.
+Tracearr is the Plex monitoring and playback-history service. The previous monitoring service was retired after its history and policies were migrated.
 
 - URL: https://tracearr.benlawson.dev/
 - App: `tracearr:3000`; loopback maintenance access: `127.0.0.1:3040`.
@@ -16,7 +16,8 @@ Tracearr is the Plex monitoring and playback-history service. The previous monit
 - The Windows watchdog and nightly restart are retired. Native deployment and existing UPS recovery preserve the accepted application identities and startup ordering.
 - Tautulli history was imported on 2026-09-18 (job 1): 8,518 new records, zero skipped, zero errors. All 8,518 records also completed stream-detail enrichment with zero failures. Check import status before starting another run.
 - Retirement reconciliation (job 2) updated one existing record, skipped 8,517 duplicates, and reported zero errors. The retired service's data and credentials are preserved under the ignored `backups/retired/` directory; its import URL/key have been cleared from Tracearr.
-- The active **No 4K transcodes** built-in policy preserves the former video-transcode stopper and its viewer-facing message. Existing notification automations remain unchanged.
+- The **No 4K transcodes** policy was removed through the Tracearr API on 2026-11-12 after owner-approved testing on native BEN-SERVER. Do not recreate the former blanket video-transcode stopper during maintenance. Existing notification automations remain unchanged.
+- Native 4K validation: the RTX 2070 used NVDEC, NVENC and CUDA HDR-to-SDR tone mapping for 4K HEVC to 1080p H.264. Four-minute samples from approximately 28 Mbps and 71 Mbps sources, including burned-in PGS subtitles on the latter, completed in 52–53 seconds (4.5–4.6× playback speed); all output video samples decoded successfully. This validates representative server-side transcodes, not remote-network performance or capacity for multiple simultaneous 4K streams.
 - Tracearr 2.5.1 includes the upstream fix for refreshing historical aggregates after stream-detail enrichment. The manual **Full aggregate rebuild** workaround was needed on 2.4.0. Do not enqueue a duplicate maintenance task.
 
 When the database is stopped, the upgrade helper starts its existing image for the logical backup. If its container was removed, the helper first archives the existing PostgreSQL 18 volume without starting PostgreSQL, then creates the database container. Missing or empty database volumes fail closed; restoring or bootstrapping this existing service requires deliberate state preparation.
