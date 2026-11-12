@@ -47,7 +47,7 @@ with host keys pinned through the already trusted administration connections.
 Never place passwords or private keys in Git. Do not reuse the temporary wake
 test keys, grant a general root shell, or disable host-key checks.
 
-1. Pi: install `pi_recovery.py`, `nas_cascade.py`, `native_ups_guard.py` root-owned
+1. Pi: install `pi_recovery.py`, `nas_cascade.py`, `recovery_alerts.py`, and `native_ups_guard.py` root-owned
    under `/usr/local/lib/ups-pi-recovery`. Retain observe-only service arguments.
 2. Server: install the reviewed guard, `server_storage_release.py`, and
    `ups-storage-release.service`. Do not yet set `NATIVE_UPS_CASCADE=1` in the
@@ -62,9 +62,20 @@ test keys, grant a general root shell, or disable host-key checks.
    `no-agent-forwarding,no-port-forwarding,no-X11-forwarding,no-pty`, and a forced
    command invoking **only** this root-owned helper through sudo:
    `sudo -n /etc/config/ups-cascade/command.sh "$SSH_ORIGINAL_COMMAND"`.
-   Permit only this exact helper in the NAS sudo policy. Validate with visudo and
-   verify persistence through the acceptance reboot; do not overwrite QNAP's
-   generated sudo policy or enable the disabled built-in admin account.
+   Permit only this exact helper in the NAS sudo policy. This NAS's UID-0 account
+   is `admin`, and `/usr/etc` is volatile. Install `qnap-ups-start.sh` as
+   `/etc/config/ups-cascade/start.sh` root-owned mode 755 and register the local
+   `UpsCascade` startup entry in `/etc/config/qpkg.conf`: `Name=UpsCascade`,
+   `Version=1.0.0`, `Enable=TRUE`, `Shell=/etc/config/ups-cascade/start.sh`,
+   `Install_Path=/etc/config/ups-cascade`, `RC_Number=150`, `Status=complete`.
+   Preserve the existing configuration and back it up before registration.
+   QNAP documents the [QPKG Shell startup field](https://download.qnap.com/dev/QPKG_developer_FAQ.pdf).
+   The hook restores only `/usr/etc/sudoers.d/ups-cascade` and validates policy
+   parsing with `sudo -l`; this firmware does not ship visudo. Also validate the
+   literal rule with Linux visudo before installation, and verify persistence
+   through the acceptance reboot. Do not overwrite QNAP's generated sudo policy
+   or enable the disabled built-in admin account. Stopping the hook revokes only
+   its dedicated rule; it does not shut down the NAS.
 5. Authorize the server's reporting key on the Pi for `rubiss`, restricted to
    `from="192.168.50.40"` and the same forwarding/PTY restrictions, forced to
    `sudo -n /usr/bin/python3 -B /usr/local/lib/ups-pi-recovery/nas_cascade.py "$SSH_ORIGINAL_COMMAND"`.
@@ -88,8 +99,18 @@ inject battery readings into live NUT, or enable mutation flags during this stag
 
 Inspect `state.json` and the journal for `nasReady`, `wouldShutdownNas`,
 `nasShutdownEnabled`, `wakeEnabled`, `pending`, and `cascade.error`. Before release,
-connect stale observations, held candidates and exhausted attempts to the existing
-operator notification path; journals alone are not unattended acceptance.
+configure `/etc/ups-cascade/notifications.env` root-owned mode 600 with
+`UPS_RECOVERY_WEBHOOK` set to the existing Lawson Discord webhook. Transfer its
+value privately from the admitted Grafana secret; never log it or put it in Git.
+Install the updated Pi unit, which loads this optional file. Alerts originate on
+the Pi so a stopped server does not suppress them. No messages are sent without
+this explicit configuration. Failed delivery retries at most every five minutes;
+unchanged successfully delivered problems are deduplicated until recovery or a
+collector restart. Invalid readings alert after 60 seconds; held candidates,
+exhausted wake attempts, uncertain NAS shutdown outcomes, and ten-minute NAS
+readiness waits also alert. Check `notificationConfigured` and `notificationError`.
+These alerts cannot report a dead Pi or internet outage; verify the existing
+external availability monitor separately. Journals alone are not acceptance.
 
 ## Owner-approved disruptive acceptance
 
@@ -127,6 +148,9 @@ collector. Reconcile an already committed shutdown instead of cancelling it.
 
 Implementation only; mutation flags remain disabled. BEN-SERVER and BEN-PC have
 passed separate normal shutdown/wake tests after BIOS PCI-E wake enablement.
-The NAS's QXG-10G1TD reports magic-packet support and `Wake-on: g`; its PCIe device
+The server storage-release helper and Pi cascade sources from PR #607 have been
+staged without activation. A dedicated server-to-Pi key rejects invalid commands;
+no shutdown intent was injected. QNAP persistence and notification installation
+remain pending review of this follow-up. The NAS's QXG-10G1TD reports magic-packet support and `Wake-on: g`; its PCIe device
 and QNAP WOL setting are enabled. NAS shutdown/wake and integrated cascade tests
 still require the owner's go-ahead.

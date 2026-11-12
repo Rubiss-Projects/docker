@@ -5,6 +5,7 @@ After=network-online.target nut-server.service
 
 [Service]
 Type=simple
+EnvironmentFile=-/etc/ups-cascade/notifications.env
 # Observe only until USB acceptance and separately approved wake tests pass.
 ExecStart=/usr/bin/python3 -B /usr/local/lib/ups-pi-recovery/pi_recovery.py
 Restart=on-failure

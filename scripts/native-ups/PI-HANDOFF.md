@@ -42,7 +42,7 @@ falls back to plaintext. Verify both a valid connection and rejection of an
 untrusted certificate before switching the endpoint. Preserve the private CA
 securely for renewal; never place private keys in the repository.
 
-Install `pi_recovery.py`, `nas_cascade.py`, and `native_ups_guard.py` under
+Install `pi_recovery.py`, `nas_cascade.py`, `recovery_alerts.py`, and `native_ups_guard.py` under
 `/usr/local/lib/ups-pi-recovery`, with `ups-pi-recovery.service` in observe mode.
 Run the guard, restoration and Pi policy unit tests on Linux, and validate units
 and firewall syntax. Do not enable wake during preparation.

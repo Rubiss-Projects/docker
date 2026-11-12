@@ -15,6 +15,7 @@ import time
 
 from native_ups_guard import decision, require_local_nut_listener, write_state
 from nas_cascade import cascade, nas_status, remote
+from recovery_alerts import notify, reset_timers
 
 ROOT = Path('/var/lib/ups-pi-recovery')
 HOSTS = {'ben-server': ('192.168.50.40', '58:d8:12:91:1c:89'),
@@ -131,6 +132,7 @@ def main():
         raise ValueError('Unknown recovery target')
     # A restart never trusts an old reachability sample or an old stability timer.
     state.update(seen={}, onlineSince=None)
+    reset_timers(state)
     for row in state['pending'].values():
         row['lastAttempt'] = None
     while True:
@@ -161,6 +163,7 @@ def main():
                      reachable=sorted(reachable), wouldWake=targets,
                      wakeEnabled=args.enable_wake, nasReady=ready,
                      wouldShutdownNas=shutdown, nasShutdownEnabled=args.enable_nas_shutdown)
+        notify(state, now)
         write_state(path, state)
         if args.enable_nas_shutdown and shutdown and event:
             try:
