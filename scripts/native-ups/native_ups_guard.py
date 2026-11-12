@@ -211,6 +211,13 @@ def main():
                         subprocess.run(['docker', 'stop', '--time', grace, *ids], timeout=60, check=True)
                 except (OSError, subprocess.SubprocessError, AssertionError) as error:
                     print('Application drain incomplete: ' + type(error).__name__, flush=True)
+                if os.environ.get('NATIVE_UPS_CASCADE') == '1':
+                    try:
+                        subprocess.run(['systemctl', '--no-block', 'start',
+                                        'ups-storage-release.service'], timeout=10, check=True)
+                        return
+                    except (OSError, subprocess.SubprocessError) as error:
+                        print('Storage release helper unavailable: ' + type(error).__name__, flush=True)
                 subprocess.run(['systemctl', '--no-block', 'poweroff'], timeout=10, check=True)
                 return
             time.sleep(5)

@@ -14,10 +14,12 @@ import subprocess
 import time
 
 from native_ups_guard import decision, require_local_nut_listener, write_state
+from nas_cascade import cascade, nas_status, remote
 
 ROOT = Path('/var/lib/ups-pi-recovery')
 HOSTS = {'ben-server': ('192.168.50.40', '58:d8:12:91:1c:89'),
-         'ben-pc': ('192.168.50.209', '58:11:22:bb:86:30')}
+         'ben-pc': ('192.168.50.209', '58:11:22:bb:86:30'),
+         'nas': ('192.168.50.91', '24:5e:be:78:08:94')}
 STABLE_SECONDS = 180
 MIN_CHARGE = 50
 MAX_ATTEMPTS = 5
@@ -46,7 +48,7 @@ def read_ups():
     return values['ups.status'], charge
 
 
-def transition(state, flags, charge, reachable, now):
+def transition(state, flags, charge, reachable, now, nas_ready=False):
     """Pure policy transition. Times are monotonic and reset on process startup.
 
 Only hosts seen online in the preceding 20 seconds become outage candidates.
@@ -79,7 +81,8 @@ ping alone cannot distinguish an aborted shutdown from a long application drain.
             state['outage'] = False
             for name in list(pending):
                 row = pending[name]
-                if name in reachable and row.get('observedOffline'):
+                if (name in reachable and row.get('observedOffline')
+                        and (name != 'nas' or nas_ready)):
                     pending.pop(name)
                 elif (name in reachable and
                       now - state['onlineSince'] >= RECONCILE_SECONDS):
@@ -91,6 +94,7 @@ ping alone cannot distinguish an aborted shutdown from a long application drain.
         if stable and charge >= MIN_CHARGE:
             return [name for name, row in pending.items()
                     if name not in reachable and not row.get('held')
+                    and (name != 'ben-server' or nas_ready)
                     and row['attempts'] < MAX_ATTEMPTS
                     and (row['lastAttempt'] is None or now - row['lastAttempt'] >= 60)]
     return []
@@ -114,6 +118,7 @@ def wake(name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--enable-wake', action='store_true')
+    parser.add_argument('--enable-nas-shutdown', action='store_true')
     args = parser.parse_args()
     if socket.gethostname() != 'ben-pi' or os.geteuid() != 0:
         raise ValueError('Recovery is restricted to the admitted Pi')
@@ -136,11 +141,43 @@ def main():
             pass
         now = time.monotonic()
         reachable = reachable_hosts()
-        targets = transition(state, flags, charge, reachable, now)
+        nas = nas_status()
+        ready = bool(nas and nas['ready'])
+        try:
+            receipt = json.loads((ROOT / 'server-release.json').read_text())
+        except (OSError, ValueError):
+            receipt = None
+        shutdown = cascade(state, flags, reachable, nas, receipt, time.time())
+        targets = transition(state, flags, charge, reachable, now, ready)
+        event = state.get('cascade')
+        if event and (shutdown or event.get('requested')) and not event.get('recovered'):
+            # Never wake a server while NAS poweroff is still in progress.
+            targets = [name for name in targets if name != 'ben-server']
+        if (event and decision(flags, 0) == 'online' and ready and
+                not state['pending'] and not shutdown):
+            state.pop('cascade', None)
+            state['nasSeen'] = {'boot': nas['boot'], 'at': time.time()}
         state.update(at=time.time(), status=flags, charge=charge,
                      reachable=sorted(reachable), wouldWake=targets,
-                     wakeEnabled=args.enable_wake)
+                     wakeEnabled=args.enable_wake, nasReady=ready,
+                     wouldShutdownNas=shutdown, nasShutdownEnabled=args.enable_nas_shutdown)
         write_state(path, state)
+        if args.enable_nas_shutdown and shutdown and event:
+            try:
+                current, _ = read_ups()
+                # Recompute with fresh power immediately before the side effect.
+                if cascade(state, current, reachable_hosts(), nas, receipt, time.time()) != shutdown:
+                    continue
+                event.update(requested=True, reason=shutdown)
+                write_state(path, state)
+                remote('shutdown ' + event['nasBoot'])
+                print('NAS shutdown requested: ' + shutdown, flush=True)
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                # A timed-out SSH command may already have powered down the NAS.
+                # Keep its intent; never send a new-boot shutdown on retry.
+                event['error'] = type(error).__name__
+                write_state(path, state)
+                print('NAS shutdown needs reconciliation: ' + type(error).__name__, flush=True)
         if args.enable_wake:
             for name in targets:
                 # Recheck power immediately before every side effect.
@@ -149,6 +186,10 @@ def main():
                     if decision(current, 0) != 'online' or battery < MIN_CHARGE:
                         state['onlineSince'] = None
                         break
+                    if name == 'ben-server':
+                        current_nas = nas_status()
+                        if not current_nas or not current_nas['ready']:
+                            continue
                     state['pending'][name]['attempts'] += 1
                     state['pending'][name]['lastAttempt'] = now
                     write_state(path, state)

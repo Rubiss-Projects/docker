@@ -1,0 +1,10 @@
+[Unit]
+Description=Release NAS storage during an admitted UPS shutdown
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/nut/native-ups.env
+ExecStart=/usr/bin/python3 -B /usr/local/lib/nas-migration/server_storage_release.py
+TimeoutStartSec=90
+UMask=0077
