@@ -1,0 +1,11 @@
+[Unit]
+Description=Limit Pi UPS status access to admitted power clients
+Before=nut-server.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/nut/pi-ups-firewall.nft
+
+[Install]
+WantedBy=multi-user.target
