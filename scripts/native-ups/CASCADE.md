@@ -33,7 +33,9 @@ the files. Leave both new controls disabled until the owner approves acceptance.
 - Only hosts recorded at the outage are candidates. NAS shutdown is tied to its
   recorded boot ID; a recovered NAS cannot be shut down by a stale command.
   Shutdown requests, outage IDs and wake attempts persist across Pi restarts.
-  Unknown UPS status never authorizes waking. Five attempts, 60 seconds apart,
+  Unknown UPS status never authorizes waking or NAS shutdown, including after
+  storage release; retained intent can resume when valid readings return.
+  Five attempts, 60 seconds apart,
   remain the maximum. Unresolved intent/errors and exhausted attempts require
   operator reconciliation; do not delete state to make a check pass.
 
