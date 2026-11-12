@@ -1,6 +1,10 @@
 import unittest
+from functools import partial
 
-from pi_recovery import transition
+from pi_recovery import transition as recovery_transition
+
+# Existing tests exercise power policy with the storage prerequisite satisfied.
+transition = partial(recovery_transition, nas_ready=True)
 
 
 class RecoveryPolicyTests(unittest.TestCase):

@@ -1,0 +1,20 @@
+# Install as /etc/ups-cascade/ssh_config, root-owned, with private keys mode 600.
+# Pin host keys verified through the existing trusted administration connection.
+Host pi
+    HostName 192.168.50.216
+    User rubiss
+    IdentityFile /etc/ups-cascade/server-report-key
+Host nas
+    HostName 192.168.50.91
+    User rubiss
+    IdentityFile /etc/ups-cascade/nas-command-key
+Host *
+    BatchMode yes
+    IdentitiesOnly yes
+    StrictHostKeyChecking yes
+    UserKnownHostsFile /etc/ups-cascade/known_hosts
+    ConnectTimeout 3
+    ConnectionAttempts 1
+    ServerAliveInterval 2
+    ServerAliveCountMax 1
+    LogLevel ERROR

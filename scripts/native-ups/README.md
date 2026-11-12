@@ -1,10 +1,11 @@
 # Native UPS shutdown guard
 
-This is the source for the guard running on the native Linux server. BEN-SERVER
-owns the UPS USB data cable and serves `qnapups` through its local NUT collector.
-Both guard units load `/etc/nut/native-ups.env`, which selects
-`NATIVE_UPS_HOST=127.0.0.1`. The guard verifies that the local listening socket
-belongs to the active NUT service before trusting its readings. The historical
+This is the source for the guard running on the native Linux server. BEN-PI now
+owns the UPS USB data cable and serves `qnapups`. Both native guard units load
+`/etc/nut/native-ups.env`, which selects `NATIVE_UPS_HOST=192.168.50.216`.
+The guard authenticates this endpoint using the dedicated CA and STARTTLS.
+See [Pi ownership](PI-HANDOFF.md) and [NAS cascade preparation](CASCADE.md).
+The historical
 `nas-migration-ups` unit and state-directory names remain unchanged.
 
 The guard waits 30 seconds after confirmed on-battery status before draining
@@ -15,9 +16,9 @@ loss alone does not admit shutdown; loss after a known battery event preserves
 its deadline. A boot-bound, exclusive intent prevents competing shutdowns.
 Failures draining applications still lead to an ordinary OS shutdown request.
 
-The gaming PC and NAS are network clients of BEN-SERVER; keep the NUT listener
-restricted to admitted clients. NUT status traffic is unauthenticated and
-unencrypted on the trusted LAN. Native Telegraf supplies read-only UPS telemetry
+BEN-SERVER, the gaming PC and NAS are network clients of BEN-PI; keep the NUT
+listener restricted to admitted clients. Computer guards require verified TLS;
+the NAS uses its vendor NUT client on the restricted LAN. Native Telegraf supplies read-only UPS telemetry
 to the existing APC dashboard and Grafana alerts. The old UPS exporters are
 retired. This guard does not control UPS outlets or start Docker containers;
 the separate previous-boot restore unit is described below.
@@ -39,10 +40,10 @@ decision tests and online observations do not claim an exercised poweroff.
 ## Rebuild on a replacement native host
 
 Use these commands only as part of the replacement host's admitted bootstrap,
-after its local USB identity, NUT service and trusted-client access are verified.
-Follow the [USB collector configuration](usb/README.md), preserving the existing
+after its Pi TLS trust and trusted-client access are verified.
+Follow the [Pi collector configuration](PI-HANDOFF.md), preserving the existing
 shutdown policies. Before enabling either unit, create the root-controlled
-`/etc/nut/native-ups.env` with `NATIVE_UPS_HOST=127.0.0.1`. The Python default is
+`/etc/nut/native-ups.env` with `NATIVE_UPS_HOST=192.168.50.216`. The Python default is
 the old NAS endpoint for handoff compatibility; it is not the current deployment.
 
 ```sh
@@ -50,7 +51,7 @@ sudo install -d -m 755 /usr/local/lib/nas-migration
 sudo install -m 644 native_ups_guard.py test_native_ups_guard.py /usr/local/lib/nas-migration/
 cd /usr/local/lib/nas-migration
 python3 -B -m unittest -v test_native_ups_guard
-sudo env NATIVE_UPS_HOST=127.0.0.1 python3 -B native_ups_guard.py --observe
+sudo env NATIVE_UPS_HOST=192.168.50.216 python3 -B native_ups_guard.py --observe
 sudo install -m 644 /path/to/checkout/scripts/native-ups/nas-migration-ups.service /etc/systemd/system/
 sudo systemd-analyze verify /etc/systemd/system/nas-migration-ups.service
 sudo systemctl daemon-reload
