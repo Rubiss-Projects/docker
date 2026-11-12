@@ -11,12 +11,40 @@ class PowerDecisionTests(unittest.TestCase):
         for host in ['192.168.50.91', '192.168.50.216', '127.0.0.1']:
             with self.subTest(host=host), patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': host}), \
                     patch.object(guard, 'require_local_nut_listener', return_value=('100', '200')), \
+                    patch.object(guard, 'verified_pi_tls', side_effect=lambda sock: sock), \
                     patch.object(guard.socket, 'create_connection') as connect:
                 socket = connect.return_value.__enter__.return_value
                 reader = socket.makefile.return_value.__enter__.return_value
                 reader.readline.return_value = b'VAR qnapups ups.status "OL CHRG"\n'
                 self.assertEqual(guard.sample(), 'OL CHRG')
                 connect.assert_called_once_with((host, 3493), timeout=2)
+
+    def test_pi_rejects_plaintext_and_never_queries_shutdown_status(self):
+        with patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': guard.PI_HOST}), \
+                patch.object(guard.ssl, 'create_default_context'), \
+                patch.object(guard.socket, 'create_connection') as connect:
+            sock = connect.return_value.__enter__.return_value
+            sock.recv.side_effect = [bytes([byte]) for byte in b'ERR FEATURE-NOT-SUPPORTED\n']
+            with self.assertRaisesRegex(ValueError, 'verified TLS'):
+                guard.sample()
+            sock.sendall.assert_called_once_with(b'STARTTLS\n')
+            sock.makefile.assert_not_called()
+
+    def test_pi_requires_dedicated_ca_and_matching_certificate(self):
+        with patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': guard.PI_HOST}), \
+                patch.object(guard.ssl, 'create_default_context') as create_context, \
+                patch.object(guard.socket, 'create_connection') as connect:
+            sock = connect.return_value.__enter__.return_value
+            sock.recv.side_effect = [bytes([byte]) for byte in b'OK STARTTLS\n']
+            context = create_context.return_value
+            context.wrap_socket.side_effect = guard.ssl.SSLCertVerificationError('untrusted peer')
+            with self.assertRaises(guard.ssl.SSLCertVerificationError):
+                guard.sample()
+            create_context.assert_called_once_with(cafile=guard.PI_CA)
+            context.wrap_socket.assert_called_once_with(sock, server_hostname=guard.PI_HOST)
+            self.assertEqual(context.minimum_version, guard.ssl.TLSVersion.TLSv1_2)
+            sock.sendall.assert_called_once_with(b'STARTTLS\n')
+            sock.makefile.assert_not_called()
 
     def test_unadmitted_endpoint_fails_before_connecting(self):
         with patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': 'example.invalid'}), \
