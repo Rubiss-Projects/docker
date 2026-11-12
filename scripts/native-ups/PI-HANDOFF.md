@@ -31,6 +31,17 @@ Do not put the password in this repository. Install the dedicated firewall table
 and unit, and `pi-nut-network.conf` as the NUT server drop-in. This exposes only
 3493 to BEN-SERVER, BEN-PC and the NAS, without changing other host firewall rules.
 
+The Pi endpoint requires authenticated TLS for native shutdown decisions. Issue
+a dedicated private CA and a server certificate with IP SAN `192.168.50.216`,
+then import the server key/certificate as `ups-pi` into the Pi's root-controlled
+NSS database `/etc/nut/tls` (Ubuntu NUT uses NSS). Install only the CA public
+certificate as `/etc/nut/pi-ups-ca.pem` on BEN-SERVER, owned by root and not
+writable by other users. The guard requires STARTTLS, TLS 1.2 or later, chain
+verification against this dedicated CA, and matching IP identity; failure never
+falls back to plaintext. Verify both a valid connection and rejection of an
+untrusted certificate before switching the endpoint. Preserve the private CA
+securely for renewal; never place private keys in the repository.
+
 Install `pi_recovery.py` and `native_ups_guard.py` under
 `/usr/local/lib/ups-pi-recovery`, with `ups-pi-recovery.service` in observe mode.
 Run the guard, restoration and Pi policy unit tests on Linux, and validate units
@@ -50,7 +61,9 @@ and firewall syntax. Do not enable wake during preparation.
    `NATIVE_UPS_HOST=192.168.50.216` with the reviewed guard that admits this address.
    Restart its guard only after the Pi reports online and no deadline is active.
    Its restore helper must use the same endpoint.
-5. Retarget the protected Windows guard from `.40` to `.216`, preserving the
+5. Add verified STARTTLS to the protected Windows guard before retargeting it
+   from `.40` to `.216`, using the same dedicated CA and matching Pi identity;
+   prohibit plaintext fallback. Preserve the
    shutdown policy and drain hash. Update its admission payload hash atomically
    while the task is stopped, then start and verify a fresh online observation.
 6. Use the NAS's supported UPS network-slave setting to select `.216`, retaining

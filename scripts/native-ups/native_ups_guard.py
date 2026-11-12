@@ -7,12 +7,15 @@ import os
 from pathlib import Path
 import re
 import socket
+import ssl
 import subprocess
 import time
 
 ALLOWED = set('OL OB LB FSD CHRG DISCHRG RB OVER BYPASS OFF TRIM BOOST ALARM CAL'.split())
 ROOT = Path('/var/lib/nas-migration-ups')
 PROC = Path('/proc')
+PI_HOST = '192.168.50.216'
+PI_CA = '/etc/nut/pi-ups-ca.pem'
 
 
 def decision(flags, elapsed):
@@ -55,16 +58,39 @@ def require_local_nut_listener():
     return pid, next(iter(listeners))
 
 
+def verified_pi_tls(sock):
+    """Require NUT STARTTLS and verify the Pi against its dedicated installed CA.
+
+    Do not use a buffered reader before upgrading the socket. Never fall back to
+    plaintext if STARTTLS, certificate trust, or the IP SAN verification fails.
+    """
+    context = ssl.create_default_context(cafile=PI_CA)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    sock.sendall(b'STARTTLS\n')
+    response = b''
+    while len(response) < 64:
+        byte = sock.recv(1)
+        if not byte:
+            raise ValueError('Pi TLS negotiation ended early')
+        response += byte
+        if byte == b'\n':
+            break
+    if response not in {b'OK STARTTLS\n', b'OK STARTTLS\r\n'}:
+        raise ValueError('Pi requires verified TLS')
+    return context.wrap_socket(sock, server_hostname=PI_HOST)
+
+
 def sample():
     host = os.environ.get('NATIVE_UPS_HOST', '192.168.50.91')
-    if host not in {'192.168.50.91', '192.168.50.216', '127.0.0.1'}:
+    if host not in {'192.168.50.91', PI_HOST, '127.0.0.1'}:
         raise ValueError('UPS endpoint must be the admitted NAS or local driver')
     owner = require_local_nut_listener() if host == '127.0.0.1' else None
     with socket.create_connection((host, 3493), timeout=2) as sock:
         sock.settimeout(2)
-        sock.sendall(b'GET VAR qnapups ups.status\n')
-        with sock.makefile('rb') as reader:
-            line = reader.readline(513)
+        with contextlib.closing(verified_pi_tls(sock) if host == PI_HOST else sock) as channel:
+            channel.sendall(b'GET VAR qnapups ups.status\n')
+            with channel.makefile('rb') as reader:
+                line = reader.readline(513)
     if owner is not None and require_local_nut_listener() != owner:
         raise ValueError('Local NUT listener changed during the status read')
     match = re.fullmatch(rb'VAR qnapups ups\.status "([A-Z ]+)"\r?\n', line)
