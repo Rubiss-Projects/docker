@@ -15,6 +15,7 @@ services:
       AUTOPULSE__AUTH__USERNAME: autopulse
       AUTOPULSE__AUTH__PASSWORD: ${AUTOPULSE_PASSWORD:?Set AUTOPULSE_PASSWORD in .env.secret}
       AUTOPULSE__TARGETS__PLEX__TOKEN: ${PLEX_TOKEN:?Set PLEX_TOKEN in .env.secret}
+      AUTOPULSE__TARGETS__AUDIOBOOKSHELF__TOKEN: ${AUDIOBOOKSHELF_TOKEN:?Set AUDIOBOOKSHELF_TOKEN in .env.secret}
     env_file:
       - path: .env
       - path: .env.secret
@@ -34,7 +35,7 @@ services:
       - homepage.group=Media Management
       - homepage.name=Autopulse
       - homepage.icon=plex.png
-      - homepage.description=Import-triggered Plex library updates
+      - homepage.description=Import-triggered Plex and book library updates
       - homepage.siteMonitor=http://autopulse:2875/stats
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.url=http://autopulse:2875/stats

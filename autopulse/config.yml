@@ -10,9 +10,26 @@ anchors:
 triggers:
   sonarr:
     type: sonarr
+    excludes: [audiobookshelf]
   radarr:
     type: radarr
+    excludes: [audiobookshelf]
+  bookshelf:
+    type: readarr
+    excludes: [plex]
+  bookshelf-audio:
+    type: readarr
+    excludes: [plex]
 targets:
   plex:
     type: plex
     url: http://plex:32400
+  audiobookshelf:
+    type: audiobookshelf
+    url: http://audiobookshelf:80
+    rewrite:
+      from: ^/data/
+      to: /
+    filter:
+      include:
+        - ^/(books|audiobooks)(/|$)
