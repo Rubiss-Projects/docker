@@ -39,7 +39,7 @@ def cascade(state, flags, reachable, nas, receipt, now):
 
     A short outage cancels before commitment. After a confirmed server release,
     returning utility power does not abandon the already committed cascade.
-    Unknown UPS status alone never admits a NAS shutdown.
+    Unknown UPS status holds shutdown even after an authenticated release.
     """
     outcome = decision(flags, 0)
     event = state.get('cascade')
@@ -76,6 +76,8 @@ def cascade(state, flags, reachable, nas, receipt, now):
         event['recovered'] = True
         return None
     if event.get('recovered') or event['requested']:
+        return None
+    if outcome not in {'online', 'battery-wait', 'critical'}:
         return None
     if outcome == 'online' and not released:
         # Keep the event briefly for a server that committed at the same moment

@@ -54,6 +54,18 @@ class CascadeTests(unittest.TestCase):
         self.assertEqual(nas.cascade(state, 'OL', set(), status, self.release(state), 140),
                          'server-storage-released')
 
+    def test_release_holds_on_unknown_power_and_resumes_on_valid_power(self):
+        for flags in (None, '', 'INVALID', 'OL OB'):
+            with self.subTest(flags=flags):
+                state, status = self.outage()
+                receipt = self.release(state)
+                event_id = state['cascade']['id']
+                self.assertIsNone(nas.cascade(state, flags, set(), status, receipt, 300))
+                self.assertFalse(state['cascade']['requested'])
+                self.assertEqual(state['cascade']['id'], event_id)
+                self.assertEqual(nas.cascade(state, 'OL', set(), status, receipt, 305),
+                                 'server-storage-released')
+
     def test_short_outage_does_not_inherit_old_failure_deadline(self):
         state, status = self.outage()
         old = state['cascade']['id']
