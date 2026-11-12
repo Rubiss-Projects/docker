@@ -1,0 +1,46 @@
+services:
+  autopulse:
+    image: ghcr.io/dan-online/autopulse:v2.0.0@sha256:a9b37936c849b34d3473caf7d83aeddc2c39ec066e18a14a0f4164846d1e4718
+    container_name: autopulse
+    user: ${PUID}:${PGID}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    environment:
+      TZ: ${TZ}
+      AUTOPULSE__APP__DATABASE_URL: sqlite:///app/data/autopulse.db
+      AUTOPULSE__AUTH__USERNAME: autopulse
+      AUTOPULSE__AUTH__PASSWORD: ${AUTOPULSE_PASSWORD:?Set AUTOPULSE_PASSWORD in .env.secret}
+      AUTOPULSE__TARGETS__PLEX__TOKEN: ${PLEX_TOKEN:?Set PLEX_TOKEN in .env.secret}
+    env_file:
+      - path: .env
+      - path: .env.secret
+    volumes:
+      - ./config.yml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ../../Media:/data:ro
+    extra_hosts:
+      - plex:192.168.50.40
+    mem_limit: 256m
+    memswap_limit: 256m
+    pids_limit: 128
+    restart: unless-stopped
+    networks:
+      - proxynet
+    labels:
+      - homepage.group=Media Management
+      - homepage.name=Autopulse
+      - homepage.icon=plex.png
+      - homepage.description=Import-triggered Plex library updates
+      - homepage.siteMonitor=http://autopulse:2875/stats
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.url=http://autopulse:2875/stats
+      - swag.uptime-kuma.monitor.parent=Media Management
+
+networks:
+  proxynet:
+    external: true
+    name: proxynet
