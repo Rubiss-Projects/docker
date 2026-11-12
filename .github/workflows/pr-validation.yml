@@ -357,6 +357,7 @@ jobs:
           touch homelable/.env.secret autopulse/.env.secret
           export AUTOPULSE_PASSWORD=compose-validation-placeholder
           export PLEX_TOKEN=compose-validation-placeholder
+          export AUDIOBOOKSHELF_TOKEN=compose-validation-placeholder
 
           mapfile -d '' compose_files < <(
             find . \

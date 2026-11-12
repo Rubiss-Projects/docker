@@ -1,7 +1,8 @@
 # Autopulse
 
-Sonarr and Radarr notify Autopulse after imports, upgrades, renames and deletions.
-Autopulse persists requests in SQLite and sends targeted updates to Plex without
+Sonarr, Radarr, Bookshelf and Bookshelf Audio notify Autopulse after imports,
+upgrades, renames and deletions. Autopulse persists requests in SQLite and sends
+targeted updates to Plex and Audiobookshelf without
 relying on NAS filesystem notifications. Requests wait 60 seconds before processing.
 
 This is an internal BEN-SERVER service on proxynet, with no published port or SWAG
@@ -12,11 +13,16 @@ basic authentication. No dedicated Homepage widget is available.
 
 Secrets are stored in the git-crypt encrypted `.env.secret`: `AUTOPULSE_PASSWORD`
 is a random webhook password and `PLEX_TOKEN` is the existing server token.
+`AUDIOBOOKSHELF_TOKEN` authenticates library reads and watcher updates using the
+existing Audiobookshelf integration token.
 Never print rendered Compose configuration or commit plaintext credentials.
 
 Create private `data/` storage owned by UID/GID 1000. On the verified NAS mount,
 create `/srv/Media/.autopulse.anchor`; a missing anchor pauses updates. Mount NAS
 media read-only at `/data`, matching Plex and the arr apps so rewrites are unneeded.
+Audiobookshelf uses `/books` and `/audiobooks`, so its target removes the `/data/`
+prefix. Path checks still run against Autopulse's original `/data` paths. Trigger
+exclusions route video events only to Plex and book events only to Audiobookshelf.
 The native policy must explicitly admit this stack, its bind sources, and the
 existing proxynet identity before deployment:
 
@@ -34,11 +40,17 @@ Under Settings → Connect, create a Webhook named `Autopulse` with method POST:
 
 - Sonarr: `http://autopulse:2875/triggers/sonarr`
 - Radarr: `http://autopulse:2875/triggers/radarr`
+- Bookshelf: `http://autopulse:2875/triggers/bookshelf` (Readarr trigger)
+- Bookshelf Audio: `http://autopulse:2875/triggers/bookshelf-audio` (Readarr trigger)
 
 Use username `autopulse` and the password from `.env.secret`. Enable import,
 upgrade, rename, and supported series/movie/file deletion events. Leave grab
 disabled because the media has not reached its final library path. Test and save.
 Avoid duplicate Plex update connections on the same events.
+For Bookshelf, enable release import, upgrade, rename, author/book deletion and
+book-file deletion (including deletion for upgrade). Leave grab, author-added,
+health and application events disabled. Keep the existing Seerr availability
+webhooks enabled; those serve a different purpose.
 
 Keep Plex automatic filesystem scans disabled and hourly periodic scans enabled
 for Channels recordings, Other Videos and additions outside the arr apps. Keep
@@ -51,8 +63,12 @@ Check container health and logs, test both arr webhooks, then submit a real impo
 payload (or an authenticated manual trigger for an existing file) and verify the
 persisted request completes and Plex lists the item. A test webhook alone does
 not enqueue media. Scan each Plex library once to recover the pre-trigger backlog.
+For each Bookshelf instance, submit a Readarr `Download` payload containing an
+existing imported `bookFiles[].path`, verify its event completes only against
+Audiobookshelf, and confirm the item appears in the appropriate library. Scan
+Audiobookshelf's Audio Books and Ebooks libraries once for existing downloads.
 
-To back out, disable the two Autopulse connections and stop the service using the
+To back out, disable the Autopulse connections and stop the service using the
 native adapter. Retain SQLite state and encrypted secrets. Periodic Plex scans
 continue covering new media.
 
