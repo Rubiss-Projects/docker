@@ -70,7 +70,12 @@ The Pi remembers hosts reachable during the 20 seconds preceding a confirmed
 battery/critical event. It waits for 180 seconds of uninterrupted valid utility
 status and at least 50% charge, then sends up to five magic packets per pending
 host, at least 60 seconds apart. A process restart resets stability and inventory;
-pending candidates persist. Running candidates are cleared after stability.
+pending candidates persist. Candidates clear only after being observed offline
+and then reachable again after stability. A still-reachable host can be draining
+applications (Docker allows 35 minutes), so ping alone never clears it. After
+45 stable minutes, still-reachable candidates are held for operator reconciliation
+and cannot receive automatic wake packets. This timeout resets on controller
+restart; an already-recorded hold persists.
 An unknown reading resets the stability timer and never authorizes waking.
 
 Observe mode records candidates without sending packets. Enable automatic wake
@@ -78,7 +83,9 @@ only after separately approved normal-shutdown/wake tests of each computer,
 using a systemd override adding `--enable-wake`. Ordinary manual shutdowns outside
 an outage do not generate candidates. ICMP is a conservative reachability proxy,
 not proof that an outage caused a shutdown; a computer manually stopped during
-an outage can be included. Retry exhaustion requires operator reconciliation.
+an outage or while its candidate is still pending can be included. A brief outage
+can leave an unresolved candidate even if the computer never committed shutdown.
+Retry exhaustion and unresolved holds require operator reconciliation.
 
 Keep the Pi and networking on battery-backed outlets. This change introduces no
 Pi shutdown or UPS outlet policy. If battery power is exhausted, the Pi can lose

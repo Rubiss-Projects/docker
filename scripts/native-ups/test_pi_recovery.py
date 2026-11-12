@@ -23,11 +23,22 @@ class RecoveryPolicyTests(unittest.TestCase):
         self.assertIn('ben-server', state['pending'])
         self.assertEqual(transition(state, 'OL', 90, set(), 220), ['ben-server'])
 
-    def test_brief_outage_clears_running_candidate(self):
+    def test_long_drain_is_retained_until_offline_and_recovered(self):
+        state = self.outage()
+        transition(state, 'OL', 90, {'ben-server'}, 40)
+        self.assertEqual(transition(state, 'OL', 90, {'ben-server'}, 220), [])
+        self.assertIn('ben-server', state['pending'])
+        self.assertEqual(transition(state, 'OL', 90, {'ben-server'}, 2100), [])
+        self.assertEqual(transition(state, 'OL', 90, set(), 2200), ['ben-server'])
+        self.assertEqual(transition(state, 'OL', 90, {'ben-server'}, 2300), [])
+        self.assertEqual(state['pending'], {})
+
+    def test_unresolved_reachable_candidate_is_held_not_later_woken(self):
         state = self.outage()
         transition(state, 'OL', 90, {'ben-server'}, 10)
-        self.assertEqual(transition(state, 'OL', 90, {'ben-server'}, 190), [])
-        self.assertEqual(state['pending'], {})
+        self.assertEqual(transition(state, 'OL', 90, {'ben-server'}, 2710), [])
+        self.assertIn('held', state['pending']['ben-server'])
+        self.assertEqual(transition(state, 'OL', 90, set(), 2800), [])
 
     def test_unknown_or_low_charge_never_wakes(self):
         state = self.outage()

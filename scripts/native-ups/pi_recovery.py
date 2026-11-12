@@ -21,6 +21,7 @@ HOSTS = {'ben-server': ('192.168.50.40', '58:d8:12:91:1c:89'),
 STABLE_SECONDS = 180
 MIN_CHARGE = 50
 MAX_ATTEMPTS = 5
+RECONCILE_SECONDS = 45 * 60
 
 
 def read_ups():
@@ -50,19 +51,24 @@ def transition(state, flags, charge, reachable, now):
 
 Only hosts seen online in the preceding 20 seconds become outage candidates.
 Pending candidates survive collector restarts, but the stability timer does not.
-A running host is removed only after the stable recovery interval, allowing its
-already-committed shutdown to finish even if mains returns during the drain.
+A host is removed only after being observed offline and then reachable again.
+Still-reachable candidates are held for reconciliation after 45 stable minutes;
+ping alone cannot distinguish an aborted shutdown from a long application drain.
 """
     outcome = decision(flags, 0)
     pending = state.setdefault('pending', {})
     seen = state.setdefault('seen', {})
+    for name, row in pending.items():
+        if name not in reachable:
+            row['observedOffline'] = True
     if outcome in {'battery-wait', 'critical'}:
         state['onlineSince'] = None
         if not state.get('outage'):
             state['outage'] = True
             for name, last in seen.items():
                 if name in HOSTS and now - last <= 20:
-                    pending.setdefault(name, {'attempts': 0, 'lastAttempt': None})
+                    pending.setdefault(name, {'attempts': 0, 'lastAttempt': None,
+                                              'observedOffline': name not in reachable})
     elif outcome != 'online':
         state['onlineSince'] = None
     else:
@@ -71,15 +77,21 @@ already-committed shutdown to finish even if mains returns during the drain.
         stable = now - state['onlineSince'] >= STABLE_SECONDS
         if stable:
             state['outage'] = False
-            for name in reachable:
-                pending.pop(name, None)
+            for name in list(pending):
+                row = pending[name]
+                if name in reachable and row.get('observedOffline'):
+                    pending.pop(name)
+                elif (name in reachable and
+                      now - state['onlineSince'] >= RECONCILE_SECONDS):
+                    row['held'] = 'Shutdown completion was not observed'
         # Refresh the pre-outage inventory only outside an unsettled outage.
         if not state.get('outage'):
             for name in reachable:
                 seen[name] = now
         if stable and charge >= MIN_CHARGE:
             return [name for name, row in pending.items()
-                    if name not in reachable and row['attempts'] < MAX_ATTEMPTS
+                    if name not in reachable and not row.get('held')
+                    and row['attempts'] < MAX_ATTEMPTS
                     and (row['lastAttempt'] is None or now - row['lastAttempt'] >= 60)]
     return []
 
