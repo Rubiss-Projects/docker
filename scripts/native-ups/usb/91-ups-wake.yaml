@@ -1,0 +1,6 @@
+# Merge with the existing admitted network definition; do not replace it.
+network:
+  version: 2
+  ethernets:
+    enp3s0:
+      wakeonlan: true

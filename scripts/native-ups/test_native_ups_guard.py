@@ -8,7 +8,7 @@ from native_ups_guard import advance, decision
 
 class PowerDecisionTests(unittest.TestCase):
     def test_handoff_endpoint_selects_only_admitted_hosts(self):
-        for host in ['192.168.50.91', '127.0.0.1']:
+        for host in ['192.168.50.91', '192.168.50.216', '127.0.0.1']:
             with self.subTest(host=host), patch.dict(guard.os.environ, {'NATIVE_UPS_HOST': host}), \
                     patch.object(guard, 'require_local_nut_listener', return_value=('100', '200')), \
                     patch.object(guard.socket, 'create_connection') as connect:

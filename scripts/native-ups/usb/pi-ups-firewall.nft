@@ -1,0 +1,9 @@
+# Dedicated table: never flush the host's Docker/Tailscale firewall.
+table inet ups_pi {
+    chain input {
+        type filter hook input priority -10; policy accept;
+        iifname "lo" tcp dport 3493 accept
+        ip saddr { 192.168.50.40, 192.168.50.209, 192.168.50.91 } tcp dport 3493 accept
+        tcp dport 3493 reject with tcp reset
+    }
+}

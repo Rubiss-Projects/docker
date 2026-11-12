@@ -57,7 +57,7 @@ def require_local_nut_listener():
 
 def sample():
     host = os.environ.get('NATIVE_UPS_HOST', '192.168.50.91')
-    if host not in {'192.168.50.91', '127.0.0.1'}:
+    if host not in {'192.168.50.91', '192.168.50.216', '127.0.0.1'}:
         raise ValueError('UPS endpoint must be the admitted NAS or local driver')
     owner = require_local_nut_listener() if host == '127.0.0.1' else None
     with socket.create_connection((host, 3493), timeout=2) as sock:

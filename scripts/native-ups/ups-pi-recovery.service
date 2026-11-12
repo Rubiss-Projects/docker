@@ -1,0 +1,23 @@
+[Unit]
+Description=Restore previously running computers after stable UPS utility power
+Wants=network-online.target
+After=network-online.target nut-server.service
+
+[Service]
+Type=simple
+# Observe only until USB acceptance and separately approved wake tests pass.
+ExecStart=/usr/bin/python3 -B /usr/local/lib/ups-pi-recovery/pi_recovery.py
+Restart=on-failure
+RestartSec=5
+StateDirectory=ups-pi-recovery
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/ups-pi-recovery
+RestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
