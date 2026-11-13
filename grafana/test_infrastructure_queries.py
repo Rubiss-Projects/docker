@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def fixture():
     rules = {}
-    for name in ['linux-alert-rules.yaml', 'nas-alert-rules.yaml']:
+    for name in ['linux-alert-rules.yaml', 'nas-alert-rules.yaml', 'docker-alert-rules.yaml']:
         data = yaml.safe_load((ROOT / 'grafana/provisioning/alerting' / name).read_text())
         rules.update({rule['uid']: rule['data'][0]['model']['expr']
                       for group in data['groups'] for rule in group['rules']})
@@ -21,7 +21,7 @@ def fixture():
 
     def case(name, uid, series, expected):
         return {'name': name, 'interval': '1m',
-                'input_series': [{'series': labels, 'values': f'{value}+0x3'}
+                'input_series': [{'series': labels, 'values': value if isinstance(value, str) else f'{value}+0x3'}
                                  for labels, value in series],
                 'promql_expr_test': [{'expr': rules[uid], 'eval_time': '2m',
                                      'exp_samples': [{'labels': labels, 'value': value}
@@ -73,6 +73,25 @@ def fixture():
         case('Missing pool free space remains actionable', 'nas_storage_metrics_missing',
              storage_series[::2], [('{job="qnap-snmp",instance="qnap-nas"}', 1)]),
     ]
+    for uid in ['docker_container_memory_high', 'docker_container_memory_critical']:
+        labels = '{name="transmission",job="cadvisor",instance="host",id="current"}'
+        usage = ('container_memory_working_set_bytes' + labels, 99)
+        limit = ('container_spec_memory_limit_bytes' + labels, 100)
+        pressure = 'container_pressure_memory_waiting_seconds_total' + labels
+        tests += [
+            case('Cache without pressure: ' + uid, uid,
+                 [usage, limit, (pressure, 0)], [(labels, 0)]),
+            case('Sustained pressure: ' + uid, uid,
+                 [usage, limit, (pressure, '0+6x3')], [(labels, 99)]),
+            case('Missing PSI retains usage alert: ' + uid, uid,
+                 [usage, limit], [(labels, 99)]),
+            case('Old container PSI cannot suppress replacement: ' + uid, uid,
+                 [usage, limit, (pressure.replace('current', 'old'), 0)], [(labels, 99)]),
+            case('Other containers unchanged: ' + uid, uid,
+                 [(key.replace('transmission', 'sonarr'), value)
+                  for key, value in [usage, limit, (pressure, 0)]],
+                 [(labels.replace('transmission', 'sonarr'), 99)]),
+        ]
     return {'evaluation_interval': '1m', 'tests': tests}
 
 
