@@ -3,9 +3,14 @@
 The service runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
-Chat, scheduled responses, and the review helper use `gpt-6.1-sol` with `max`
+Chat, scheduled responses, and the review helper use `gpt-6.1-sol` with `medium`
 reasoning. `CODEX_MODEL` and `CODEX_REASONING_EFFORT` in the public `.env` configure
 both the assistant and reviewer through explicit Compose environment settings.
+
+The assistant defaults to fast mode via `CODEX_FAST_MODE=true` in this deployment
+(the application default is false). Use `/fast set enabled:true|false` to override
+it for a conversation and `/fast current` to inspect its setting. Startup command
+registration remains enabled to publish these slash commands.
 
 GitHub contributions are enabled for everyone already allowed to chat with the
 bot. Users can ask for a draft PR in `Rubiss-Projects/ai-assistant` or
