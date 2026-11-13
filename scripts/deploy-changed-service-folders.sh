@@ -646,19 +646,20 @@ deploy_stack() {
     cd "$stack_path"
     compose config --quiet
 
-    if [[ "$DEPLOY_START_STOPPED" != "true" ]]; then
-      local running_services
-      running_services=$(compose ps --status running --services 2>/dev/null || true)
-      if [[ -z "$running_services" ]]; then
-        log "Skipping $stack_dir because it has no currently running Compose services"
-        exit 0
-      fi
-    fi
-
     if [[ "$stack_dir" == "sunday-edge" ]]; then
       run python3 "$REPO_DIR/scripts/login-sunday-edge-registry.py"
     fi
     run compose pull --ignore-buildable
+
+    if [[ "$DEPLOY_START_STOPPED" != "true" ]]; then
+      local running_services
+      running_services=$(compose ps --status running --services 2>/dev/null || true)
+      if [[ -z "$running_services" ]]; then
+        log "Updated images for $stack_dir; leaving it stopped because it has no currently running Compose services"
+        exit 0
+      fi
+    fi
+
     if [[ "$stack_dir" == "tracearr" ]]; then
       # shellcheck source=../tracearr/upgrade-database.sh
       source "$REPO_DIR/tracearr/upgrade-database.sh"

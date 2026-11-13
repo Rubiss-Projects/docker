@@ -33,8 +33,12 @@ the adapter does not freeze later image updates to migration snapshots.
 
 Before maintenance or container operations, the complete deployment plan must
 pass the media mount guard, existing-volume/network checks and service identity
-admission. Bind mounts cannot create missing host paths. Dormant game stacks
-are outside the released policy. Explicit database-only operations retain their
+admission. Bind mounts cannot create missing host paths. Stopped game stacks
+retain their data and require admission just like running stacks. Changed stacks
+pull their pinned images even when stopped; they remain stopped unless
+`DOCKER_DEPLOY_START_STOPPED=true` explicitly requests startup. Pulling an image
+does not run game updates against the saved data; those happen on the next start.
+Explicit database-only operations retain their
 service selection, including the existing Tracearr upgrade procedure.
 
 Install the non-secret mount policy as
