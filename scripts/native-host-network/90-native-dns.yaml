@@ -9,4 +9,4 @@ network:
       ra-overrides:
         use-dns: false
       nameservers:
-        addresses: [192.168.50.216, 8.8.8.8]
+        addresses: [192.168.50.216, 192.168.50.40]

@@ -3,8 +3,13 @@
 `90-native-dns.yaml` supplements the installer's existing Netplan configuration
 on BEN-SERVER. Keep DHCP addressing, routes, interface names and Tailscale's
 separate DNS configuration unchanged. Only Ethernet DNS is overridden: Pi-hole
-at `192.168.50.216`, with `8.8.8.8` as another resolver. DHCP and IPv6 router
+at `192.168.50.216`, with the secondary at `192.168.50.40`. DHCP and IPv6 router
 advertisements must not add the router's inconsistent DNS server again.
+
+The November 13 cutover replaces the temporary Google fallback with the second
+Pi-hole. The Pi remains available while BEN-SERVER boots and Docker starts;
+both Pi-hole containers use independent external upstreams. Tailscale's resolver
+configuration remains separate. Do not point either Pi-hole upstream at the other.
 
 On November 11 the host selected `192.168.50.1` from its DHCP DNS list. That
 resolver returned no address for `grafana.benlawson.dev`; both configured
@@ -31,10 +36,10 @@ After review, install the file as root with mode 0600:
 install -o root -g root -m 0600 scripts/native-host-network/90-native-dns.yaml /etc/netplan/90-native-dns.yaml
 ```
 
-The incident's runtime correction is already active:
+Apply the current pair to the running Ethernet link without restarting networking:
 
 ```sh
-resolvectl dns enp3s0 192.168.50.216 8.8.8.8
+resolvectl dns enp3s0 192.168.50.216 192.168.50.40
 resolvectl flush-caches
 ```
 
