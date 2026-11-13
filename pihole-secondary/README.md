@@ -1,13 +1,17 @@
 # Secondary DNS
 
 BEN-SERVER serves filtered DNS at `192.168.50.40:53` (TCP and UDP), with a
-LAN-only admin UI at `http://192.168.50.40:8088/admin/`. The existing Pi at
+admin UI at `https://dns-secondary.benlawson.dev/admin/` through SWAG, matching
+the primary Pi-hole proxy. Direct LAN access at `http://192.168.50.40:8088/admin/`
+remains available for proxy troubleshooting. The existing Pi at
 `192.168.50.216` remains the configuration source. DHCP stays on the router.
 
 Deploy through the native adapter after admitting both `pihole-secondary` and
 `nebula-sync`. Keep `/etc/pihole` on local storage. Preserve Ubuntu's loopback
 DNS listeners by publishing only the explicit LAN address. No router port
-forwarding or public web route is needed.
+forwarding changes are needed; the HTTPS route uses the existing wildcard
+certificate and the Pi-hole login. The sync helper is monitored in Kuma and
+does not have a Homepage tile.
 
 Nebula Sync runs at startup and hourly at minute 17. It copies DNS upstreams,
 local records, conditional forwarding, DNSSEC, blocking settings, lists, groups,

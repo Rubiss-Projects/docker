@@ -16,10 +16,6 @@ services:
       - path: .env.secret
     networks: [proxynet]
     labels:
-      - homepage.group=Infrastructure
-      - homepage.name=Pi-hole Sync
-      - homepage.icon=pi-hole.png
-      - homepage.description=Hourly Pi to BEN-SERVER configuration sync
       - swag.uptime-kuma.enabled=true
       - swag.uptime-kuma.monitor.type=push
       - swag.uptime-kuma.monitor.interval=7200

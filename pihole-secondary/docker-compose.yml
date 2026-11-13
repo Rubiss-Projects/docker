@@ -29,7 +29,7 @@ services:
       - homepage.group=Infrastructure
       - homepage.name=Pi-hole Secondary
       - homepage.icon=pi-hole.png
-      - homepage.href=http://192.168.50.40:8088/admin/
+      - homepage.href=https://dns-secondary.benlawson.dev/admin/
       - homepage.description=Secondary filtered DNS on BEN-SERVER
       - homepage.widget.type=pihole
       - homepage.widget.url=http://pihole-secondary
