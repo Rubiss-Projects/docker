@@ -16,6 +16,14 @@ The tracked Blitz/Overwolf dnsmasq rules are mounted separately. Make filtering
 changes on the Pi; replica edits can be overwritten at the next sync. Each
 resolver queries its own upstreams and can run while the other is unavailable.
 
+Nebula's `RUN_GRAVITY` is disabled because it rebuilds the primary as well as
+replicas. After adding/changing adlist sources, rebuild gravity on the secondary
+through the native adapter (`exec -T pihole-secondary pihole -g`); otherwise its
+built-in scheduled gravity update applies those source changes. Domain exceptions
+and groups synchronize hourly. Initial deployment must rebuild secondary gravity
+after the first successful sync. Sync success/failure is reported to a Kuma push
+monitor, with a two-hour missing-heartbeat threshold.
+
 Secrets are encrypted `.env.secret` overlays: `PIHOLE_PASSWORD` for the replica,
 and `PRIMARY`/`REPLICAS` API credentials for Nebula Sync. Never print these or
 expanded Compose recipes. Update the replica credential in both overlays together.
