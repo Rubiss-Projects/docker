@@ -64,18 +64,21 @@ test keys, grant a general root shell, or disable host-key checks.
    `sudo -n /etc/config/ups-cascade/command.sh "$SSH_ORIGINAL_COMMAND"`.
    Permit only this exact helper in the NAS sudo policy. This NAS's UID-0 account
    is `admin`, and `/usr/etc` is volatile. Install `qnap-ups-start.sh` as
-   `/etc/config/ups-cascade/start.sh` root-owned mode 755 and register the local
-   `UpsCascade` startup entry in `/etc/config/qpkg.conf`: `Name=UpsCascade`,
-   `Version=1.0.0`, `Enable=TRUE`, `Shell=/etc/config/ups-cascade/start.sh`,
-   `Install_Path=/etc/config/ups-cascade`, `RC_Number=150`, `Status=complete`.
-   Preserve the existing configuration and back it up before registration.
-   QNAP documents the [QPKG Shell startup field](https://download.qnap.com/dev/QPKG_developer_FAQ.pdf).
-   The hook restores only `/usr/etc/sudoers.d/ups-cascade` and validates policy
-   parsing with `sudo -l`; this firmware does not ship visudo. Also validate the
-   literal rule with Linux visudo before installation, and verify persistence
-   through the acceptance reboot. Do not overwrite QNAP's generated sudo policy
-   or enable the disabled built-in admin account. Stopping the hook revokes only
-   its dedicated rule; it does not shut down the NAS.
+   `/etc/config/ups-cascade/start.sh` root-owned mode 755. Save the exact restricted
+   public-key entry as `/etc/config/ups-cascade/authorized-key`, root-owned 644.
+   Both the sudo policy and `/share/homes` (a link to `/tmp/homes`) are volatile.
+   Keep the failed `UpsCascade` QPKG entry disabled. Back up `/etc/config/crontab`,
+   then append exactly one line:
+   `* * * * * /etc/config/ups-cascade/start.sh start`
+   Load it with `crontab /etc/config/crontab && /etc/init.d/crond.sh restart`, per
+   [QNAP's documented procedure](https://www.qnap.com/en-us/how-to/faq/article/how-to-add-jobs-to-crontab-to-schedule-a-job).
+   The hook restores the key as rubiss (not root), preserving other keys, then
+   restores only `/usr/etc/sudoers.d/ups-cascade`. Readiness stays unavailable
+   until access is restored, at most one cron interval after prerequisites exist.
+   Verify cron reconciliation by moving only this task's volatile rule and key
+   aside, observing automatic restoration, and testing status and command denial.
+   No reboot is required for this check. Remove the cron line before revoking
+   access intentionally. Do not enable the disabled built-in admin account.
 5. Authorize the server's reporting key on the Pi for `rubiss`, restricted to
    `from="192.168.50.40"` and the same forwarding/PTY restrictions, forced to
    `sudo -n /usr/bin/python3 -B /usr/local/lib/ups-pi-recovery/nas_cascade.py "$SSH_ORIGINAL_COMMAND"`.
@@ -146,11 +149,19 @@ collector. Reconcile an already committed shutdown instead of cancelling it.
 
 ## Current acceptance
 
-Implementation only; mutation flags remain disabled. BEN-SERVER and BEN-PC have
-passed separate normal shutdown/wake tests after BIOS PCI-E wake enablement.
-The server storage-release helper and Pi cascade sources from PR #607 have been
-staged without activation. A dedicated server-to-Pi key rejects invalid commands;
-no shutdown intent was injected. QNAP persistence and notification installation
-remain pending review of this follow-up. The NAS's QXG-10G1TD reports magic-packet support and `Wake-on: g`; its PCIe device
-and QNAP WOL setting are enabled. NAS shutdown/wake and integrated cascade tests
-still require the owner's go-ahead.
+The approved maintenance test exercised the real shutdown and wake functions
+with isolated simulated UPS readings; utility power remained online. BEN-SERVER
+released its mount and powered off; the Pi requested NAS shutdown immediately
+on the release/offline path. The NAS woke using its QXG-10G1TD MAC. Recovery held
+BEN-SERVER until authenticated storage readiness was restored.
+
+The reboot exposed volatile NAS keys and a disabled custom QPKG entry; manual
+repair was needed. A temporary test unit also omitted the production UMask=0077,
+so restore rejected its 0644 manifest. Correcting that test artifact allowed the
+normal admitted restore to recover all 52 previously running containers. The
+production guard already uses UMask=0077; any future harness must preserve it.
+
+Ben explicitly waived another disruptive retest and authorized fixing persistence
+and enabling automatic operation. Use the non-disruptive cron restoration check
+above. Record enablement only after live flags and NAS fallback are verified.
+A repeat reboot and full battery-exhaustion recovery remain untested.
