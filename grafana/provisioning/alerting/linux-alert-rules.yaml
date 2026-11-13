@@ -182,7 +182,11 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: (absent(up{job="node-exporter",instance="ben-server"}) or absent(up{job="node-exporter-pi",instance="raspberry-pi"}))
+        # Evaluate current presence, not the last non-null missing sample from
+        # a historical range. Explicit zeros clear each recovered host.
+        expr: (absent(up{job="node-exporter",instance="ben-server"}) or (0 * up{job="node-exporter",instance="ben-server"})) or (absent(up{job="node-exporter-pi",instance="raspberry-pi"}) or (0 * up{job="node-exporter-pi",instance="raspberry-pi"}))
+        instant: true
+        range: false
     - refId: B
       datasourceUid: __expr__
       model:
