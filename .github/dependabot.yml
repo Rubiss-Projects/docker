@@ -966,3 +966,35 @@ updates:
     groups:
       autopulse-images:
         patterns: ['*']
+
+  - package-ecosystem: docker-compose
+    directory: /pihole-secondary
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "10:45"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels: [dependencies, docker-compose]
+    groups:
+      pihole-secondary-images:
+        patterns: ['*']
+
+  - package-ecosystem: docker-compose
+    directory: /nebula-sync
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "10:50"
+      timezone: America/Chicago
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: deps
+      include: scope
+    labels: [dependencies, docker-compose]
+    groups:
+      nebula-sync-images:
+        patterns: ['*']

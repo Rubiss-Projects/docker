@@ -1,0 +1,31 @@
+services:
+  nebula-sync:
+    image: ghcr.io/lovelaze/nebula-sync:v0.11.3@sha256:59c51378460f6dc8707cc91a16aa62dff5cd5dd8b39353658b45cb00d6bfddd8
+    container_name: nebula-sync
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    env_file:
+      - path: .env
+      - path: .env.secret
+    networks: [proxynet]
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Pi-hole Sync
+      - homepage.icon=pi-hole.png
+      - homepage.description=Hourly Pi to BEN-SERVER configuration sync
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  proxynet:
+    external: true
+    name: proxynet

@@ -1,0 +1,49 @@
+services:
+  pihole-secondary:
+    image: pihole/pihole:2026.10.1@sha256:30f803ad5dd60ff96cc0a63008a2e9271af481c1b0399a182192b2e91152c1f9
+    container_name: pihole-secondary
+    restart: unless-stopped
+    shm_size: 256m
+    mem_limit: 512m
+    ports:
+      - "192.168.50.40:53:53/tcp"
+      - "192.168.50.40:53:53/udp"
+      - "192.168.50.40:8088:80/tcp"
+    environment:
+      TZ: ${TZ}
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD:?Required}
+      FTLCONF_dns_listeningMode: all
+      FTLCONF_dhcp_active: "false"
+      FTLCONF_ntp_ipv4_active: "false"
+      FTLCONF_ntp_ipv6_active: "false"
+      FTLCONF_misc_etc_dnsmasq_d: "true"
+    env_file:
+      - path: .env
+      - path: .env.secret
+    volumes:
+      - ./data:/etc/pihole
+      - ../pi/pi-hole/etc-dnsmasq.d/99-blitz-ads.conf:/etc/dnsmasq.d/99-blitz-ads.conf:ro
+    dns: [8.8.8.8, 8.8.4.4]
+    networks: [proxynet]
+    labels:
+      - homepage.group=Infrastructure
+      - homepage.name=Pi-hole Secondary
+      - homepage.icon=pi-hole.png
+      - homepage.href=http://192.168.50.40:8088/admin/
+      - homepage.description=Secondary filtered DNS on BEN-SERVER
+      - homepage.widget.type=pihole
+      - homepage.widget.url=http://pihole-secondary
+      - homepage.widget.key=${PIHOLE_PASSWORD}
+      - homepage.widget.version=6
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.url=http://pihole-secondary/admin/login
+      - swag.uptime-kuma.monitor.parent=Infrastructure
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  proxynet:
+    external: true
+    name: proxynet

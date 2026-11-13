@@ -72,6 +72,9 @@ compose() {
 
 stack_dependencies() {
   case "$1" in
+    nebula-sync)
+      printf '%s\n' pihole-secondary
+      ;;
     prometheus)
       printf '%s\n' snmp-exporter node-exporter
       ;;
