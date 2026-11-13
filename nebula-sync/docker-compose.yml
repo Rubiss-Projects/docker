@@ -20,6 +20,11 @@ services:
       - homepage.name=Pi-hole Sync
       - homepage.icon=pi-hole.png
       - homepage.description=Hourly Pi to BEN-SERVER configuration sync
+      - swag.uptime-kuma.enabled=true
+      - swag.uptime-kuma.monitor.type=push
+      - swag.uptime-kuma.monitor.interval=7200
+      - swag.uptime-kuma.monitor.pushToken=${NEBULA_PUSH_TOKEN:?Required}
+      - swag.uptime-kuma.monitor.parent=Infrastructure
     logging:
       driver: json-file
       options:

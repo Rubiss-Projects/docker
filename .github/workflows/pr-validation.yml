@@ -356,6 +356,7 @@ jobs:
           # renders Compose; an empty fixture keeps credentials out of CI.
           touch homelable/.env.secret autopulse/.env.secret pihole-secondary/.env.secret nebula-sync/.env.secret
           export PIHOLE_PASSWORD=compose-validation-placeholder
+          export NEBULA_PUSH_TOKEN=compose-validation-placeholder
           export AUTOPULSE_PASSWORD=compose-validation-placeholder
           export PLEX_TOKEN=compose-validation-placeholder
           export AUDIOBOOKSHELF_TOKEN=compose-validation-placeholder
