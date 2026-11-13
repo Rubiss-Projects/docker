@@ -32,15 +32,22 @@ Secrets are encrypted `.env.secret` overlays: `PIHOLE_PASSWORD` for the replica,
 and `PRIMARY`/`REPLICAS` API credentials for Nebula Sync. Never print these or
 expanded Compose recipes. Update the replica credential in both overlays together.
 
-## Deferred cutover
+## Router cutover
 
-Do not change the router until a restart window is approved. Then configure LAN
-DHCP to advertise `192.168.50.216` and `192.168.50.40`, review IPv6 DNS advertisements,
-and remove public/router DNS alternatives from clients that require filtering.
-Audit manually configured clients separately, including BEN-SERVER's startup
-resolver needs. Renew client leases after the router change.
+On November 13, the ASUS router's LAN DHCP was changed to advertise
+`192.168.50.216` and `192.168.50.40`. The additional router DNS advertisement is
+disabled. Router IPv6 is disabled; IP reservations and the 86400-second lease
+time were preserved. The Windows Ethernet client received exactly this DNS pair
+after lease renewal. Other DHCP clients adopt it when renewing their leases;
+reconnect them if immediate cutover is needed. Manually configured devices and
+application-level encrypted DNS require separate auditing.
 
-Before cutover, query each address explicitly for a public name, a blocked name,
+Windows resolution and blocking passed with either Pi-hole temporarily stopped,
+one at a time. Both were restored, with timed recovery safeguards during testing.
+BEN-SERVER's explicit Ethernet DNS pair is managed by
+`scripts/native-host-network/90-native-dns.yaml`.
+
+For subsequent maintenance, query each address explicitly for a public name, a blocked name,
 `ads.overwolf.com`, and `grafana.benlawson.dev`, using UDP and TCP. Confirm the
 last sync succeeded and both admin interfaces work. After cutover, test failure
 of each resolver only during an approved maintenance window. DNS clients may
