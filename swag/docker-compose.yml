@@ -2,7 +2,7 @@
 version: "3.8"
 services:
   swag:
-    image: lscr.io/linuxserver/swag:5.10.0@sha256:40c2c28b4d6e0eaf968f77e70719f996bf9c3de231da241f8390631e4a7f0230
+    image: lscr.io/linuxserver/swag:5.10.0@sha256:34ca26b0b04130a2db511d871f224343b545792aa834bfc61b84199326cad170
     container_name: swag
     cap_add:
       - NET_ADMIN
