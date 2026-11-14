@@ -1,6 +1,6 @@
 ---
 name: new-docker-service
-description: "Step-by-step workflow for adding a new Docker service to the home lab infrastructure. Use when creating a new container, setting up a new self-hosted service, or onboarding any new Docker Compose stack. Covers directory setup, compose config, SWAG proxy, Homepage labels, and Uptime Kuma monitoring."
+description: "Step-by-step workflow for adding a new Docker service to the home lab infrastructure. Use when creating a new container, setting up a new self-hosted service, or onboarding any new Docker Compose stack. Covers directory setup, compose config, SWAG proxy, Homepage labels, Uptime Kuma monitoring, and Homelable inventory and topology."
 category: devops
 ---
 
@@ -155,7 +155,43 @@ docker compose up -d
 
 ---
 
-## Step 7 — Verify
+## Step 7 — Register in Homelable and Update Topology
+
+After deployment, register every new container, including databases and internal
+helpers, in Homelable at <https://homelable.benlawson.dev:4443/>. Follow
+`homelable/README.md` for access and monitoring policy. Use the existing shared
+Bitwarden login without printing credentials or storing them in inventory notes.
+
+1. Read the current designs, nodes and inventory first. Reuse an existing service
+   entry if present; avoid duplicate devices or canvases. Back up the affected
+   records before editing.
+2. Add the service to the existing single home-lab canvas and nest its
+   `docker_container` node under the machine actually running it (BEN-SERVER or
+   the Raspberry Pi). Record the container name, Compose stack and useful access
+   URL. Do not treat transient container IPs as stable host addresses.
+3. Add directed, meaningfully labeled links from consumer to dependency, using
+   verified Compose and live configuration: databases, caches, APIs, download
+   clients, NAS storage, proxy upstreams and monitoring integrations as applicable.
+   Update affected existing nodes too. Do not infer a dependency merely because
+   two services share a Docker network; do not invent physical wiring.
+4. Preserve manual positions, metadata and unrelated nodes/edges. Use incremental
+   authenticated API operations or UI edits, not whole-canvas replacement. Keep
+   related containers together and avoid repetitive LAN/Wi-Fi labels; connection
+   details belong in device properties.
+5. Leave new services' inventory check methods empty/null, not `none` (which
+   reports online without probing). Keep Homelable service checks disabled;
+   Uptime Kuma owns service availability. Preserve the existing machine-only
+   checks. Review imported/scanned entries for automatically assigned ping checks.
+
+Read back the saved records to verify host membership, dependency endpoints,
+absence of duplicates and disabled service checks. If Homelable is unavailable,
+report the outstanding registration explicitly rather than claiming onboarding
+is complete. Apply the same topology maintenance when moving or retiring a
+service; confirm retirement before removing its inventory entry.
+
+---
+
+## Step 8 — Verify
 
 Run through this checklist before considering the service done:
 
@@ -165,6 +201,9 @@ Run through this checklist before considering the service done:
 - [ ] External access: `https://<service-name>.benlawson.dev` (if proxied)
 - [ ] Homepage shows service (with working widget if configured)
 - [ ] Uptime Kuma monitor appears and shows "Up"
+- [ ] Homelable inventory and existing canvas include every new container under its actual host
+- [ ] Verified dependency links are saved without duplicate nodes or unrelated layout changes
+- [ ] Homelable service check methods remain empty; existing machine checks are preserved
 
 ---
 
@@ -197,4 +236,5 @@ New service requested
 | 4 | SWAG proxy conf + reload | If external URL needed |
 | 5 | Homepage widget labels | If widget available |
 | 6 | `docker compose up -d` from WSL | Yes |
-| 7 | Verify checklist | Yes |
+| 7 | Homelable inventory and topology | Yes |
+| 8 | Verify checklist | Yes |
