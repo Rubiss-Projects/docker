@@ -229,6 +229,7 @@ groups:
       datasourceUid: adw07verg2qrkd
       model:
         expr: min_over_time((storagepoolStatus{job="qnap-snmp",instance="qnap-nas"} == bool 4)[2d:5m])
+          and storagepoolStatus{job="qnap-snmp",instance="qnap-nas"} offset 2d
     - refId: B
       datasourceUid: __expr__
       model:
