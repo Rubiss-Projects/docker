@@ -665,12 +665,25 @@ deploy_stack() {
       source "$REPO_DIR/tracearr/upgrade-database.sh"
       run upgrade_tracearr_database
     fi
+    local grafana_started_before=
+    if [[ "$stack_dir" == "grafana" && "$DRY_RUN" != "true" ]]; then
+      grafana_started_before=$(docker inspect -f '{{.State.StartedAt}}' grafana 2>/dev/null || true)
+    fi
     run compose up -d --build --remove-orphans
 
     if [[ "$DRY_RUN" != "true" ]]; then
       verify_config_mounts "$stack_dir"
       verify_stack_readiness "$stack_dir"
       case "$stack_dir" in
+        grafana)
+          # Grafana loads alert provisioning and grafana.ini only at startup,
+          # and Compose does not recreate a container for bind-mounted changes.
+          if [[ "$(docker inspect -f '{{.State.StartedAt}}' grafana)" == "$grafana_started_before" ]]; then
+            compose restart grafana
+            log "Restarted Grafana to load provisioning"
+          fi
+          wait_container_url grafana http://localhost:3000/api/health 120
+          ;;
         prometheus)
           # Compose does not recreate a container for bind-mounted YAML changes.
           reload_prometheus_configuration

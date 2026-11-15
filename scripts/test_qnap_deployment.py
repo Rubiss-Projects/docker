@@ -12,16 +12,22 @@ SCRIPT = Path(__file__).with_name('deploy-changed-service-folders.sh')
 
 class QnapDeploymentTests(unittest.TestCase):
     def deploy(self, stack, *, invalid_config=False, unhealthy=False,
-               dry_run=False, reload_state='success'):
+               dry_run=False, reload_state='success', recreated=False):
         source = SCRIPT.read_text()
         self.assertTrue(source.endswith('main "$@"\n'))
         definitions = source.rsplit('main "$@"', 1)[0]
         mocks = r'''
 compose() {
   printf 'compose %s\n' "$*"
+  if [[ "$1" == up && "$TEST_RECREATED" == 1 ]]; then
+    touch recreated
+  fi
 }
 docker() {
   printf 'docker %s\n' "$*" >&2
+  if [[ "$*" == 'inspect -f {{.State.StartedAt}} grafana' ]]; then
+    [[ -f recreated ]] && printf 'new\n' || printf 'old\n'
+  fi
   if [[ "$*" == 'exec prometheus promtool check config /etc/prometheus/prometheus.yml' && "$TEST_INVALID" == 1 ]]; then
     return 23
   fi
@@ -54,6 +60,7 @@ deploy_stack "$TEST_STACK"
                        TEST_STACK=stack, TEST_INVALID=str(int(invalid_config)),
                        TEST_UNHEALTHY=str(int(unhealthy)),
                        TEST_RELOAD_STATE=reload_state,
+                       TEST_RECREATED=str(int(recreated)),
                        TEST_DRY_RUN=str(dry_run).lower())
             return subprocess.run(['bash'], input=definitions + mocks, env=env,
                                   text=True, stdout=subprocess.PIPE,
@@ -92,12 +99,25 @@ deploy_stack "$TEST_STACK"
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('auto-uptime-kuma.py', result.stdout)
 
+    def test_unchanged_grafana_container_restarts_to_load_provisioning(self):
+        result = self.deploy('grafana')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertLess(result.stdout.index('compose restart grafana'),
+                        result.stdout.index('probe grafana http://localhost:3000/api/health'))
+
+    def test_recreated_grafana_container_is_not_restarted_again(self):
+        result = self.deploy('grafana', recreated=True)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn('restart', result.stdout)
+        self.assertIn('probe grafana http://localhost:3000/api/health', result.stdout)
+
     def test_dry_run_does_not_apply_configuration(self):
-        for stack in ('prometheus', 'snmp-exporter'):
+        for stack in ('prometheus', 'snmp-exporter', 'grafana'):
             with self.subTest(stack=stack):
                 result = self.deploy(stack, dry_run=True)
                 self.assertEqual(result.returncode, 0, result.stdout)
                 self.assertNotIn('docker exec', result.stdout)
+                self.assertNotIn('restart', result.stdout)
 
 
 if __name__ == '__main__':
