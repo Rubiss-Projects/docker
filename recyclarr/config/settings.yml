@@ -5,7 +5,7 @@
 # https://recyclarr.dev/reference/settings/
 
 # Recyclarr 8 cannot override Radarr profile language in the instance YAML.
-# This supplemental resource changes only HD Bluray + WEB's language to English.
+# Supplemental profiles preserve English movie audio and existing UHD quality.
 resource_providers:
   - name: english-movie-policy
     type: trash-guides

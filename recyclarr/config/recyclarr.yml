@@ -24,6 +24,15 @@ radarr:
       - trash_id: d1d67249d3890e49bc12e275d989a7e9
         reset_unmatched_scores:
           enabled: true
+      - trash_id: 9ca12ea80aa55ef916e3751f4b874151 # Remux + WEB 1080p
+        reset_unmatched_scores:
+          enabled: true
+      - trash_id: 64fb5f9858489bdac2af690e27c8f42f # UHD Bluray + WEB
+        reset_unmatched_scores:
+          enabled: true
+      - trash_id: fd161a61e3ab826d3a22d53f935696dd # Remux + WEB 2160p
+        reset_unmatched_scores:
+          enabled: true
       - trash_id: 722b624f9af1e492284c4bc842153a38 # [Anime] Remux-1080p
         reset_unmatched_scores:
           enabled: true
@@ -33,6 +42,12 @@ radarr:
           - 0dc8aec3bd1c47cd6c40c46ecd27e846 # Language: Not English
         assign_scores_to:
           - trash_id: d1d67249d3890e49bc12e275d989a7e9
+            score: -10000
+          - trash_id: 9ca12ea80aa55ef916e3751f4b874151
+            score: -10000
+          - trash_id: 64fb5f9858489bdac2af690e27c8f42f
+            score: -10000
+          - trash_id: fd161a61e3ab826d3a22d53f935696dd
             score: -10000
 
 sonarr:
@@ -62,6 +77,9 @@ sonarr:
       - trash_id: 9d142234e45d6143785ac55f5a9e8dc9 # WEB-1080p (Alternative)
         reset_unmatched_scores:
           enabled: true
+      - trash_id: dfa5eaae7894077ad6449169b6eb03e0 # WEB-2160p (Alternative)
+        reset_unmatched_scores:
+          enabled: true
       - trash_id: 20e0fc959f1f1704bed501f23bdae76f # [Anime] Remux-1080p
         reset_unmatched_scores:
           enabled: true
@@ -75,6 +93,8 @@ sonarr:
             score: -10000
           - trash_id: 9d142234e45d6143785ac55f5a9e8dc9
             score: -10000
+          - trash_id: dfa5eaae7894077ad6449169b6eb03e0
+            score: -10000
       # Allow English dubs without also requiring the original-language track.
       - trash_ids:
           - ae575f95ab639ba5d15f663bf019e3e8 # Language: Not Original
@@ -82,4 +102,6 @@ sonarr:
           - trash_id: 72dae194fc92bf828f32cde7744e51a1
             score: 0
           - trash_id: 9d142234e45d6143785ac55f5a9e8dc9
+            score: 0
+          - trash_id: dfa5eaae7894077ad6449169b6eb03e0
             score: 0
