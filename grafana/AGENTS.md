@@ -50,6 +50,8 @@ restart: unless-stopped
 ## Common Tasks
 
 ### Restart Grafana
+Deployment restarts Grafana automatically when its container was not recreated,
+because alert provisioning and `grafana.ini` are read only at startup.
 ```powershell
 cd /mnt/e/Docker/grafana
 docker compose restart
