@@ -9,8 +9,10 @@ migrate the library.
   require an additional original-language track.
 - Regular movies: `HD Bluray + WEB`, requiring English audio.
 - Anime: the service's `[Anime] Remux-1080p` guide profile. Sonarr has a separate
-  Seerr anime default. Seerr does not have a separate anime movie default;
-  select the anime profile explicitly for a new anime movie request.
+  Seerr anime default. Movies use a Seerr override rule scoped to the Radarr
+  service and TMDB's anime keyword (`210024`), selecting the anime profile.
+  Ordinary animation does not match that rule. Check metadata/manual profile
+  selection if an anime movie is missing its keyword.
 - `Dragon Ball Super Beerus - Subs then Dub` is an existing, separately managed
   exception. Do not migrate its series or reset its custom scores.
 
