@@ -106,10 +106,16 @@ physical pool utilization. Public's dynamic capacity is intentionally excluded
 from the quota charts. The dashboard keeps pool and shared-folder figures apart,
 gates them on successful collection and leaves failed/missing scrapes unavailable.
 `sharedFolderStatus` is an information metric; its sample value 1 is not a health
-code. Pool status retains the raw integer. Only 0 is labelled Ready, as verified
-against this NAS. The MIB describes conflicting QTS and QuTS hero enumerations;
-unverified nonzero states remain numeric in a neutral color until reconciled
-with the native API. Do not infer a named operation or healthy state from them.
+code. Pool status retains the raw integer. Two states are verified against this
+NAS: 0 is Ready, and 4 is scrubbing. On 2026-11-15 (build 3656) the native API
+reported `pool_status` 4 together with advancing `scrubbing_progress` from
+01:00 local, while drives, volumes and shares stayed healthy. A scrub is routine
+scheduled maintenance, so state 4 does not raise the pool alert; a separate
+warning fires only if it persists for 48 hours. SNMP does not carry the scrub's
+repaired-block count. The MIB describes conflicting QTS and QuTS hero
+enumerations; other nonzero states remain numeric in a neutral color and
+critical until reconciled with the native API. Do not infer a named operation
+or healthy state from them.
 
 Erase/scan percentages stay on the separate
 [migration progress page](https://nas-linux-migration-field-guide-2026.rubiss89.chatgpt.site/progress).
