@@ -19,11 +19,11 @@ def fixture():
     rules.update({'sunday_' + str(panel['id']): panel['targets'][0]['expr']
                   for panel in dashboard['panels'] if panel['id'] in [6, 7]})
 
-    def case(name, uid, series, expected):
+    def case(name, uid, series, expected, eval_time='2m'):
         return {'name': name, 'interval': '1m',
                 'input_series': [{'series': labels, 'values': value if isinstance(value, str) else f'{value}+0x3'}
                                  for labels, value in series],
-                'promql_expr_test': [{'expr': rules[uid], 'eval_time': '2m',
+                'promql_expr_test': [{'expr': rules[uid], 'eval_time': eval_time,
                                      'exp_samples': [{'labels': labels, 'value': value}
                                                      for labels, value in expected]}]}
 
@@ -38,10 +38,12 @@ def fixture():
         case('NAS Ready', 'nas_pool_not_ready', [(pool, 0)],
              [('{job="qnap-snmp",instance="qnap-nas",storagepoolID="1"}', 0)]),
         case('Routine NAS scrub is not actionable', 'nas_pool_not_ready', [(pool, 4)], []),
-        case('NAS scrub that only just started is not stuck', 'nas_pool_scrub_stuck', [(pool, '0 4 4 4')],
-             [('{job="qnap-snmp",instance="qnap-nas",storagepoolID="1"}', 0)]),
-        case('NAS scrub spanning the whole window is stuck', 'nas_pool_scrub_stuck', [(pool, 4)],
-             [('{job="qnap-snmp",instance="qnap-nas",storagepoolID="1"}', 1)]),
+        case('Collection that began mid-scrub lacks the history to call it stuck', 'nas_pool_scrub_stuck',
+             [(pool, 4)], []),
+        case('NAS scrub that started a day ago is not stuck', 'nas_pool_scrub_stuck', [(pool, '0x1440 4x1500')],
+             [('{job="qnap-snmp",instance="qnap-nas",storagepoolID="1"}', 0)], eval_time='2d5m'),
+        case('NAS scrub spanning two full days is stuck', 'nas_pool_scrub_stuck', [(pool, '4x2940')],
+             [('{job="qnap-snmp",instance="qnap-nas",storagepoolID="1"}', 1)], eval_time='2d5m'),
         case('No drive identities', 'nas_drive_identity_missing', [], [('{}', 0)]),
         case('Missing UPS recording series', 'ups_telemetry_missing', [], [('{}', 1)]),
         case('Invalid UPS status', 'ups_telemetry_missing', [('nut:telemetry_available', 0)], [('{}', 1)]),
