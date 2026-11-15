@@ -24,6 +24,16 @@ radarr:
       - trash_id: d1d67249d3890e49bc12e275d989a7e9
         reset_unmatched_scores:
           enabled: true
+      - trash_id: 722b624f9af1e492284c4bc842153a38 # [Anime] Remux-1080p
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_formats:
+      - trash_ids:
+          - 0dc8aec3bd1c47cd6c40c46ecd27e846 # Language: Not English
+        assign_scores_to:
+          - trash_id: d1d67249d3890e49bc12e275d989a7e9
+            score: -10000
 
 sonarr:
   tv:
@@ -48,3 +58,28 @@ sonarr:
       - trash_id: 72dae194fc92bf828f32cde7744e51a1
         reset_unmatched_scores:
           enabled: true
+      # Keep the guide's HD fallback sources for older/less available TV.
+      - trash_id: 9d142234e45d6143785ac55f5a9e8dc9 # WEB-1080p (Alternative)
+        reset_unmatched_scores:
+          enabled: true
+      - trash_id: 20e0fc959f1f1704bed501f23bdae76f # [Anime] Remux-1080p
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_formats:
+      # Non-anime requires English, including shows originally made abroad.
+      - trash_ids:
+          - 69aa1e159f97d860440b04cd6d590c4f # Language: Not English
+        assign_scores_to:
+          - trash_id: 72dae194fc92bf828f32cde7744e51a1
+            score: -10000
+          - trash_id: 9d142234e45d6143785ac55f5a9e8dc9
+            score: -10000
+      # Allow English dubs without also requiring the original-language track.
+      - trash_ids:
+          - ae575f95ab639ba5d15f663bf019e3e8 # Language: Not Original
+        assign_scores_to:
+          - trash_id: 72dae194fc92bf828f32cde7744e51a1
+            score: 0
+          - trash_id: 9d142234e45d6143785ac55f5a9e8dc9
+            score: 0
