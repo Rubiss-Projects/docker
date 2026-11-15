@@ -3,3 +3,10 @@
 # Edit this file to customize the behavior of Recyclarr beyond its defaults
 # For the settings file reference guide, visit the link to the wiki below:
 # https://recyclarr.dev/reference/settings/
+
+# Recyclarr 8 cannot override Radarr profile language in the instance YAML.
+# This supplemental resource changes only HD Bluray + WEB's language to English.
+resource_providers:
+  - name: english-movie-policy
+    type: trash-guides
+    path: /config/overrides
