@@ -310,6 +310,9 @@ jobs:
       - name: Test Transmission functional health probe
         run: python3 -m unittest discover -s transmission/scripts -p 'test_rpc_health.py'
 
+      - name: Test Transmission actionable alerts
+        run: python3 -m unittest discover -s grafana -p 'test_transmission_alerts.py'
+
       - name: Test native host telemetry and installer rollback
         run: sudo python3 -m unittest discover -s transmission/scripts -p 'test_native_*.py'
 
