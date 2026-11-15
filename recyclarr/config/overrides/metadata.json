@@ -2,6 +2,9 @@
   "json_paths": {
     "radarr": {
       "quality_profiles": ["radarr"]
+    },
+    "sonarr": {
+      "quality_profiles": ["sonarr"]
     }
   }
 }
