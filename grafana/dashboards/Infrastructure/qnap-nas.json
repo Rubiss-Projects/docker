@@ -706,7 +706,7 @@
       "id": 11,
       "title": "NAS pool state",
       "type": "stat",
-      "description": "Raw NAS pool state. Only 0 is verified as Ready. Other values remain numeric because the vendor MIB describes conflicting QTS and QuTS hero enumerations; reconcile them with the native API. Missing collection remains unavailable.",
+      "description": "Raw NAS pool state. Only 0 (Ready) and 4 (scrubbing, routine scheduled maintenance) are verified. Other values remain numeric because the vendor MIB describes conflicting QTS and QuTS hero enumerations; reconcile them with the native API. Missing collection remains unavailable.",
       "datasource": {
         "type": "prometheus",
         "uid": "adw07verg2qrkd"
@@ -728,6 +728,10 @@
                 "0": {
                   "text": "Ready",
                   "color": "green"
+                },
+                "4": {
+                  "text": "Scrubbing",
+                  "color": "blue"
                 }
               }
             }

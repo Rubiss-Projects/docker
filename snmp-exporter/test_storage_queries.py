@@ -15,9 +15,10 @@ MEDIA = 'instance="qnap-nas",job="qnap-snmp",sharedFolderIndex="3",sharedFolderN
 def fixture():
     dashboard = json.loads((ROOT / "grafana/dashboards/Infrastructure/qnap-nas.json").read_text())
     state_panel = next(panel for panel in dashboard["panels"] if panel["id"] == 11)
-    # The vendor MIB describes conflicting QTS/QuTS hero codes. Only Ready has
-    # been reconciled with this NAS; other states must retain their raw number.
-    assert set(state_panel["fieldConfig"]["defaults"]["mappings"][0]["options"]) == {"0"}
+    # The vendor MIB describes conflicting QTS/QuTS hero codes. Only Ready (0) and
+    # scrubbing (4) have been reconciled with this NAS; other states must retain
+    # their raw number.
+    assert set(state_panel["fieldConfig"]["defaults"]["mappings"][0]["options"]) == {"0", "4"}
     assert state_panel["fieldConfig"]["defaults"]["color"] == {"mode": "fixed", "fixedColor": "gray"}
     queries = {panel["id"]: panel["targets"][0]["expr"] for panel in dashboard["panels"] if panel["id"] in range(9, 14)}
     expected = {

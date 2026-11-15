@@ -185,7 +185,7 @@ groups:
         to: 0
       datasourceUid: adw07verg2qrkd
       model:
-        expr: abs(storagepoolStatus{job="qnap-snmp",instance="qnap-nas"})
+        expr: abs(storagepoolStatus{job="qnap-snmp",instance="qnap-nas"} != 4)
     - refId: B
       datasourceUid: __expr__
       model:
@@ -213,10 +213,53 @@ groups:
       __dashboardUid__: qnap-nas
       __panelId__: '11'
       summary: NAS pool is not Ready
-      description: NAS pool {{ $labels.storagepoolID }} has persistent nonzero state {{ $values.B.Value }}. Only zero
-        has been verified as Ready; inspect the NAS for its authoritative explanation.
+      description: NAS pool {{ $labels.storagepoolID }} has persistent unverified state {{ $values.B.Value }}. Only 0
+        (Ready) and 4 (scrubbing) have been verified; inspect the NAS for its authoritative explanation.
     labels:
       severity: critical
+      service: nas
+  - uid: nas_pool_scrub_stuck
+    title: NAS pool scrub running over 48 hours
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 180
+        to: 0
+      datasourceUid: adw07verg2qrkd
+      model:
+        expr: min_over_time((storagepoolStatus{job="qnap-snmp",instance="qnap-nas"} == bool 4)[2d:5m])
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        expression: A
+        reducer: last
+        type: reduce
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        expression: B
+        type: threshold
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+    for: 5m
+    dashboardUid: qnap-nas
+    panelId: 11
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      __dashboardUid__: qnap-nas
+      __panelId__: '11'
+      summary: NAS pool scrub running over 48 hours
+      description: NAS pool {{ $labels.storagepoolID }} has reported scrubbing (state 4) continuously for two days.
+        A routine scrub finishes well inside that; inspect the NAS for a stalled scrub.
+    labels:
+      severity: warning
       service: nas
   - uid: nas_storage_metrics_missing
     title: NAS storage metrics missing
