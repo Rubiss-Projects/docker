@@ -49,6 +49,33 @@ observations. Historical metric data remains retained. The former Windows and
 duplicate native host dashboards are retired.
 Missing telemetry and query errors remain distinguishable from successful RPC.
 
+## Human alerts
+
+The three-second RPC and five-second HTTP deadlines measure responsiveness;
+occasional deadline misses during seeding are diagnostic data, not an outage.
+Successful RPC latency remains on the dashboard without a Discord alert.
+
+Grafana pages for sustained loss of service:
+
+- Published endpoint: every probe in the last five minutes failed, and that
+  condition remains true for five more minutes. Any successful expected HTTP 409
+  response clears the condition.
+- Functional RPC: fewer than 10% of probes succeed in the last five minutes,
+  sustained for five more minutes.
+- Inventory: fewer than 10% of inventory probes succeed when session RPC works,
+  using the same five-minute window and five-minute pending period.
+
+A complete outage therefore triggers these Grafana alerts in roughly ten
+minutes, with up to one evaluation interval of rounding. The existing functional
+Docker health check and Kuma availability monitor still provide the faster
+outage path. Missing telemetry and query errors retain their separate alerts.
+No alert restarts Transmission or changes torrent state. Idle transfers alone
+are not an error: retained seeds may have no interested peers.
+
+The 2026-11-15 trial of a 4 GiB container limit did not resolve intermittent RPC
+stalls. The limit is restored to 2 GiB; no out-of-memory kills or sustained memory
+pressure were established as the cause.
+
 ## Validation and recovery
 
 On Linux, run `python3 -m unittest discover -s transmission/scripts -p 'test_native_*.py'`.
