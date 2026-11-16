@@ -52,10 +52,24 @@ book-file deletion (including deletion for upgrade). Leave grab, author-added,
 health and application events disabled. Keep the existing Seerr availability
 webhooks enabled; those serve a different purpose.
 
-Keep Plex automatic filesystem scans disabled and hourly periodic scans enabled
-for Channels recordings, Other Videos and additions outside the arr apps. Keep
-automatic trash emptying disabled to preserve metadata during NAS outages.
-Seerr continues its existing arr progress polling and five-minute Plex scans.
+Keep Plex automatic filesystem scans and periodic scans disabled. The
+`non-arr-video` notify trigger polls Channels recordings and Other Videos for
+video changes; the polling backend works with NFS without filesystem events.
+Autopulse v2 polls every 10 seconds, so keep this limited to these small trees,
+not the full TV/movie library or downloads. Streaming buffers, logs and images
+are excluded. New files pass through the same 60-second batching, media anchor
+and path checks as imports before a targeted Plex update is sent.
+
+Enable Plex automatic trash emptying for obsolete library entries. Plex media
+deletion stays disabled and `/data` stays read-only; seeding data is untouched.
+The anchor reduces scans during NAS outages but cannot make Plex cleanup atomic
+with storage health. A partial storage failure can still remove library records.
+Do manual TV/movie additions through Sonarr/Radarr import, or explicitly trigger
+Autopulse for their final library path. Seerr's existing five-minute Plex scans
+poll availability; they do not replace filesystem scans.
+
+See [Plex settings](../plex/settings-policy.md) for the accepted settings and
+the deliberate exceptions to TRaSH's generic recommendations.
 
 ## Verification and backout
 
@@ -68,9 +82,10 @@ existing imported `bookFiles[].path`, verify its event completes only against
 Audiobookshelf, and confirm the item appears in the appropriate library. Scan
 Audiobookshelf's Audio Books and Ebooks libraries once for existing downloads.
 
-To back out, disable the Autopulse connections and stop the service using the
-native adapter. Retain SQLite state and encrypted secrets. Periodic Plex scans
-continue covering new media.
+To back out, restore hourly periodic Plex scans before disabling Autopulse
+connections or stopping the service through the native adapter. Disable automatic
+trash emptying first if reverting to the former NAS-outage policy. Retain SQLite
+state and encrypted secrets.
 
 References: [Autopulse v2.0.0](https://github.com/dan-online/autopulse/tree/v2.0.0),
 [TRaSH Plex settings](https://trash-guides.info/Plex/Tips/Plex-media-server/).
