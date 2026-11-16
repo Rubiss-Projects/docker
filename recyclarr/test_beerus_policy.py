@@ -48,8 +48,13 @@ class BeerusPolicyTests(unittest.TestCase):
                     self.assertEqual(score(title, languages), 2010)
 
     def test_subtitle_label_is_not_an_english_dub(self):
-        self.assertEqual(score("Beerus English Subs", {8}), 110)
-        self.assertLess(score("Beerus English Subs", {1}), POLICY["minFormatScore"])
+        for separator in (" ", ".", "_", "-"):
+            for label in ("English Subs", "ENG Subtitles", "Subs English"):
+                title = separator.join(("Beerus", *label.split(), "1080p"))
+                with self.subTest(title=title):
+                    self.assertEqual(score(title, {8}), 110)
+                    self.assertLess(score(title, {1}), POLICY["minFormatScore"])
+                    self.assertEqual(score(title + separator + "English_Dub", {1}), 1010)
 
     def test_subtitle_information_does_not_reject_dual_language_pairs(self):
         for label in ("JA+EN", "JPN-ENG", "ENG_JPN", "EN/JA",
