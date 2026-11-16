@@ -8,6 +8,19 @@ opts:
 anchors:
   - /data/.autopulse.anchor
 triggers:
+  non-arr-video:
+    type: notify
+    backend: polling
+    paths:
+      - /data/channels-dvr
+      - /data/videos
+    recursive: true
+    filters:
+      - '(?i)\.(mkv|mp4|m4v|avi|mov|mpg|mpeg|ts|m2ts|wmv|webm)$'
+    filter:
+      exclude:
+        - '^/data/channels-dvr/(Streaming|Logs|Images)(/|$)'
+    excludes: [audiobookshelf]
   sonarr:
     type: sonarr
     excludes: [audiobookshelf]
