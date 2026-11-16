@@ -59,16 +59,22 @@ class BeerusPolicyTests(unittest.TestCase):
     def test_subtitle_information_does_not_reject_dual_language_pairs(self):
         for label in ("JA+EN", "JPN-ENG", "ENG_JPN", "EN/JA",
                       "Japanese English", "English Japanese"):
-            for languages in ({8}, {8, 1}):
-                title = f"Beerus.S01E02.1080p.[{label}]"
-                with self.subTest(label=label, languages=languages):
-                    self.assertEqual(score(title, languages), 2010)
-                    self.assertEqual(score(title + ".English.Subs", languages), 2010)
+            for separator in (" ", ".", "_", "-"):
+                for languages in ({8}, {8, 1}):
+                    titles = (f"Beerus.S01E02.1080p.[{label}]",
+                              separator.join(("Beerus", "S01E02", "1080p", label)))
+                    for title in titles:
+                        with self.subTest(title=title, languages=languages):
+                            self.assertEqual(score(title, languages), 2010)
+                            self.assertEqual(score(title + separator + "English_Subs", languages), 2010)
 
     def test_unrelated_language_and_dual_substrings_do_not_qualify(self):
         for title in ("Beerus.German", "Beerus English Subs", "Beerus.Individual"):
             self.assertLess(score(title, {4}), POLICY["minFormatScore"])
         self.assertEqual(score("Beerus.Individual", {8}), 110)
+        for label in ("XJA+EN", "JA+ENX", "XJapanese_English", "English_JapaneseX"):
+            with self.subTest(label=label):
+                self.assertEqual(score(f"Beerus_{label}", {8}), 110)
 
 
 if __name__ == "__main__":
