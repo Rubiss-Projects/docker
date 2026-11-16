@@ -63,7 +63,7 @@
             "negate": true,
             "required": true,
             "fields": {
-              "value": "^(?!.*(?:\\b(?:eng(?:lish)?[ ._-]*(?:dub(?:bed)?|audio)|(?:dub(?:bed)?|audio)[ ._-]*eng(?:lish)?|dual(?:[ ._-]*audio)?)\\b)).*(?:\\b(?:eng(?:lish)?[ ._-]*sub(?:s|bed|titles)?|sub(?:s|titles)?[ ._-]*eng(?:lish)?)\\b)"
+              "value": "^(?!.*(?<![A-Za-z0-9])(?:eng(?:lish)?[ ._-]*(?:dub(?:bed)?|audio)|(?:dub(?:bed)?|audio)[ ._-]*eng(?:lish)?|dual(?:[ ._-]*audio)?)(?![A-Za-z0-9])).*(?<![A-Za-z0-9])(?:eng(?:lish)?[ ._-]*sub(?:s|bed|titles)?|sub(?:s|titles)?[ ._-]*eng(?:lish)?)(?![A-Za-z0-9])"
             }
           },
           {
