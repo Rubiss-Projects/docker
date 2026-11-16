@@ -25,6 +25,39 @@ migrate the library.
 - `Dragon Ball Super Beerus - Subs then Dub` is an existing, separately managed
   exception. Do not migrate its series or reset its custom scores.
 
+### Beerus exception
+
+The separately managed Sonarr policy is recorded in `beerus-policy.json`.
+Japanese audio is an eligible fallback (100 points), English audio is preferred
+(1,000), and Japanese/English dual audio is preferred most (2,000). 1080p adds
+10 points. Keep the minimum at 100 and upgrade cutoff at 2,010; all four formats
+must score zero in every other profile. The existing HD quality group is unchanged.
+
+The Japanese fallback replaces `English Subtitles Without Dub` in place, retaining
+its format ID and score. It no longer requires subtitles to be named in the
+release title. Bazarr's English language profile uses embedded subtitles when
+present and searches for external English subtitles otherwise. On 2026-11-16,
+the configured OpenSubtitles.com provider listed full English subtitles for
+Beerus S01E01–S01E06. Provider availability does not guarantee future coverage,
+release matching, or correct timing; check Bazarr's wanted queue after imports.
+
+Dual detection accepts standalone `.DUAL.`, `[DUAL]`, `Dual-Audio`, and `JA+EN`.
+Japanese audio must also be detected; an arbitrary foreign-language `DUAL` title
+does not satisfy the dual format. The fallback and English-audio conditions
+exclude dual releases so those scores do not stack. English subtitle wording
+alone is never evidence of an English dub.
+
+This snapshot is not loaded by Recyclarr. To restore it through Sonarr's API,
+back up the affected custom formats and quality profiles, find each format by
+its current `customFormat.name` or `previousName`, and PUT its `customFormat`
+definition to the existing ID. Convert the JSON `fields` mapping to Sonarr's
+field array. Verify the recorded scores only in the Beerus profile and zero
+scores elsewhere; do not replace quality groups or other format scores.
+Re-read the definitions and run an interactive release search to confirm parsing.
+The live policy is persisted in Sonarr's database and retained by Recyclarr.
+
+Run the focused naming checks with `python -m unittest discover -s recyclarr -p test_beerus_policy.py`.
+
 Multilingual releases containing English are acceptable for regular media.
 Non-anime original-language audio without English is not, even with English
 subtitles. Anime uses the guide's translated-release filters; subtitles still
