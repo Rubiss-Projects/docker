@@ -34,7 +34,7 @@
             "negate": true,
             "required": true,
             "fields": {
-              "value": "(?<![A-Za-z0-9])dual(?:[ ._-]?audio)?(?![A-Za-z0-9])|\\b(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)\\b|\\b(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)\\b|\\bJapanese[ ._+&-]+English\\b|\\bEnglish[ ._+&-]+Japanese\\b"
+              "value": "(?<![A-Za-z0-9])(?:dual(?:[ ._-]?audio)?|(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)|(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)|Japanese[ ._+&-]+English|English[ ._+&-]+Japanese)(?![A-Za-z0-9])"
             }
           }
         ]
@@ -72,7 +72,7 @@
             "negate": true,
             "required": true,
             "fields": {
-              "value": "(?<![A-Za-z0-9])dual(?:[ ._-]?audio)?(?![A-Za-z0-9])|\\b(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)\\b|\\b(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)\\b|\\bJapanese[ ._+&-]+English\\b|\\bEnglish[ ._+&-]+Japanese\\b"
+              "value": "(?<![A-Za-z0-9])(?:dual(?:[ ._-]?audio)?|(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)|(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)|Japanese[ ._+&-]+English|English[ ._+&-]+Japanese)(?![A-Za-z0-9])"
             }
           }
         ]
@@ -91,7 +91,7 @@
             "negate": false,
             "required": true,
             "fields": {
-              "value": "(?<![A-Za-z0-9])dual(?:[ ._-]?audio)?(?![A-Za-z0-9])|\\b(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)\\b|\\b(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)\\b|\\bJapanese[ ._+&-]+English\\b|\\bEnglish[ ._+&-]+Japanese\\b"
+              "value": "(?<![A-Za-z0-9])(?:dual(?:[ ._-]?audio)?|(?:JA|JPN)[ .+&/_-]+(?:EN|ENG)|(?:EN|ENG)[ .+&/_-]+(?:JA|JPN)|Japanese[ ._+&-]+English|English[ ._+&-]+Japanese)(?![A-Za-z0-9])"
             }
           },
           {
