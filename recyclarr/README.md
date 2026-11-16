@@ -45,7 +45,8 @@ Dual detection accepts standalone `.DUAL.`, `[DUAL]`, `Dual-Audio`, and `JA+EN`.
 Japanese audio must also be detected; an arbitrary foreign-language `DUAL` title
 does not satisfy the dual format. The fallback and English-audio conditions
 exclude dual releases so those scores do not stack. English subtitle wording
-alone is never evidence of an English dub.
+alone is never evidence of an English dub. Once a supported dual-audio label
+is present, additional English-subtitle wording does not disqualify it.
 
 This snapshot is not loaded by Recyclarr. To restore it through Sonarr's API,
 back up the affected custom formats and quality profiles, find each format by
