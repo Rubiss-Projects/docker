@@ -3,7 +3,7 @@
 The service runs in shared security mode. Schedules and run
 history persist in the existing `ai-assistant-data` volume.
 
-Chat, scheduled responses, and the review helper use `gpt-6.1-sol` with `medium`
+Chat, scheduled responses, and the review helper use `gpt-6.2-sol` with `medium`
 reasoning. `CODEX_MODEL` and `CODEX_REASONING_EFFORT` in the public `.env` configure
 both the assistant and reviewer through explicit Compose environment settings.
 

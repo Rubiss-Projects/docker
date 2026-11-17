@@ -17,7 +17,7 @@ services:
       AI_ASSISTANT_WORKSPACE_ROOT: /data/workspaces
       AI_ASSISTANT_BROWSER_URL: http://browser:3123
       CODEX_FAST_MODE: ${CODEX_FAST_MODE:-true}
-      CODEX_MODEL: ${CODEX_MODEL:-gpt-6.1-sol}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-6.2-sol}
       CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-medium}
       GITHUB_CONTRIBUTIONS_PUBLISH_LIMIT: ${GITHUB_CONTRIBUTIONS_PUBLISH_LIMIT:-20}
       CODEX_REVIEW_LIMIT: ${CODEX_REVIEW_LIMIT:-20}
@@ -96,7 +96,7 @@ services:
     environment:
       HOME: /data
       CODEX_HOME: /data/.codex
-      CODEX_REVIEW_MODEL: ${CODEX_MODEL:-gpt-6.1-sol}
+      CODEX_REVIEW_MODEL: ${CODEX_MODEL:-gpt-6.2-sol}
       CODEX_REVIEW_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-medium}
       CODEX_REVIEW_LIMIT: ${CODEX_REVIEW_LIMIT:-20}
     # No bot env_file, GitHub credentials, assistant data, Docker socket, or exposed port.
