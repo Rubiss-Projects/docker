@@ -12,6 +12,19 @@ The assistant defaults to fast mode via `CODEX_FAST_MODE=true` in this deploymen
 it for a conversation and `/fast current` to inspect its setting. Startup command
 registration remains enabled to publish these slash commands.
 
+Codex stays the provider (`PROVIDER=codex`). The image also includes the Claude
+Agent SDK provider, which reports itself unauthenticated here because no Anthropic
+credential is configured. To switch later, add `ANTHROPIC_API_KEY`, or a
+`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` on another machine, to the
+git-crypt encrypted `.env.secret`, set `PROVIDER=claude` in `.env`, and recreate the
+assistant. `CLAUDE_MODEL` (default `claude-sonnet-5-5`), `CLAUDE_REASONING_EFFORT`
+(default `medium`) and `CLAUDE_FAST_MODE` (default `false`) can be added to `.env`.
+Claude keeps its config and sessions at `/data/.claude` on the data volume, outside
+the `/data/workspaces` provider root. Leave `CLAUDE_CONFIG_DIR` unset, or keep it
+absolute and outside that root; otherwise shared-mode Claude turns are refused.
+Conversations pinned with `/provider set` keep their provider, and Codex history
+does not carry over to Claude. The review worker always uses Codex.
+
 GitHub contributions are enabled for everyone already allowed to chat with the
 bot. Users can ask for a draft PR in `Rubiss-Projects/ai-assistant` or
 `Rubiss-Projects/docker` and revise their own contribution in the same conversation.
