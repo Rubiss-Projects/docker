@@ -8,6 +8,8 @@ migrate the library.
   fallbacks. Both managed regular TV profiles require English audio and do not
   require an additional original-language track.
 - Regular movies: `HD Bluray + WEB`, requiring English audio.
+  All four regular movie profiles use the upstream `WiTH AD` score to avoid
+  releases labeled with audio description, including releases with both tracks.
 - Existing 1080p remux movies: `Remux + WEB 1080p`. Existing 2160p movies:
   `UHD Bluray + WEB`, or `Remux + WEB 2160p` for remuxes. These profiles also
   require English audio. Keep Seerr's default on the regular HD profile.
