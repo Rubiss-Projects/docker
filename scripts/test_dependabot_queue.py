@@ -29,7 +29,7 @@ class DependabotQueueTests(unittest.TestCase):
                 return str(behind[head]) + '\n'
             output = io.StringIO()
             with patch.object(sys, 'argv', ['selector', str(source)]), \
-                 patch.dict(os.environ, {'REPOSITORY': 'owner/repo'}), \
+                 patch.dict(os.environ, {'REPOSITORY': 'owner/repo', 'DEPLOYED_SHA': 'mainsha'}), \
                  patch('subprocess.check_output', side_effect=gh), \
                  patch('subprocess.run') as mutations, \
                  contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):

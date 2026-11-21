@@ -1,7 +1,9 @@
 name: Dependabot Rebase
 
 on:
-  push:
+  workflow_run:
+    workflows: [Deploy Service Changes]
+    types: [completed]
     branches:
       - main
   schedule:
@@ -22,7 +24,7 @@ jobs:
     name: Request Dependabot rebases
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.repository == 'Rubiss-Projects/docker' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: github.repository == 'Rubiss-Projects/docker' && github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Request stale Dependabot rebases
@@ -38,32 +40,30 @@ jobs:
             exit 1
           fi
 
-          sleep 30
-
           # Do not start the next update until the current main deployment is healthy.
-          python3 - <<'PY'
+          deployed_sha=$(python3 - <<'PY'
           import json
           import os
           import subprocess
-          import time
 
           repo = os.environ['REPOSITORY']
           def api(path):
               return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/{path}'], text=True))
 
-          for attempt in range(32):
-              main = api('branches/main')['commit']['sha']
-              runs = api('actions/workflows/deploy-service-changes.yml/runs?branch=main&per_page=30')['workflow_runs']
-              current = next((r for r in runs if r['head_sha'] == main), None)
-              busy = any(r['status'] != 'completed' for r in runs)
-              if current and current['status'] == 'completed' and not busy:
-                  if current['conclusion'] != 'success':
-                      raise SystemExit('Latest main deployment failed; leaving dependency updates paused')
-                  break
-              if attempt == 31:
-                  raise SystemExit('Deployment is still pending; retry the rebase workflow after it finishes')
-              time.sleep(15)
+          main = api('branches/main')['commit']['sha']
+          runs = api('actions/workflows/deploy-service-changes.yml/runs?branch=main&event=push&per_page=30')['workflow_runs']
+          current = next((run for run in runs if run['head_sha'] == main), None)
+          if current and all(run['status'] == 'completed' for run in runs):
+              if current['conclusion'] != 'success':
+                  raise SystemExit('Latest main deployment failed; leaving dependency updates paused')
+              print(main)
           PY
+          )
+          if [[ -z "$deployed_sha" ]]; then
+            echo "Waiting for the current main deployment to complete"
+            exit 0
+          fi
+          export DEPLOYED_SHA="$deployed_sha"
 
           prs_json="$RUNNER_TEMP/dependabot-prs.json"
           rebase_list="$RUNNER_TEMP/dependabot-rebase-prs.txt"
@@ -145,6 +145,8 @@ jobs:
 
           repo = os.environ['REPOSITORY']
           main_sha = subprocess.check_output(['gh', 'api', f'repos/{repo}/branches/main', '--jq', '.commit.sha'], text=True).strip()
+          if main_sha != os.environ['DEPLOYED_SHA']:
+              raise SystemExit('Main advanced during queue selection; waiting for its deployment')
           # GitHub can temporarily report UNKNOWN after a merge. Compare commit
           # ancestry instead, and rebase only one PR per successful deployment.
           def checks_failed(pr):
