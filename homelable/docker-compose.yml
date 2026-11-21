@@ -1,6 +1,6 @@
 services:
   homelable:
-    image: ghcr.io/pouzor/homelable-frontend:3.7.0@sha256:edb040f2bfe172d155643e190cb2f9eadc7d140a2300f88d7ed8dc7bdd5acfd7
+    image: ghcr.io/pouzor/homelable-frontend:3.7.1@sha256:2e52e1ba1cd0142c03988b247ca38f1fcbcf668efe39fb5849d432298a56a518
     container_name: homelable
     restart: unless-stopped
     environment:
@@ -23,7 +23,7 @@ services:
       - swag.uptime-kuma.monitor.url=http://homelable/api/v1/health
       - swag.uptime-kuma.monitor.parent=Observability
   homelable-backend:
-    image: ghcr.io/pouzor/homelable-backend:3.7.0@sha256:b6af85d83f42ee48de6227d25441835c12831b974d9b5fd3ab7fc3b4e551eaea
+    image: ghcr.io/pouzor/homelable-backend:3.7.1@sha256:f0f5f26461991bb8c14bd835f06244755fed9e63f818fa184b237f2d55f7f188
     container_name: homelable-backend
     restart: unless-stopped
     user: '1000:1000'
