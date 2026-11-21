@@ -24,14 +24,14 @@ When the database is stopped, the upgrade helper starts its existing image for t
 
 ## Seerr books-fork compatibility
 
-Our Seerr fork returns book requests alongside movie/TV requests. Tracearr through 3.1.1 still rejects the entire response when it encounters a book. `patch-seerr-books.mjs` skips explicit book/audiobook rows and preserves the raw page length so mixed or all-book pages do not truncate movie/TV synchronization. Books themselves are not imported. Missing-request cleanup stays conservative when the remote total includes books. The reviewed module hashes support 2.7.1, 2.8.3, and 3.1.1. The 3.1.1 image ships byte-identical Seerr client and sync modules to 2.8.3, including the conservative missing-request cleanup guard.
+Our Seerr fork returns book requests alongside movie/TV requests. Tracearr through 3.2.1 still rejects the entire response when it encounters a book. `patch-seerr-books.mjs` skips explicit book/audiobook rows and preserves the raw page length so mixed or all-book pages do not truncate movie/TV synchronization. Books themselves are not imported. Missing-request cleanup stays conservative when the remote total includes books. The reviewed module hashes support 2.7.1, 2.8.3, 3.1.1, 3.1.7, and 3.2.1. The 3.1.1 image ships byte-identical Seerr client and sync modules to 2.8.3, including the conservative missing-request cleanup guard.
 
 The image entrypoint is retained. The startup command verifies exact upstream module hashes and applies the patch before starting the app; repeat starts verify the exact patched output. A changed upstream module fails startup instead of silently applying an incompatible patch. Before updating the Tracearr image, review/remove the patch as appropriate and run `test-seerr-books.mjs` in the proposed image. PR validation runs this compatibility check automatically.
 
 ## Local-login compatibility
 
 `patch-login-case.mjs` addresses mixed-case stored staff identifiers in the pinned
-3.1.3 image without rewriting accounts or credentials. The default Compose source
+3.1.3 through 3.2.1 images without rewriting accounts or credentials. The default Compose source
 does not opt in; the accepted native policy must explicitly admit its startup
 command and read-only bind before activation. `compose.login-compat.yml` describes
 those field changes for isolated preparation. See [LOGIN-COMPAT.md](LOGIN-COMPAT.md)

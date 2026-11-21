@@ -1,4 +1,4 @@
-// Opt-in compatibility for Tracearr 3.1.3; saved identifiers and credentials stay intact.
+// Opt-in compatibility for Tracearr staff login; saved identifiers and credentials stay intact.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -45,19 +45,25 @@ const replacement = `                const identifier = data.where.find((w) =>
                     ],
                 });`;
 
+const scopedSourceHash = 'a87b4363b061c556d1dc334efa5ef337eb86c5eaf0bc5a7d5a14b415433b378f';
+const scopedPatchedHash = 'fb6f7b6e55b83c978d9da42c42d7ade13107bf68b1d305a4cdb60279d1158227';
+
 export function transform(source) {
   const digest = sha(source);
-  if (digest === patchedHash) return source;
-  if (digest !== sourceHash) throw new Error('Unsupported Tracearr auth module; review login compatibility before upgrading');
+  const scoped = digest === scopedSourceHash;
+  if (digest === patchedHash || digest === scopedPatchedHash) return source;
+  if (!scoped && digest !== sourceHash) throw new Error('Unsupported Tracearr auth module; review login compatibility before upgrading');
   const anchor = "import { randomUUID } from 'node:crypto';";
   const imports = "\nimport { and as loginAnd, inArray as loginInArray, sql as loginSql } from 'drizzle-orm';";
   let output = source;
   for (const [before, after] of [[anchor, anchor + imports], [lookup, guardedLookup], [original, replacement]]) {
-    if (output.split(before).length !== 2) throw new Error('Unexpected Tracearr auth patch anchor');
-    output = output.replace(before, after);
+    const from = scoped ? before.replace(/^    /gm, '') : before;
+    const to = scoped ? after.replace(/^    /gm, '') : after;
+    if (output.split(from).length !== 2) throw new Error('Unexpected Tracearr auth patch anchor');
+    output = output.replace(from, to);
   }
   output = '// tracearr-login-case-compat-v1\n' + output;
-  if (sha(output) !== patchedHash) throw new Error('Unexpected Tracearr auth patch output');
+  if (sha(output) !== (scoped ? scopedPatchedHash : patchedHash)) throw new Error('Unexpected Tracearr auth patch output');
   return output;
 }
 
