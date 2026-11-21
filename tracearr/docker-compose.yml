@@ -1,6 +1,6 @@
 services:
   tracearr:
-    image: ghcr.io/connorgallopo/tracearr:3.1.7@sha256:25433cbce1b23e4a9233cdf98f00c3dab642d04f4e1f0f7f20fb3cca2a64e7d3
+    image: ghcr.io/connorgallopo/tracearr:3.2.1@sha256:6bcaf17c012b4fe11b898f343244af19b3c87b7847bdc652897e2c9781465f2c
     container_name: tracearr
     # Preserve the image entrypoint; validate/apply the Seerr fork compatibility before Node starts.
     command: ["/bin/sh", "-c", "node /opt/tracearr/patch-seerr-books.mjs && exec node apps/server/dist/index.js"]
@@ -74,7 +74,7 @@ services:
     networks:
     - proxynet
   redis:
-    image: redis:8-alpine@sha256:71885d8cc6e42f2bc0aa2eb853bfc4be200b5108a46ac50e117ae1df0531fb80
+    image: redis:8-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
     container_name: tracearr-redis
     command: redis-server --appendonly yes
     volumes:
