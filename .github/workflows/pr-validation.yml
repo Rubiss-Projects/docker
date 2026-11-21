@@ -61,7 +61,9 @@ jobs:
           )
           DEPENDABOT_REBASE_IF_PARTS = (
               f"github.repository == '{REPOSITORY}'",
-              "github.event_name == 'push'",
+              "github.event_name == 'workflow_run'",
+              "github.event.workflow_run.event == 'push'",
+              "github.event.workflow_run.conclusion == 'success'",
               "github.ref == 'refs/heads/main'",
               "github.event_name == 'schedule'",
               "github.event_name == 'workflow_dispatch'",
@@ -110,10 +112,9 @@ jobs:
           def dependabot_rebase_events_are_safe(on_value):
               if not isinstance(on_value, dict):
                   return False
-              if set(on_value.keys()) != {"push", "schedule", "workflow_dispatch"}:
+              if set(on_value.keys()) != {"workflow_run", "schedule", "workflow_dispatch"}:
                   return False
-              push = on_value.get("push")
-              if not isinstance(push, dict) or sequence(push.get("branches")) != ["main"]:
+              if on_value.get("workflow_run") != {"workflows": ["Deploy Service Changes"], "branches": ["main"], "types": ["completed"]}:
                   return False
               schedule = on_value.get("schedule")
               if not isinstance(schedule, list) or not schedule:
@@ -186,8 +187,8 @@ jobs:
                   if events != {"pull_request"}:
                       fail(f"{workflow}: Dependabot auto-merge workflow must only use pull_request")
               if is_dependabot_rebase:
-                  if events != {"push", "schedule", "workflow_dispatch"} or not dependabot_rebase_events_are_safe(on_value):
-                      fail(f"{workflow}: Dependabot rebase workflow must only use push to main, schedule, and workflow_dispatch")
+                  if events != {"workflow_run", "schedule", "workflow_dispatch"} or not dependabot_rebase_events_are_safe(on_value):
+                      fail(f"{workflow}: Dependabot rebase workflow must only use deployment completion on main, schedule, and workflow_dispatch")
 
               if is_dependabot_token_workflow:
                   expected_secret_count = 1 if is_dependabot_rebase else 0
