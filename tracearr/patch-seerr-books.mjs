@@ -1,5 +1,5 @@
 // Compatibility for the Seerr books fork; remove when Tracearr supports it upstream.
-// Only reviewed modules through Tracearr 3.1.1 are accepted. Image updates must review this patch.
+// Only reviewed modules through Tracearr 3.2.1 are accepted. Image updates must review this patch.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -10,7 +10,7 @@ const marker = '// tracearr-seerr-books-compat-v1\n';
 export const patches = [
   {
     file: 'seerrClient.js',
-    hashes: ['b97dcc33edbd15729aa5cb295adb4eb2c1ac2e27237248fcf5df8429fea71ed7'],
+    hashes: ['f7a3c21507a35d50833d7f7ebb3d3c0871c29975f51a8a510c3ae6a2a64e6dc1', 'b97dcc33edbd15729aa5cb295adb4eb2c1ac2e27237248fcf5df8429fea71ed7'],
     replacements: [
       ['    results: z.array(seerrRequestSchema),', '    results: z.array(seerrRequestSchema),\n    rawResultCount: z.number().int().nonnegative().optional(),'],
       ['        const json = await response.json();', `        const json = await response.json();
@@ -26,6 +26,7 @@ export const patches = [
   {
     file: 'sync.js',
     hashes: [
+      '6a60f68d01b94e9e99f1b092ae816d83c1f30ab4f0b4228c1c584af034433f5d',
       '577a716f72a0225be63d4aefbc9095d5ce9a7ce77c30389321be1c9b226ae519',
       // 2.8.3 records the Seerr version during sync; 3.1.1 ships the identical module.
       '873982bc2705340fe66601c179a73a6696ed57d655d37eac6b424c1b1c3bddf3',

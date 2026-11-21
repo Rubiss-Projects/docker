@@ -31,7 +31,8 @@ try {
 
 // Execute the actual transformed wrapper with recording adapters. No server, DB or credentials.
 const start = patched.indexOf('function withLoginScopedUsernameLookup(');
-const end = patched.indexOf('\n}', start) + 2;
+const helper = patched.indexOf('function scopeLoginLookups(', start);
+const end = patched.indexOf('\n}', helper >= 0 ? helper : start) + 2;
 assert(start >= 0 && end > start);
 const staffRoles = ['owner', 'admin'];
 const selections = [];

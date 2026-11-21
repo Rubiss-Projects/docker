@@ -45,7 +45,7 @@ try {
   // Execute the actual patched fetchRows function without loading its database dependencies.
   const sync = transform(originals[1], patches[1]);
   const start = sync.indexOf('async function fetchRows(');
-  const end = sync.indexOf('\nasync function lookupTitles(', start);
+  const end = sync.indexOf('\n}', start) + 2;
   assert.ok(start >= 0 && end > start);
   const fetchRows = new Function('PAGE_SIZE', 'CURSOR_SLACK_MS', `${sync.slice(start,end)}; return fetchRows;`)(100, 300000);
   const offsets = [];
