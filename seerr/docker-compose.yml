@@ -1,12 +1,14 @@
 services:
   seerr:
-    image: ghcr.io/rubiss/seerr:book-support@sha256:b66310476e0be8d1fbd32a11daaf883b0df6d35bbe6a9f63faa562a8b584f3c2
+    image: ghcr.io/rubiss/seerr:book-support@sha256:d7f917243dcb939ea1a965f9e66cda30533334fa406995682602bb646b20b4f0
     container_name: seerr
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
       - LOG_LEVEL=debug
+      - SEERR_BOOKS_DISCORD_WEBHOOK_URL=${SEERR_BOOKS_DISCORD_WEBHOOK_URL:-}
+      - SEERR_MOVIES_TV_DISCORD_WEBHOOK_URL=${SEERR_MOVIES_TV_DISCORD_WEBHOOK_URL:-}
     volumes:
       - ./config:/app/config
     ports:

@@ -28,6 +28,21 @@ connection tests do not change library state.
 Scheduled scans remain a fallback for missed events and older library items.
 Their schedules have not been increased.
 
+## Discord availability
+
+Keep **Media Available** enabled in Seerr’s Discord settings. The fork selects
+the destination when it sends that event. The two webhook URLs are stored in
+`seerr/.env.secret` and passed to the container by Compose.
+
+| Available media | Discord webhook variable |
+| --- | --- |
+| Ebooks and audiobooks | `SEERR_BOOKS_DISCORD_WEBHOOK_URL` |
+| Movies and TV shows | `SEERR_MOVIES_TV_DISCORD_WEBHOOK_URL` |
+
+An empty variable falls back to the Discord webhook in Seerr’s settings.
+Request failures and issue notifications use that personal webhook. The
+generic webhook handles declined requests separately.
+
 ## Upgrade and recovery
 
 Before upgrading, save `config/settings.json`, a consistent SQLite backup of
