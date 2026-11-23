@@ -42,8 +42,11 @@ services:
       # Explicitly mount WSL NVIDIA driver paths
       - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
-    tmpfs:
-      - /transcode
+      - type: bind
+        source: /srv/plex-transcode
+        target: /transcode
+        bind:
+          create_host_path: false
     restart: unless-stopped
     labels:
       - homepage.group=Media Consumption

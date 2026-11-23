@@ -10,7 +10,7 @@ the unadapted Compose file or add WSL driver mounts to the native recipe.
 
 Use `python3 -B scripts/native-deploy/compose.py --stack plex -- ...` from
 `/srv/Docker`. Preserve the admitted `/config` volume, read-only NAS media mapping,
-GPU reservation, `/transcode` tmpfs, resource limits and existing Plex identity.
+GPU reservation, `/transcode` bind mount from /srv/plex-transcode on local NVMe, resource limits and existing Plex identity.
 Never initialize an empty config directory or claim this server again as a
 routine repair. The verified NAS mount and media INPUT guard are prerequisites.
 
