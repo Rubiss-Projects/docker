@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.29.0@sha256:e24b7f688e9ca7632996cbe561b7a30413eb56142eecb2bb410667f9ab6991fa
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.30.0@sha256:a3afa8a88b9cdf7c5e9443ce5c569e83c84e6269181c18ec4d2a57dfa81897be
     container_name: ai-assistant
     restart: unless-stopped
     # Let scheduled inference finish within its default 10-minute timeout, plus cleanup.
@@ -62,7 +62,7 @@ services:
       - browser-control
 
   browser:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.29.0@sha256:e24b7f688e9ca7632996cbe561b7a30413eb56142eecb2bb410667f9ab6991fa
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.30.0@sha256:a3afa8a88b9cdf7c5e9443ce5c569e83c84e6269181c18ec4d2a57dfa81897be
     container_name: ai-assistant-browser
     entrypoint: ["node", "/app/dist/src/browserWorker.js"]
     restart: unless-stopped
@@ -87,7 +87,7 @@ services:
       - browser-egress
 
   reviewer:
-    image: ghcr.io/rubiss-projects/ai-assistant:v1.29.0@sha256:e24b7f688e9ca7632996cbe561b7a30413eb56142eecb2bb410667f9ab6991fa
+    image: ghcr.io/rubiss-projects/ai-assistant:v1.30.0@sha256:a3afa8a88b9cdf7c5e9443ce5c569e83c84e6269181c18ec4d2a57dfa81897be
     container_name: ai-assistant-reviewer
     entrypoint: ["node", "/app/dist/src/reviewWorker.js"]
     restart: unless-stopped
