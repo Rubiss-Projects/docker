@@ -1,6 +1,7 @@
 {
   "profileName": "Dragon Ball Super Beerus - Subs then Dub",
   "minFormatScore": 100,
+  "minUpgradeFormatScore": 100,
   "cutoffFormatScore": 2010,
   "formats": [
     {
