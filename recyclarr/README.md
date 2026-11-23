@@ -2,7 +2,8 @@
 
 Recyclarr maintains TRaSH profiles; Seerr defaults and existing Sonarr/Radarr
 assignments must also point to those profiles. A successful sync alone does not
-migrate the library.
+migrate the library. The nine guide profiles use these preferences for missing files
+and disable automatic upgrades once a file is present.
 
 - Regular TV: `WEB-1080p (Alternative)`, with the guide's 720p/Blu-ray/HDTV
   fallbacks. Both managed regular TV profiles require English audio and do not
@@ -32,7 +33,8 @@ migrate the library.
 The separately managed Sonarr policy is recorded in `beerus-policy.json`.
 Japanese audio is an eligible fallback (100 points), English audio is preferred
 (1,000), and Japanese/English dual audio is preferred most (2,000). 1080p adds
-10 points. Keep the minimum at 100 and upgrade cutoff at 2,010; all four formats
+10 points for initial selection. A minimum upgrade increment of 100 prevents
+a resolution bonus alone from triggering a replacement. Keep the minimum at 100 and upgrade cutoff at 2,010; all four formats
 must score zero in every other profile. The existing HD quality group is unchanged.
 
 The Japanese fallback replaces `English Subtitles Without Dub` in place, retaining
