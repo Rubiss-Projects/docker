@@ -18,7 +18,7 @@ volume; Compose does not apply this document as configuration.
 
 Do not copy a hardware device identifier between hosts: the native migration
 changed the PCI address from `02:00.0` to `01:00.0`. Hardware decoding and encoding
-remain enabled, with HDR tone mapping using `hable` and a RAM-backed `/transcode`.
+remain enabled, with HDR tone mapping using `hable` and a local NVMe-backed `/transcode`.
 Keep the accepted TLS, remote-access port, bandwidth limits, LAN subnets and
 disabled Relay settings. TV episode ordering remains TheTVDB.
 
