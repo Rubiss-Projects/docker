@@ -5,11 +5,11 @@ import argparse
 import concurrent.futures
 import datetime as dt
 import json
-from pathlib import Path
 import subprocess
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 
 class ProbeFailure(Exception):
@@ -255,7 +255,7 @@ def tunnel():
         "https://api.github.com/repos/Rubiss-Projects/docker/actions/workflows/probe-tunnel.yml/runs?branch=main&status=completed&per_page=1"
     )
     run = runs["workflow_runs"][0]
-    completed = dt.datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
+    completed = dt.datetime.fromisoformat(run["updated_at"])
     if (
         run["conclusion"] != "success"
         or not 0 <= time.time() - completed.timestamp() <= 7200
@@ -293,7 +293,14 @@ def main():
             status, message = "up", "Functional check passed"
         except ProbeFailure as exc:
             status, message = "down", str(exc)
-        except Exception:
+        except (
+            OSError,
+            subprocess.SubprocessError,
+            ValueError,
+            KeyError,
+            IndexError,
+            TypeError,
+        ):
             status, message = "down", "Functional check failed"
         print(name, status, flush=True)
         if args.push_file:
