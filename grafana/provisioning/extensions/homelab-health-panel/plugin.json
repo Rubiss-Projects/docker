@@ -1,0 +1,26 @@
+{
+  "type": "panel",
+  "name": "Homelab health",
+  "id": "homelab-health-panel",
+  "info": {
+    "description": "Service and infrastructure health with source drill-downs.",
+    "author": {
+      "name": "Homelab"
+    },
+    "keywords": [
+      "health"
+    ],
+    "logos": {
+      "small": "hex.svg",
+      "large": "hex.svg"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2026-11-24"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=13.3.0",
+    "plugins": []
+  }
+}

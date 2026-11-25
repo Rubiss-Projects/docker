@@ -1,0 +1,625 @@
+{
+  "uid": "executive-health",
+  "title": "Executive Health",
+  "tags": [
+    "health",
+    "overview"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "homelab-health-panel",
+      "title": "Lab health",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "adw07verg2qrkd"
+      },
+      "targets": [
+        {
+          "refId": "Kuma",
+          "expr": "monitor_status{job=\"uptime-kuma\"} and on(job,instance) (up{job=\"uptime-kuma\"} == 1)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "kuma-{{monitor_id}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          }
+        },
+        {
+          "refId": "Containers",
+          "expr": "max by (name) (container_last_seen{name=~\"ai-assistant-browser|ai-assistant-reviewer|bitwarden-db-1|cloudflare-duc|cloudflare-tunnel|cloudflared-pi|homelable-backend|lazywarden|recyclarr|socket-proxy|tracearr-db|tracearr-redis|unpackerr|uptime-kuma\"} and on(job,instance) (up == 1))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "container-{{name}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          }
+        },
+        {
+          "refId": "Collectors",
+          "expr": "min by(job) (up)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "job-{{job}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          }
+        },
+        {
+          "refId": "Mount",
+          "expr": "(max(node_filesystem_size_bytes{instance=\"ben-server\",mountpoint=\"/srv/Media\",fstype=~\"nfs.*|cifs\"} > bool 0) or (0 * max(node_filesystem_size_bytes{instance=\"ben-server\",mountpoint=\"/\"}))) and on() (max(up{job=\"node-exporter\",instance=\"ben-server\"}) == 1)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "mount",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "adw07verg2qrkd"
+          }
+        }
+      ],
+      "options": {
+        "areas": [
+          {
+            "name": "Media playback",
+            "checks": [
+              {
+                "monitor": 141,
+                "name": "Plex",
+                "secondary": false
+              },
+              {
+                "monitor": 207,
+                "name": "Tracearr",
+                "secondary": true
+              },
+              {
+                "monitor": 225,
+                "name": "Nvidia-Smi-Rest",
+                "secondary": true
+              },
+              {
+                "container": "tracearr-db",
+                "name": "tracearr-db container"
+              },
+              {
+                "container": "tracearr-redis",
+                "name": "tracearr-redis container"
+              },
+              {
+                "gap": true,
+                "name": "Plex library read"
+              }
+            ],
+            "dependencies": [
+              "NAS & media storage",
+              "Hosts & containers"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Live TV & DVR",
+            "checks": [
+              {
+                "monitor": 209,
+                "name": "Channels-Dvr",
+                "secondary": false
+              },
+              {
+                "gap": true,
+                "name": "HDHomeRun tune"
+              },
+              {
+                "gap": true,
+                "name": "DVR recording path"
+              }
+            ],
+            "dependencies": [
+              "NAS & media storage",
+              "Network & DNS"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Requests & downloads",
+            "checks": [
+              {
+                "monitor": 230,
+                "name": "Seerr",
+                "secondary": false
+              },
+              {
+                "monitor": 232,
+                "name": "Sonarr",
+                "secondary": false
+              },
+              {
+                "monitor": 229,
+                "name": "Radarr",
+                "secondary": false
+              },
+              {
+                "monitor": 239,
+                "name": "Transmission",
+                "secondary": false
+              },
+              {
+                "monitor": 228,
+                "name": "Prowlarr",
+                "secondary": true
+              },
+              {
+                "monitor": 212,
+                "name": "Autobrr",
+                "secondary": true
+              },
+              {
+                "monitor": 214,
+                "name": "Bazarr",
+                "secondary": true
+              },
+              {
+                "monitor": 219,
+                "name": "Cross-Seed",
+                "secondary": true
+              },
+              {
+                "container": "unpackerr",
+                "name": "unpackerr container"
+              },
+              {
+                "container": "recyclarr",
+                "name": "recyclarr container"
+              },
+              {
+                "gap": true,
+                "name": "Completed import"
+              }
+            ],
+            "dependencies": [
+              "NAS & media storage",
+              "Network & DNS"
+            ],
+            "ruleGroups": [
+              {
+                "name": "transmission",
+                "expected": [
+                  "transmission_telemetry_missing",
+                  "transmission_inventory_failed",
+                  "transmission_endpoint_failed",
+                  "transmission_host_rpc_missing",
+                  "transmission_host_rpc_failed"
+                ]
+              },
+              {
+                "name": "autobrr-irc",
+                "expected": [
+                  "autobrr_irc_channel_unmonitored"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Books & audiobooks",
+            "checks": [
+              {
+                "monitor": 210,
+                "name": "Audiobookshelf",
+                "secondary": false
+              },
+              {
+                "monitor": 218,
+                "name": "Calibre",
+                "secondary": false
+              },
+              {
+                "monitor": 215,
+                "name": "Bookshelf",
+                "secondary": true
+              },
+              {
+                "monitor": 216,
+                "name": "Bookshelf-Audio",
+                "secondary": true
+              },
+              {
+                "gap": true,
+                "name": "Library read"
+              }
+            ],
+            "dependencies": [
+              "NAS & media storage",
+              "Requests & downloads"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Password vault",
+            "checks": [
+              {
+                "monitor": 208,
+                "name": "Bitwarden",
+                "secondary": false
+              },
+              {
+                "container": "bitwarden-db-1",
+                "name": "bitwarden-db-1 container"
+              },
+              {
+                "container": "lazywarden",
+                "name": "lazywarden container"
+              },
+              {
+                "gap": true,
+                "name": "Database-backed vault read"
+              },
+              {
+                "gap": true,
+                "name": "Last successful backup"
+              }
+            ],
+            "dependencies": [
+              "Hosts & containers",
+              "Remote access"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Home automation",
+            "checks": [
+              {
+                "monitor": 36,
+                "name": "Homebridge",
+                "secondary": false
+              },
+              {
+                "gap": true,
+                "name": "Accessory control"
+              }
+            ],
+            "dependencies": [
+              "Network & DNS",
+              "Hosts & containers"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Sunday Edge",
+            "checks": [
+              {
+                "monitor": 234,
+                "name": "Sunday-Edge",
+                "secondary": false
+              },
+              {
+                "monitor": 235,
+                "name": "Sunday-Edge-Analytics",
+                "secondary": true
+              },
+              {
+                "monitor": 237,
+                "name": "Sunday-Edge-Maintenance",
+                "secondary": true
+              },
+              {
+                "monitor": 238,
+                "name": "Sunday-Edge-Research",
+                "secondary": true
+              }
+            ],
+            "dependencies": [
+              "Hosts & containers"
+            ],
+            "ruleGroups": [
+              {
+                "name": "sunday-edge-dfs-workers",
+                "expected": [
+                  "sunday_edge_dfs_autoscaler_stale",
+                  "sunday_edge_dfs_worker_pool_degraded",
+                  "sunday_edge_dfs_worker_failures",
+                  "sunday_edge_dfs_worker_poll_errors",
+                  "sunday_edge_dfs_worker_restarts",
+                  "sunday_edge_dfs_worker_stalled",
+                  "sunday_edge_dfs_worker_memory_pressure",
+                  "sunday_edge_dfs_cp_recovery_down",
+                  "sunday_edge_dfs_cp_recovery_stale"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Automation & AI",
+            "checks": [
+              {
+                "monitor": 224,
+                "name": "N8N",
+                "secondary": false
+              },
+              {
+                "monitor": 143,
+                "name": "AI Assistant",
+                "secondary": false
+              },
+              {
+                "container": "ai-assistant-browser",
+                "name": "ai-assistant-browser container"
+              },
+              {
+                "container": "ai-assistant-reviewer",
+                "name": "ai-assistant-reviewer container"
+              },
+              {
+                "gap": true,
+                "name": "Workflow execution"
+              }
+            ],
+            "dependencies": [
+              "Hosts & containers"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Network & DNS",
+            "checks": [
+              {
+                "monitor": 246,
+                "name": "Pi-hole Primary DNS",
+                "secondary": true
+              },
+              {
+                "monitor": 247,
+                "name": "Pi-hole Secondary DNS",
+                "secondary": true
+              },
+              {
+                "monitor": 233,
+                "name": "Speedtesttracker",
+                "secondary": true
+              },
+              {
+                "monitor": 38,
+                "name": "Speedtest Tracker (Pi)",
+                "secondary": true
+              },
+              {
+                "gap": true,
+                "name": "Internet reachability"
+              }
+            ],
+            "dependencies": [],
+            "ruleGroups": []
+          },
+          {
+            "name": "Remote access",
+            "checks": [
+              {
+                "monitor": 105,
+                "name": "Swag",
+                "secondary": false
+              },
+              {
+                "monitor": 202,
+                "name": "Plex remote",
+                "secondary": false
+              },
+              {
+                "container": "cloudflare-duc",
+                "name": "cloudflare-duc container"
+              },
+              {
+                "container": "cloudflare-tunnel",
+                "name": "cloudflare-tunnel container"
+              },
+              {
+                "container": "cloudflared-pi",
+                "name": "cloudflared-pi container"
+              },
+              {
+                "gap": true,
+                "name": "External tunnel route"
+              }
+            ],
+            "dependencies": [
+              "Network & DNS"
+            ],
+            "ruleGroups": []
+          },
+          {
+            "name": "Hosts & containers",
+            "checks": [],
+            "dependencies": [],
+            "ruleGroups": [
+              {
+                "name": "linux-host",
+                "expected": [
+                  "linux_host_down",
+                  "linux_cpu_high",
+                  "linux_memory_high",
+                  "linux_disk_low",
+                  "linux_expected_host_missing"
+                ]
+              },
+              {
+                "name": "docker-containers",
+                "expected": [
+                  "docker_container_restarting",
+                  "docker_container_memory_high",
+                  "docker_container_memory_critical",
+                  "docker_container_oom_killed"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "NAS & media storage",
+            "checks": [
+              {
+                "signal": "mount",
+                "name": "BEN-SERVER media mount"
+              }
+            ],
+            "dependencies": [
+              "Network & DNS"
+            ],
+            "ruleGroups": [
+              {
+                "name": "nas-health",
+                "expected": [
+                  "nas_telemetry_missing",
+                  "nas_drive_health",
+                  "nas_drive_identity_missing",
+                  "nas_drive_temperature",
+                  "nas_pool_not_ready",
+                  "nas_pool_scrub_stuck",
+                  "nas_storage_metrics_missing",
+                  "nas_share_not_ready",
+                  "nas_quota_warning",
+                  "nas_quota_critical",
+                  "nas_pool_headroom"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Power protection",
+            "checks": [],
+            "dependencies": [],
+            "ruleGroups": [
+              {
+                "name": "ups-health",
+                "expected": [
+                  "ups_telemetry_missing",
+                  "ups_on_battery",
+                  "ups_critical_status"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Monitoring",
+            "checks": [
+              {
+                "monitor": 220,
+                "name": "Grafana",
+                "secondary": false
+              },
+              {
+                "monitor": 227,
+                "name": "Prometheus",
+                "secondary": false
+              },
+              {
+                "monitor": 162,
+                "name": "Influxdb",
+                "secondary": false
+              },
+              {
+                "monitor": 217,
+                "name": "Cadvisor",
+                "secondary": true
+              },
+              {
+                "monitor": 231,
+                "name": "Snmp-Exporter",
+                "secondary": true
+              },
+              {
+                "container": "uptime-kuma",
+                "name": "uptime-kuma container"
+              },
+              {
+                "job": "node-exporter",
+                "name": "node-exporter collection"
+              },
+              {
+                "job": "node-exporter-pi",
+                "name": "node-exporter-pi collection"
+              },
+              {
+                "job": "cadvisor",
+                "name": "cadvisor collection"
+              },
+              {
+                "job": "cadvisor-pi",
+                "name": "cadvisor-pi collection"
+              },
+              {
+                "job": "qnap-snmp",
+                "name": "qnap-snmp collection"
+              },
+              {
+                "job": "native-ups",
+                "name": "native-ups collection"
+              },
+              {
+                "job": "prometheus",
+                "name": "prometheus collection"
+              },
+              {
+                "job": "autobrr",
+                "name": "autobrr collection"
+              }
+            ],
+            "dependencies": [],
+            "ruleGroups": []
+          },
+          {
+            "name": "Lab management",
+            "checks": [
+              {
+                "monitor": 221,
+                "name": "Homepage",
+                "secondary": false
+              },
+              {
+                "monitor": 226,
+                "name": "Portainer",
+                "secondary": false
+              },
+              {
+                "monitor": 244,
+                "name": "Homelable",
+                "secondary": false
+              },
+              {
+                "monitor": 222,
+                "name": "It-Tools",
+                "secondary": true
+              },
+              {
+                "container": "homelable-backend",
+                "name": "homelable-backend container"
+              },
+              {
+                "container": "socket-proxy",
+                "name": "socket-proxy container"
+              }
+            ],
+            "dependencies": [
+              "Hosts & containers"
+            ],
+            "ruleGroups": []
+          }
+        ]
+      },
+      "description": "Current service and infrastructure health. Select an area for its indicators and dependencies. Source dashboards open with the selected time range."
+    }
+  ]
+}
