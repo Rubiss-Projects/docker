@@ -104,8 +104,9 @@
                 "name": "tracearr-redis container"
               },
               {
-                "gap": true,
-                "name": "Plex library read"
+                "name": "Plex library read",
+                "monitor": 250,
+                "secondary": false
               }
             ],
             "dependencies": [
@@ -123,12 +124,14 @@
                 "secondary": false
               },
               {
-                "gap": true,
-                "name": "HDHomeRun tune"
+                "name": "HDHomeRun tune",
+                "monitor": 251,
+                "secondary": true
               },
               {
-                "gap": true,
-                "name": "DVR recording path"
+                "name": "DVR recording path",
+                "monitor": 252,
+                "secondary": false
               }
             ],
             "dependencies": [
@@ -189,8 +192,9 @@
                 "name": "recyclarr container"
               },
               {
-                "gap": true,
-                "name": "Completed import"
+                "name": "Sonarr and Radarr import queues",
+                "monitor": 253,
+                "secondary": true
               }
             ],
             "dependencies": [
@@ -240,8 +244,9 @@
                 "secondary": true
               },
               {
-                "gap": true,
-                "name": "Library read"
+                "name": "Library read",
+                "monitor": 254,
+                "secondary": false
               }
             ],
             "dependencies": [
@@ -267,12 +272,14 @@
                 "name": "lazywarden container"
               },
               {
-                "gap": true,
-                "name": "Database-backed vault read"
+                "name": "Database-backed vault read",
+                "monitor": 255,
+                "secondary": false
               },
               {
-                "gap": true,
-                "name": "Last successful backup"
+                "name": "Backup archive freshness and integrity",
+                "monitor": 256,
+                "secondary": true
               }
             ],
             "dependencies": [
@@ -290,8 +297,9 @@
                 "secondary": false
               },
               {
-                "gap": true,
-                "name": "Accessory control"
+                "name": "Homebridge contact sensor read",
+                "monitor": 257,
+                "secondary": true
               }
             ],
             "dependencies": [
@@ -366,8 +374,9 @@
                 "name": "ai-assistant-reviewer container"
               },
               {
-                "gap": true,
-                "name": "Workflow execution"
+                "name": "Latest autoscaler workflow execution",
+                "monitor": 258,
+                "secondary": false
               }
             ],
             "dependencies": [
@@ -399,8 +408,9 @@
                 "secondary": true
               },
               {
-                "gap": true,
-                "name": "Internet reachability"
+                "name": "Internet reachability",
+                "monitor": 259,
+                "secondary": false
               }
             ],
             "dependencies": [],
@@ -432,8 +442,9 @@
                 "name": "cloudflared-pi container"
               },
               {
-                "gap": true,
-                "name": "External tunnel route"
+                "name": "External tunnel route",
+                "monitor": 260,
+                "secondary": true
               }
             ],
             "dependencies": [
