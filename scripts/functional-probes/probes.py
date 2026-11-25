@@ -146,9 +146,17 @@ def libraries():
 import sqlite3
 from pathlib import Path
 db=sqlite3.connect('file:/books/metadata.db?mode=ro',uri=True)
-folder,name,fmt=db.execute('select b.path,d.name,d.format from books b join data d on d.book=b.id where b.id=28 and d.format=? limit 1',('EPUB',)).fetchone()
-with (Path('/books')/folder/(name+'.'+fmt.lower())).open('rb') as f:
-    if not f.read(1): raise ValueError()
+rows = db.execute("select b.path, d.name from books b join data d on d.book=b.id where d.format='EPUB' order by b.id desc")
+for folder, name in rows:
+    path = Path('/books') / folder / (name + '.epub')
+    try:
+        with path.open('rb') as book:
+            if book.read(1):
+                break
+    except FileNotFoundError:
+        continue
+else:
+    raise ValueError('No readable catalogue EPUB')
 """,
     )
     inside(
@@ -226,7 +234,7 @@ def workflow():
         "-",
         script="""
 const db=new(require('node:sqlite').DatabaseSync)(process.env.N8N_USER_FOLDER+'/.n8n/database.sqlite',{readOnly:true});
-const row=db.prepare("select status, (julianday('now')-julianday(stoppedAt))*86400 as age from execution_entity where workflowId=? and stoppedAt is not null order by id desc limit 1").get('sundayEdgeAutoscale1');
+const row=db.prepare("select status, (julianday('now')-julianday(stoppedAt))*86400 as age from execution_entity where workflowId=? and mode='trigger' and stoppedAt is not null order by id desc limit 1").get('sundayEdgeAutoscale1');
 if(row?.status!=='success' || row.age===null || row.age<0 || row.age>180) process.exitCode=1;
 """,
     )
