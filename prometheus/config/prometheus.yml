@@ -33,6 +33,21 @@ scrape_configs:
     static_configs:
       - targets: ['cadvisor:8080']
 
+  - job_name: uptime-kuma
+    scrape_interval: 30s
+    scrape_timeout: 8s
+    basic_auth:
+      username: prometheus
+      password_file: /etc/prometheus/kuma-metrics.env.secret
+    static_configs:
+      - targets: ['uptime-kuma:3001']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: monitor_status
+        action: keep
+      - regex: '__name__|job|instance|monitor_id'
+        action: labelkeep
+
   - job_name: 'autobrr'
     scrape_interval: 15s
     static_configs:
