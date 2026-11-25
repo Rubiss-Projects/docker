@@ -47,6 +47,25 @@ class CheckoutPermissionTests(unittest.TestCase):
         self.assertEqual(target.stat().st_mode & 0o777, 0o777)
         self.assertTrue((self.repo / 'reference').is_symlink())
 
+    @unittest.skipUnless(hasattr(os, 'setxattr'), 'Native Linux ACLs')
+    def test_kuma_key_acl_survives_permission_repair_and_rotation(self):
+        (self.repo / '.gitattributes').write_text('*.env.secret filter=git-crypt\n')
+        key = self.repo / permissions.KUMA_KEY
+        key.parent.mkdir(parents=True)
+        key.write_text('fixture')
+        self.stage()
+        for replaced in [False, True]:
+            if replaced:
+                key.unlink()
+                key.write_text('rotated fixture')
+            key.chmod(0o600)
+            permissions.apply(permissions.plan(self.repo))
+            self.assertEqual(os.getxattr(key, permissions.ACL_ATTRIBUTE), permissions.KUMA_KEY_ACL)
+            self.assertEqual(key.stat().st_mode & 0o777, 0o640)
+            key.chmod(0o600)
+            permissions.apply(permissions.plan(self.repo))
+            self.assertEqual(os.getxattr(key, permissions.ACL_ATTRIBUTE), permissions.KUMA_KEY_ACL)
+
     def test_git_metadata_and_local_encryption_key_are_private(self):
         (self.repo / 'source.txt').write_text('source');self.stage()
         keys = self.repo / '.git/git-crypt/keys';keys.mkdir(parents=True)

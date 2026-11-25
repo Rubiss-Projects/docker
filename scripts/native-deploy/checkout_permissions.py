@@ -1,12 +1,33 @@
 #!/usr/bin/env python3
 """Protect native Git metadata, tracked source and source parent folders."""
 import argparse
+import errno
 import json
 import os
 from pathlib import Path
 import stat
+import struct
 import subprocess
 from typing import NamedTuple
+
+
+# Linux POSIX ACL: owner rw, Prometheus UID r, group none, mask r, other none.
+ACL_ATTRIBUTE = 'system.posix_acl_access'
+KUMA_KEY = Path('prometheus/config/kuma-metrics.env.secret')
+KUMA_KEY_ACL = struct.pack('<I', 2) + b''.join(
+    struct.pack('<HHI', tag, rights, identity)
+    for tag, rights, identity in [(1, 6, 0xffffffff), (2, 4, 65534), (4, 0, 0xffffffff),
+                                 (16, 4, 0xffffffff), (32, 0, 0xffffffff)]
+)
+
+
+def matches_acl(path_or_fd, expected: bytes) -> bool:
+    try:
+        return os.getxattr(path_or_fd, ACL_ATTRIBUTE) == expected
+    except OSError as error:
+        if error.errno == errno.ENODATA:
+            return False
+        raise
 
 
 class Change(NamedTuple):
@@ -14,6 +35,7 @@ class Change(NamedTuple):
     mode: int
     inode: int
     directory: bool
+    acl: bytes | None = None
 
 
 def plan(repo: Path) -> list[Change]:
@@ -67,6 +89,11 @@ def plan(repo: Path) -> list[Change]:
             continue
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid():
             raise ValueError('Tracked source must be a regular file owned by the caller')
+        if relative == KUMA_KEY:
+            if relative not in encrypted:
+                raise ValueError('Kuma scrape key must use git-crypt')
+            files.append(Change(path, 0o640, info.st_ino, False, KUMA_KEY_ACL))
+            continue
         files.append(Change(path, 0o600 if relative in encrypted else 0o755 if index_mode == b'100755' else 0o644, info.st_ino, False))
     parents = []
     for path in sorted(directories, key=lambda p: (len(p.parts), str(p))):
@@ -79,7 +106,7 @@ def plan(repo: Path) -> list[Change]:
 
 
 def apply(changes: list[Change]) -> None:
-    for path, mode, inode, directory in changes:
+    for path, mode, inode, directory, acl in changes:
         flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
         if directory:
             flags |= os.O_DIRECTORY
@@ -89,7 +116,10 @@ def apply(changes: list[Change]) -> None:
             correct_type = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
             if info.st_ino != inode or info.st_uid != os.geteuid() or not correct_type:
                 raise ValueError('Source identity changed during permission repair')
-            if stat.S_IMODE(info.st_mode) != mode:
+            if acl is not None:
+                if not matches_acl(descriptor, acl):
+                    os.setxattr(descriptor, ACL_ATTRIBUTE, acl)
+            elif stat.S_IMODE(info.st_mode) != mode:
                 os.fchmod(descriptor, mode)
         finally:
             os.close(descriptor)
@@ -101,7 +131,7 @@ def main() -> None:
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args()
     changes = plan(args.repo)
-    needed = sum(stat.S_IMODE(c.path.lstat().st_mode) != c.mode for c in changes)
+    needed = sum(stat.S_IMODE(c.path.lstat().st_mode) != c.mode or (c.acl is not None and not matches_acl(c.path, c.acl)) for c in changes)
     if args.apply:
         apply(changes)
     print(json.dumps({'sourceAndGitMetadataPathsChecked': len(changes), 'permissionChangesNeeded': needed,
