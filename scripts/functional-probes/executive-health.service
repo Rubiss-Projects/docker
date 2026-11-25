@@ -1,0 +1,9 @@
+[Unit]
+Description=Report executive dashboard functional checks to Uptime Kuma
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /srv/Docker/scripts/functional-probes/probes.py --push-file %h/.config/functional-probes/monitors.json
+TimeoutStartSec=150
+NoNewPrivileges=true
+UMask=0077

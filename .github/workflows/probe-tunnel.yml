@@ -1,0 +1,19 @@
+name: Probe public Audiobookshelf tunnel
+on:
+  schedule:
+    - cron: '11,31,51 * * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify the public edge reaches Audiobookshelf
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 12 --retry 2 \
+            --dump-header "$RUNNER_TEMP/headers" --output "$RUNNER_TEMP/body" \
+            "https://audiobookshelf.benlawson.dev/healthcheck?probe=$GITHUB_RUN_ID"
+          grep -iq '^cf-ray:' "$RUNNER_TEMP/headers"
+          test "$(cat "$RUNNER_TEMP/body")" = OK

@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh executive dashboard functional checks
+
+[Timer]
+OnStartupSec=15s
+OnUnitActiveSec=5min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
