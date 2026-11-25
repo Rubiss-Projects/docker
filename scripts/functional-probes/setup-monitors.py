@@ -1,4 +1,4 @@
-"""Reconcile dedicated push monitors inside the existing SWAG integration environment.
+"""Reconcile functional monitors inside the existing SWAG integration environment.
 
 Run through docker exec -i swag python3 -. Output contains push credentials and
 must be redirected to a private file on BEN-SERVER.
@@ -22,9 +22,25 @@ NAMES = [
     "Last successful backup",
     "Accessory control",
     "Workflow execution",
-    "Internet reachability",
-    "External tunnel route",
 ]
+# The two former push monitors retain their IDs, history and dashboard links.
+HTTP_CHECKS = {
+    "Internet reachability": (
+        "https://connectivitycheck.gstatic.com/generate_204",
+        "204",
+        None,
+    ),
+    "Cloudflare internet reachability": (
+        "https://www.cloudflare.com/cdn-cgi/trace",
+        "200",
+        "fl=",
+    ),
+    "External tunnel route": (
+        "https://audiobookshelf.benlawson.dev/healthcheck",
+        "200",
+        "OK",
+    ),
+}
 LABEL = "Executive health · "
 client = socketio.Client()
 received = threading.Event()
@@ -87,6 +103,47 @@ try:
         if not monitor.get("pushToken"):
             raise RuntimeError("Kuma did not issue a push token")
         output[name] = {"id": monitor_id, "token": monitor["pushToken"]}
+    for name, (url, status, keyword) in HTTP_CHECKS.items():
+        label = LABEL + name
+        matches = [m for m in inventory.values() if m["name"] == label]
+        if len(matches) > 1:
+            raise RuntimeError("Ambiguous monitor: " + name)
+        fields = {
+            "name": label,
+            "type": "keyword" if keyword else "http",
+            "method": "GET",
+            "url": url,
+            "keyword": keyword,
+            "accepted_statuscodes": [status],
+            "interval": 60,
+            "retryInterval": 60,
+            "timeout": 10,
+            "maxredirects": 0,
+            "ignoreTls": False,
+            "upsideDown": False,
+            "invertKeyword": False,
+            "headers": json.dumps({"Cache-Control": "no-cache"}),
+            "pushToken": None,
+        }
+        if matches:
+            monitor = call("getMonitor", matches[0]["id"])["monitor"]
+            if monitor["type"] not in ("push", fields["type"]):
+                raise RuntimeError("Unexpected monitor type: " + name)
+            if any(monitor.get(k) != v for k, v in fields.items()):
+                call("editMonitor", {**monitor, **fields})
+            monitor_id = monitor["id"]
+        else:
+            monitor_id = call(
+                "add",
+                {
+                    **fields,
+                    "active": True,
+                    "conditions": [],
+                    "notificationIDList": {},
+                    "maxretries": 0,
+                },
+            )["monitorID"]
+        print(f"{name}: Kuma monitor {monitor_id}", file=sys.stderr)
     json.dump(output, sys.stdout)
 finally:
     client.disconnect()

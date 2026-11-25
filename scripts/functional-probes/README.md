@@ -1,8 +1,8 @@
 # Executive health probes
 
-BEN-SERVER's deployment user runs the checks every five minutes through its lingering systemd user manager. Each result goes to its own Kuma push monitor. Kuma marks a missing heartbeat down after 450 seconds. The collector uses existing application identities and reports only status or fixed diagnostics. The public tunnel check runs on a GitHub-hosted runner every twenty minutes. Its latest completed main-branch result expires after two hours.
+BEN-SERVER's deployment user runs nine application and storage checks every five minutes through its lingering systemd user manager. Each result goes to its own Kuma push monitor. Kuma marks a missing heartbeat down after 450 seconds. The collector uses existing application identities and reports only status or fixed diagnostics. Kuma monitors Google's connectivity endpoint and Cloudflare's trace endpoint every minute. One failed provider raises a warning; both down makes Network & DNS critical. A separate Kuma keyword monitor checks Audiobookshelf's public HTTPS health endpoint through Cloudflare and expects HTTP 200 with OK in the body. The observer is inside the lab, so a full home internet outage also affects its view of the public tunnel.
 
-Run the following from the native checkout to reconcile dedicated monitors and install the timer. The setup command requires SWAG's existing Kuma integration. Keep the generated file private. If a monitor was recreated, reconcile its ID in the executive dashboard before release.
+Run the following from the native checkout to reconcile the nine push and three HTTPS monitors and install the timer. The setup command requires SWAG's existing Kuma integration. Keep the generated file private. If a monitor was recreated, reconcile its ID in the executive dashboard before release.
 
 ```sh
 set -eu

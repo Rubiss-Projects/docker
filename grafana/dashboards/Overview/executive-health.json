@@ -408,13 +408,28 @@
                 "secondary": true
               },
               {
-                "name": "Internet reachability",
+                "name": "Internet reachability · Google",
                 "monitor": 259,
-                "secondary": false
+                "secondary": true
+              },
+              {
+                "name": "Internet reachability · Cloudflare",
+                "monitor": 261,
+                "secondary": true
               }
             ],
             "dependencies": [],
-            "ruleGroups": []
+            "ruleGroups": [],
+            "redundantMonitorGroups": [
+              [
+                246,
+                247
+              ],
+              [
+                259,
+                261
+              ]
+            ]
           },
           {
             "name": "Remote access",
@@ -442,7 +457,7 @@
                 "name": "cloudflared-pi container"
               },
               {
-                "name": "External tunnel route",
+                "name": "Audiobookshelf public tunnel from Kuma",
                 "monitor": 260,
                 "secondary": true
               }

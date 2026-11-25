@@ -114,10 +114,10 @@ define(['react', '@grafana/data', '@grafana/runtime'], function (React, sdk, run
       }
       const checks = indicators.map(check => assess(check, rules, samples, now, range)).sort((a,b) => b.level - a.level);
       let level = Math.max(...checks.map(c => c.level));
-      if (area.name === 'Network & DNS' && [246,247].every(id => {
+      if (area.redundantMonitorGroups?.some(group => group.every(id => {
         const probe = samples.get('kuma-' + id);
         return probe?.value === 0 && now - probe.time < 150000;
-      })) level = 2;
+      }))) level = 2;
       return { ...area, checks, level };
     });
     const area = areas.find(a => a.name === selected);
