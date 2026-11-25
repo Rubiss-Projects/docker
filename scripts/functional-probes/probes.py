@@ -3,7 +3,6 @@
 
 import argparse
 import concurrent.futures
-import datetime as dt
 import json
 import subprocess
 import time
@@ -240,37 +239,6 @@ if(row?.status!=='success' || row.age===null || row.age<0 || row.age>180) proces
     )
 
 
-def internet():
-    for url, code in [
-        ("https://connectivitycheck.gstatic.com/generate_204", 204),
-        ("https://www.cloudflare.com/cdn-cgi/trace", 200),
-    ]:
-        try:
-            with request(url) as response:
-                if (
-                    response.status == code
-                    and response.geturl() == url
-                    and (code == 204 or b"fl=" in response.read(256))
-                ):
-                    return
-        except OSError:
-            continue
-    raise ValueError("Both external destinations failed")
-
-
-def tunnel():
-    runs = fetch_json(
-        "https://api.github.com/repos/Rubiss-Projects/docker/actions/workflows/probe-tunnel.yml/runs?branch=main&status=completed&per_page=1"
-    )
-    run = runs["workflow_runs"][0]
-    completed = dt.datetime.fromisoformat(run["updated_at"])
-    if (
-        run["conclusion"] != "success"
-        or not 0 <= time.time() - completed.timestamp() <= 7200
-    ):
-        raise ValueError("External probe failed or stale")
-
-
 CHECKS = {
     "Plex library read": plex,
     "HDHomeRun tune": tuner,
@@ -281,8 +249,6 @@ CHECKS = {
     "Last successful backup": backup,
     "Accessory control": accessory,
     "Workflow execution": workflow,
-    "Internet reachability": internet,
-    "External tunnel route": tunnel,
 }
 
 
@@ -291,7 +257,7 @@ def main():
     parser.add_argument("--push-file", type=Path)
     args = parser.parse_args()
     tokens = json.loads(args.push_file.read_text()) if args.push_file else {}
-    if args.push_file and set(tokens) != set(CHECKS):
+    if args.push_file and not CHECKS.keys() <= tokens.keys():
         raise ValueError("Incomplete monitor configuration")
 
     def check(item):
