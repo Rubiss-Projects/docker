@@ -56,6 +56,54 @@ define(['react', '@grafana/data', '@grafana/runtime'], function (React, sdk, run
       row(check.job ? 1 : 2, check.job ? 'Scrape failed' : 'Mount unavailable');
   }
 
+  // The browser owns the screen lock. Reacquire it when Alexa returns to Silk.
+  function WallDisplayStatus() {
+    const [status, setStatus] = React.useState('Requesting screen wake lock');
+    const [lastHidden, setLastHidden] = React.useState(null);
+    React.useEffect(() => {
+      let mounted = true;
+      let lock;
+      let pending = false;
+      async function update() {
+        if (document.visibilityState !== 'visible') {
+          setLastHidden(new Date());
+          return;
+        }
+        if (!navigator.wakeLock) {
+          setStatus('Screen wake lock unavailable in this browser');
+          return;
+        }
+        if (pending || (lock && !lock.released)) return;
+        pending = true;
+        try {
+          const next = await navigator.wakeLock.request('screen');
+          if (!mounted) {
+            await next.release();
+            return;
+          }
+          lock = next;
+          setStatus('Screen wake lock active');
+          next.addEventListener('release', () => {
+            if (mounted && lock === next) setStatus('Screen wake lock released');
+          });
+        } catch {
+          if (mounted) setStatus('Browser declined the screen wake lock');
+        } finally {
+          pending = false;
+        }
+      }
+      update();
+      document.addEventListener('visibilitychange', update);
+      return () => {
+        mounted = false;
+        document.removeEventListener('visibilitychange', update);
+        if (lock && !lock.released) lock.release().catch(() => {});
+      };
+    }, []);
+    return h('small', {role:'status', style:{display:'block'}}, status,
+      lastHidden && ' · Last hidden at ' + lastHidden.toLocaleTimeString());
+  }
+
   function HealthPanel({ options, data, timeRange, width, height }) {
     const [rules, setRules] = React.useState(new Map());
     const selection = () => new URLSearchParams(location.search).get('var-healthArea');
@@ -137,7 +185,8 @@ define(['react', '@grafana/data', '@grafana/runtime'], function (React, sdk, run
             color:'white', border:0, padding:'0 10px', fontSize:15, fontWeight:600, lineHeight:1.2, cursor:'pointer' }
         }, a.name)))));
     };
-    return h('div', { style:{ overflow:'auto',height,padding:12 } }, area ?
+    return h('div', { style:{ overflow:'auto',height,padding:12 } },
+      new URLSearchParams(location.search).get('wall') === '1' && h(WallDisplayStatus), area ?
       h(React.Fragment,null,h('button',{type:'button',onClick:() => navigate(null)},'← All areas'),
         h('h2',{style:{marginTop:15}},area.name),
         area.dependencies.length > 0 && h('p',null,'Related health · ',area.dependencies.map((name,i) =>
