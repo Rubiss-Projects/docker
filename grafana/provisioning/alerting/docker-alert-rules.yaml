@@ -57,14 +57,14 @@ groups:
               to: 0
             datasourceUid: adw07verg2qrkd
             model:
-              # Suppress Transmission cache-only alerts below 1% memory PSI.
+              # Gate Prowlarr and Transmission on memory pressure when PSI is available.
               # Missing PSI falls back to usage-only alerting; other containers are unchanged.
               instant: true
               expr: >-
                 (container_memory_working_set_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100)
                 * on (job, instance, id) group_left()
                 (
-                  (rate(container_pressure_memory_waiting_seconds_total{name="transmission"}[5m]) > bool 0.01)
+                  (rate(container_pressure_memory_waiting_seconds_total{name=~"prowlarr|transmission"}[5m]) > bool 0.01)
                   or on (job, instance, id)
                   (0 * container_memory_working_set_bytes{name!=""} + 1)
                 )
@@ -94,7 +94,8 @@ groups:
           __dashboardUid__: fdw07wwnc7y0wa
           __panelId__: "2"
           summary: "High memory usage (working set) in container {{ $labels.name }}"
-          description: "Container {{ $labels.name }} working set is using {{ $values.B.Value | printf \"%.2f\" }}% of its memory limit. Working set includes active file cache. Transmission requires over 1% memory stall time over 5 minutes when pressure telemetry is available."
+          description: >-
+            Working-set threshold for {{ $labels.name }}: 90% for 5 minutes.{{ if or (eq $labels.name "prowlarr") (eq $labels.name "transmission") }} Also requires more than 1% memory wait time over 5 minutes when pressure data is available.{{ end }}
         labels:
           severity: warning
 
@@ -108,14 +109,14 @@ groups:
               to: 0
             datasourceUid: adw07verg2qrkd
             model:
-              # Suppress Transmission cache-only alerts below 1% memory PSI.
+              # Gate Prowlarr and Transmission on memory pressure when PSI is available.
               # Missing PSI falls back to usage-only alerting; other containers are unchanged.
               instant: true
               expr: >-
                 (container_memory_working_set_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0) * 100)
                 * on (job, instance, id) group_left()
                 (
-                  (rate(container_pressure_memory_waiting_seconds_total{name="transmission"}[5m]) > bool 0.01)
+                  (rate(container_pressure_memory_waiting_seconds_total{name=~"prowlarr|transmission"}[5m]) > bool 0.01)
                   or on (job, instance, id)
                   (0 * container_memory_working_set_bytes{name!=""} + 1)
                 )
@@ -145,7 +146,8 @@ groups:
           __dashboardUid__: fdw07wwnc7y0wa
           __panelId__: "2"
           summary: "CRITICAL memory usage in container {{ $labels.name }}"
-          description: "Container {{ $labels.name }} working set is at {{ $values.B.Value | printf \"%.2f\" }}%. Working set includes active file cache. Transmission requires over 1% memory stall time over 5 minutes when pressure telemetry is available. Inspect memory pressure and OOM events."
+          description: >-
+            Working-set threshold for {{ $labels.name }}: 98% for 2 minutes.{{ if or (eq $labels.name "prowlarr") (eq $labels.name "transmission") }} Also requires more than 1% memory wait time over 5 minutes when pressure data is available.{{ end }}
         labels:
           severity: critical
 

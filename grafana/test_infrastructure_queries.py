@@ -94,6 +94,10 @@ def fixture():
                  [usage, limit], [(labels, 99)]),
             case('Old container PSI cannot suppress replacement: ' + uid, uid,
                  [usage, limit, (pressure.replace('current', 'old'), 0)], [(labels, 99)]),
+            case('Prowlarr high usage without pressure: ' + uid, uid,
+                 [(key.replace('transmission', 'prowlarr'), value)
+                  for key, value in [usage, limit, (pressure, 0)]],
+                 [(labels.replace('transmission', 'prowlarr'), 0)]),
             case('Other containers unchanged: ' + uid, uid,
                  [(key.replace('transmission', 'sonarr'), value)
                   for key, value in [usage, limit, (pressure, 0)]],
