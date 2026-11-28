@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://schemas.recyclarr.dev/latest/config-schema.json
 
 # TRaSH Guides sync configuration
-# Runs daily via CRON_SCHEDULE to keep Radarr/Sonarr in sync with TRaSH recommendations
+# Runs daily on the server schedule to keep Radarr/Sonarr in sync with TRaSH recommendations
 # Docs: https://recyclarr.dev/reference/configuration/
 
 radarr:
@@ -22,21 +22,25 @@ radarr:
     quality_profiles:
       # HD Bluray + WEB — 6-15 GB per movie
       - trash_id: d1d67249d3890e49bc12e275d989a7e9
+        language: English
         upgrade:
           allowed: false
         reset_unmatched_scores:
           enabled: true
       - trash_id: 9ca12ea80aa55ef916e3751f4b874151 # Remux + WEB 1080p
+        language: English
         upgrade:
           allowed: false
         reset_unmatched_scores:
           enabled: true
       - trash_id: 64fb5f9858489bdac2af690e27c8f42f # UHD Bluray + WEB
+        language: English
         upgrade:
           allowed: false
         reset_unmatched_scores:
           enabled: true
       - trash_id: fd161a61e3ab826d3a22d53f935696dd # Remux + WEB 2160p
+        language: English
         upgrade:
           allowed: false
         reset_unmatched_scores:

@@ -4,9 +4,11 @@
 # For the settings file reference guide, visit the link to the wiki below:
 # https://recyclarr.dev/reference/settings/
 
-# Recyclarr 8 cannot override Radarr profile language in the instance YAML.
-# Supplemental profiles preserve English movie audio and existing UHD quality.
+server:
+  schedule:
+    cron: "0 0 * * *"
+
 resource_providers:
-  - name: english-movie-policy
+  - name: quality-ordering
     type: trash-guides
     path: /config/overrides

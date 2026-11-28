@@ -7,7 +7,8 @@ services:
       - ./config:/config
     environment:
       - TZ=America/Chicago
-      - CRON_SCHEDULE=@daily
+    env_file:
+      - .env.secret
     restart: unless-stopped
     networks:
       - proxynet
