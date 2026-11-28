@@ -8,7 +8,8 @@ services:
     environment:
       - TZ=America/Chicago
     env_file:
-      - .env.secret
+      - path: .env.secret
+        required: false
     restart: unless-stopped
     networks:
       - proxynet
