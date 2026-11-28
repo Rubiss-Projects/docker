@@ -70,21 +70,14 @@ need verification after import because release names cannot prove their presence
 
 ## Profile overrides
 
-Recyclarr 8.8.1 cannot override a guide-backed profile's language in YAML. The
-supplemental resources in `config/overrides/radarr` copy the four regular movie
-profiles and change only `language` from `Original` to `English`. This avoids
-rejecting English dubs of foreign films or resetting the policy on the daily sync.
-Custom formats, scores and default groups continue to sync from upstream.
+The four regular Radarr movie profiles set `language: English` in the instance
+configuration. Their quality ordering follows the upstream guide profiles.
 
-The profile snapshots come from TRaSH Guides commit
-`fa08c05a7471111ab4451280d6a727d1ae83b8af` (2026-11-15). When refreshing these
-overrides, compare each file against its upstream counterpart in
-`docs/json/{radarr,sonarr}/quality-profiles/`. Preserve only the English language
-differences for regular Radarr profiles, disabled UHD placement for Radarr's
-anime profile, and the `Bluray-2160p` placement for Sonarr. Their quality
-ordering is a snapshot until that refresh. Remove the regular-movie language
-overrides when Recyclarr supports a language setting directly; retain the
-quality-preservation overrides while the upstream order would permit downgrades.
+The Radarr anime and Sonarr UHD overrides preserve local quality ordering.
+They come from TRaSH Guides commit
+`fa08c05a7471111ab4451280d6a727d1ae83b8af` (2026-11-15). When refreshing
+them, preserve the disabled UHD placement for Radarr anime and the
+`Bluray-2160p` placement for Sonarr.
 
 ## Assign profiles without quality downgrades
 
